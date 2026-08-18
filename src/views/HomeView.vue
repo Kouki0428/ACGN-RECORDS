@@ -15,22 +15,15 @@ import type { EpisodeCell } from '@/components/EpisodeGrid.vue'
 const { open: openSubject } = useEntityCard()
 
 // 主页卡片在窗口缩放/侧栏收起跨列数断点时平滑过渡（与动画列表一致）。
-// useGridResizeFlip 方案二（JS 轨道插值 + 位移 FLIP 错峰）：
-//  - 轨道插值：rAF 逐帧 lerp grid-template-columns → 卡片宽度永远等于轨道宽
-//    （不溢出/不留白），同行卡片水平随轨道边界连续移动（同向同步，整齐呼吸）；
-//  - 仅「位置变化的卡片」（跨行/跨列，数量少）做位移 FLIP + 错峰归位——
-//    保留位移动感、但有序不混乱；可中途打断 + 反向；同列区间瞬时跟手；
-// 尊重 prefers-reduced-motion（系统“减少动态效果”时自动禁用动画）。
+// 由 useGridResizeFlip 统一驱动：卡片「位置平移 + 宽度渐变」按同一节奏同步
+// （直接设置卡片 inline width 逐帧追向自然列宽，而非 transform:scale）→
+// 封面/标题/格子字号等内部内容像素尺寸恒定、不随动画放大缩小/变形，且宽度与位置完全匹配。
 // 观察 .home（始终存在、其宽度变化驱动 auto-fill 列数），而非可能延迟渲染的 .home-cards，
 // 避免首屏卡片异步加载时 ResizeObserver 容器为 null 而挂不上、导致“无动画”。
-// 封面/标题/格子为固定尺寸，不随窗口尺寸变化、不变形、不重叠。
 // 尊重 prefers-reduced-motion（系统“减少动态效果”时自动禁用动画）。
-// 观察 .home（始终存在、其宽度变化驱动 auto-fill 列数），而非可能延迟渲染的 .home-cards，
-// 避免首屏卡片异步加载时 ResizeObserver 容器为 null 而挂不上、导致“无动画”。
 useGridResizeFlip({
   containerSelector: '.home',
   cardSelector: '.hcard',
-  animateSize: false, // 仅位置平移：封面/内部格子/标题字号保持自然尺寸，不参与缩放
 })
 
 // —— 主页三个子分类 ——
@@ -412,8 +405,8 @@ onMounted(() => {
    minmax(min(360px, calc(50% - 8px)), 1fr)：下限取「360px」与「容器一半减半个 gap」
    的较小者——容器 ≥ 736px 时按 360px 逐列增列（连续自适应）；容器 < 736px 时
    下限 = calc(50% - 8px)，2×(50%-8px)+16px = 100%，永远放得下 2 列 → 永不退化单列。
-   列数增减的平滑过渡由 useGridResizeFlip 负责：卡片仅做位置平移（translate dx+dy 同步斜线移动），
-   封面/内部格子/标题字号保持各自自然尺寸、不参与缩放 → 无“竖直出入”/无跳变、不变形。 */
+   列数增减的平滑过渡由 useGridResizeFlip 负责：卡片「位置平移 + 宽度渐变」按同一节奏同步（直接设 inline width，
+   非 transform:scale）→ 封面/内部格子/标题字号保持各自自然像素尺寸、绝不随动画放大缩小/变形，且宽度与位置完全匹配。 */
 .home-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(360px, calc(50% - 8px)), 1fr));
@@ -440,8 +433,8 @@ onMounted(() => {
   border-color: var(--accent-2);
 }
 /* 内层包裹：封面 + 正文的 flex 行容器（封面 flex-shrink:0 固定、正文 flex:1 随卡片变宽）。
-   窗口缩放换列走 width 模式（composable 不设 transform，此层仅作普通布局容器）；
-   仅边栏收起/展开（toggleSidebar）会对其反向缩放以抵消整卡 scale，避免内容变形。 */
+   窗口缩放/侧栏收起换列由 useGridResizeFlip 的「位置平移 + 宽度渐变」驱动（直接设卡片 inline width，
+   非 transform:scale）→ 此层仅作普通布局容器，内部内容像素尺寸恒定、不变形。 */
 .hcard-inner {
   flex: 1;
   display: flex;
