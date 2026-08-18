@@ -17,8 +17,9 @@ import { useSettingsStore } from '@/stores/settings'
 //   网格始终自然 auto-fill；只让【卡片位置】靠 transform 逐帧惯性追向「当前真实自然布局」。
 //   - 列数一变（3↔2↔6）：所有卡片的自然位置都变了 → 全部 translate 平滑滑动 = 必有可见中间过程。
 //   - 网格始终自然 auto-fill（不进 0 宽列）→ 卡片「布局」宽高永远正确（EpisodeGrid 不换行爆炸）；
-//     视觉尺寸靠 transform:scale（【等比】、仅随宽度、origin=左上）与位置同 K 追向 → 缩放与移动同一节奏、不脱节，
+//     视觉尺寸（默认）靠 transform:scale（【等比】、仅随宽度、origin=左上）与位置同 K 追向 → 缩放与移动同一节奏、不脱节，
 //     且【封面/标题/内部格子比例全程不变】（绝不非等比缩放 → 不拉伸变形）。
+//     可选 animateSize=false：完全不做尺寸缩放，仅位置平移 → 封面/内部格子/标题字号保持各自自然尺寸（首页卡片适用）。
 //   - 列数中途多次变化（连续拖拽 3→2→1）：tick 每帧把目标刷新为最新 natural，起点=上一帧视觉，
 //     跨度恒为「上一帧视觉→最新目标」→ 平滑连续、跟手、永不乱飞、永不跳列。
 //   - 起点(First) = 上一帧自然布局(lastRects)；目标(Last) = 当前自然布局(natural)。
@@ -41,6 +42,9 @@ export interface GridResizeFlipOptions {
   cardSelector?: string
   /** 追向比例 K（每帧追向目标的 0~1 比例，越大越跟手；默认 0.3） */
   chaseK?: number
+  /** 是否对卡片做尺寸动画（transform:scale 等比追向）。
+   *  false = 仅位置平移：封面/内部格子/标题字号保持各自自然尺寸、不参与缩放（适合首页卡片，避免封面与文字被放大缩小）。默认 true。 */
+  animateSize?: boolean
 }
 
 const CONVERGE = 0.6 // 收敛阈值 px（最大位移 < 此值即落位）
@@ -49,6 +53,7 @@ const OFFSCREEN = 80 // 屏幕外缓冲 px
 export function useGridResizeFlip(options?: GridResizeFlipOptions) {
   const containerSelector = options?.containerSelector ?? '.content'
   const cardSelector = options?.cardSelector ?? '.card'
+  const animateSize = options?.animateSize ?? true
   const settings = useSettingsStore()
   // 速度滑条语义：0 = 最快（左），1 = 最慢（右），默认 0.2（偏快）。
   // 滑条值 s∈[0,1] 反相映射到追向比例 K：s=0(快)→K=0.55，s=1(慢)→K=0.03（更慢），s=0.2(默认)→K≈0.45（跟手快）。
@@ -277,28 +282,41 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
         next.set(c, new DOMRect(nl, nt, r.width, r.height))
         continue
       }
-      // 位置按 K 追向「当前自然布局」；尺寸用【等比 scale】追向（仅基于宽度，高随宽等比），
-      // 绝不非等比缩放 → 封面/标题/内部格子比例全程不变（不拉伸变形）。缩放与移动同一节奏、不脱节。
+      // 位置按 K 追向「当前自然布局」；尺寸是否追向取决于 animateSize：
+      //  - animateSize=true：等比 scale（仅随宽度）追向 → 缩放与移动同节奏（封面/格子比例不变、不拉伸）。
+      //  - animateSize=false：仅位置平移 → 封面/内部格子/标题字号保持自然尺寸、不参与缩放（首页卡片用）。
       const nw = r.width
       const nh = r.height
       const prev = visRects.get(c)
       const pTop = (prev ? prev.top : nt) - delta
       const pLeft = prev ? prev.left : nl
-      const pW = prev ? prev.width : nw
       const cl = pLeft + (nl - pLeft) * K
       const ct = pTop + (nt - pTop) * K
-      const cw = pW + (nw - pW) * K // 追向宽度（驱动等比缩放）
-      next.set(c, new DOMRect(cl, ct, cw, nh))
       const dx = cl - nl
       const dy = ct - nt
-      const s = nw ? cw / nw : 1 // 等比缩放因子（宽高一致 → 不扭曲内部比例）
-      maxDiff = Math.max(maxDiff, Math.hypot(dx, dy), Math.abs(cw - nw))
-      if (Math.abs(dx) < 0.4 && Math.abs(dy) < 0.4 && Math.abs(cw - nw) < 0.4) {
-        c.style.transform = ''
-        c.style.zIndex = ''
+      if (animateSize) {
+        const pW = prev ? prev.width : nw
+        const cw = pW + (nw - pW) * K // 追向宽度（驱动等比缩放）
+        next.set(c, new DOMRect(cl, ct, cw, nh))
+        const s = nw ? cw / nw : 1 // 等比缩放因子（宽高一致 → 不扭曲内部比例）
+        maxDiff = Math.max(maxDiff, Math.hypot(dx, dy), Math.abs(cw - nw))
+        if (Math.abs(dx) < 0.4 && Math.abs(dy) < 0.4 && Math.abs(cw - nw) < 0.4) {
+          c.style.transform = ''
+          c.style.zIndex = ''
+        } else {
+          c.style.transform = `translate(${dx}px, ${dy}px) scale(${s})`
+          c.style.zIndex = '5'
+        }
       } else {
-        c.style.transform = `translate(${dx}px, ${dy}px) scale(${s})`
-        c.style.zIndex = '5'
+        next.set(c, new DOMRect(cl, ct, nw, nh))
+        maxDiff = Math.max(maxDiff, Math.hypot(dx, dy))
+        if (Math.abs(dx) < 0.4 && Math.abs(dy) < 0.4) {
+          c.style.transform = ''
+          c.style.zIndex = ''
+        } else {
+          c.style.transform = `translate(${dx}px, ${dy}px)`
+          c.style.zIndex = '5'
+        }
       }
     }
     visRects = next
@@ -371,19 +389,28 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
     }
     if (anchorEl) anchorVpTarget = lastRects.get(anchorEl)!.top
     visRects = new Map(lastRects) // 起点 = 旧布局位置
-    // 立即把卡片钉在「旧位置 + 旧宽度等比缩放」（First），避免下一帧 tick 前出现一帧自然新位置/新尺寸闪烁。
-    // 尺寸走【等比 scale】(origin=左上，仅随宽度) → 封面/标题/格子比例全程不变；与位置同步追向，缩放与移动同一节奏。
+    // 立即把卡片钉在「旧位置」（First），避免下一帧 tick 前出现一帧自然新位置闪烁。
+    // 尺寸处理取决于 animateSize：
+    //  - true：旧位置 + 旧宽度等比缩放（scale），缩放与移动同步追向、同一节奏。
+    //  - false：仅旧位置平移，封面/内部格子/标题字号保持自然尺寸、不被缩放（首页卡片）。
     for (const c of cs) {
       const v = visRects.get(c)
       const nat = natural.get(c)
       if (!v || !nat) continue
       const dx = v.left - nat.left
       const dy = v.top - nat.top
-      const s = nat.width ? v.width / nat.width : 1
-      c.style.transformOrigin = '0 0'
-      const near = Math.abs(dx) < 0.4 && Math.abs(dy) < 0.4 && Math.abs(s - 1) < 0.004
-      if (near) c.style.transform = ''
-      else c.style.transform = `translate(${dx}px, ${dy}px) scale(${s})`
+      if (animateSize) {
+        const s = nat.width ? v.width / nat.width : 1
+        c.style.transformOrigin = '0 0'
+        const near = Math.abs(dx) < 0.4 && Math.abs(dy) < 0.4 && Math.abs(s - 1) < 0.004
+        if (near) c.style.transform = ''
+        else c.style.transform = `translate(${dx}px, ${dy}px) scale(${s})`
+      } else {
+        c.style.transformOrigin = ''
+        const near = Math.abs(dx) < 0.4 && Math.abs(dy) < 0.4
+        if (near) c.style.transform = ''
+        else c.style.transform = `translate(${dx}px, ${dy}px)`
+      }
     }
     lastCols = cols
     animActive = true

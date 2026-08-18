@@ -30,6 +30,7 @@ const { open: openSubject } = useEntityCard()
 useGridResizeFlip({
   containerSelector: '.home',
   cardSelector: '.hcard',
+  animateSize: false, // 仅位置平移：封面/内部格子/标题字号保持自然尺寸，不参与缩放
 })
 
 // —— 主页三个子分类 ——
@@ -411,14 +412,14 @@ onMounted(() => {
    minmax(min(360px, calc(50% - 8px)), 1fr)：下限取「360px」与「容器一半减半个 gap」
    的较小者——容器 ≥ 736px 时按 360px 逐列增列（连续自适应）；容器 < 736px 时
    下限 = calc(50% - 8px)，2×(50%-8px)+16px = 100%，永远放得下 2 列 → 永不退化单列。
-   列数增减的平滑过渡由 useGridResizeFlip 的完整 FLIP 负责（translate dx+dy 同步
-   斜线移动 + width 渐进伸缩），水平/垂直/尺寸同一节奏，无“竖直出入”/无跳变。 */
+   列数增减的平滑过渡由 useGridResizeFlip 负责：卡片仅做位置平移（translate dx+dy 同步斜线移动），
+   封面/内部格子/标题字号保持各自自然尺寸、不参与缩放 → 无“竖直出入”/无跳变、不变形。 */
 .home-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(360px, calc(50% - 8px)), 1fr));
   gap: 16px;
-  /* 换列动画中 fromTracks 可能临时超出/窄于容器（增列溢出、减列留白），
-     裁掉溢出避免横向滚动条；非动画态 1fr 占满，clip 无副作用。 */
+  /* 换列动画中卡片可能被 transform 临时平移出界，裁掉溢出避免横向滚动条；
+     非动画态 1fr 占满，clip 无副作用。 */
   overflow-x: clip;
 }
 
