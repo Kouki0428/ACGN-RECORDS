@@ -28,6 +28,7 @@ onMounted(async () => {
   await settings.load()
   gpuLocal.value = settings.gpuAcceleration
   uiScaleLocal.value = settings.uiScale
+  gridAnimSpeedLocal.value = settings.gridAnimSpeed
   await refreshArchiveMeta()
   await refreshCacheStats()
   await loadNetworkStats()
@@ -189,6 +190,17 @@ function setUiScale(factor: number) {
   uiScaleLocal.value = f
   applyUiScale(f) // 实时预览
   void settings.set('uiScale', String(f)) // 持久化，重启后自动恢复
+}
+
+// ---------- 卡片重排动画（实时生效，无需重启） ----------
+const gridAnimSpeedLocal = ref(40)
+function onAnimSpeedInput(e: Event) {
+  const v = Number((e.target as HTMLInputElement).value)
+  gridAnimSpeedLocal.value = v
+  void settings.set('gridAnimSpeed', String(v)) // 实时持久化，重启后自动恢复
+}
+async function toggleGridAnim() {
+  await settings.set('gridAnimEnabled', settings.gridAnimEnabled ? '0' : '1')
 }
 
 // ---------- GPU 加速（启动期设置，需重启生效） ----------
@@ -464,6 +476,32 @@ async function doClearCache() {
           </button>
         </div>
         <p class="hint">实时预览，立即生效；重启应用后自动恢复。</p>
+      </div>
+
+      <hr class="divider" />
+
+      <div class="anim-control">
+        <label class="progress-editor">
+          <input type="checkbox" :checked="settings.gridAnimEnabled" @change="toggleGridAnim" />
+          卡片重排动画（窗口缩放 / 侧栏收起导致列数变化时）
+        </label>
+        <div class="scale-control" :class="{ disabled: !settings.gridAnimEnabled }">
+          <div class="scale-head">
+            <span>动画速度</span>
+            <span class="scale-val">{{ gridAnimSpeedLocal }}%</span>
+          </div>
+          <input
+            class="scale-range"
+            type="range"
+            min="0"
+            max="100"
+            step="1"
+            :value="gridAnimSpeedLocal"
+            :disabled="!settings.gridAnimEnabled"
+            @input="onAnimSpeedInput"
+          />
+          <p class="hint">左慢右快；关闭上方开关即瞬间重排、无过渡。</p>
+        </div>
       </div>
 
       <hr class="divider" />
@@ -761,6 +799,13 @@ async function doClearCache() {
 }
 .scale-presets {
   margin-top: 8px;
+}
+.anim-control {
+  margin-top: 14px;
+}
+.anim-control .scale-control.disabled {
+  opacity: 0.45;
+  pointer-events: none;
 }
 .link {
   color: var(--accent);

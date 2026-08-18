@@ -1,4 +1,5 @@
-import { onMounted, onBeforeUnmount } from 'vue'
+import { onMounted, onBeforeUnmount, watch } from 'vue'
+import { useSettingsStore } from '@/stores/settings'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 响应式网格排布动画（纯 transform FLIP / position-chase）
@@ -40,14 +41,27 @@ export interface GridResizeFlipOptions {
   chaseK?: number
 }
 
-const DEFAULT_K = 0.3
 const CONVERGE = 0.6 // 收敛阈值 px（最大位移 < 此值即落位）
 const OFFSCREEN = 80 // 屏幕外缓冲 px
 
 export function useGridResizeFlip(options?: GridResizeFlipOptions) {
   const containerSelector = options?.containerSelector ?? '.content'
   const cardSelector = options?.cardSelector ?? '.card'
-  const K = options?.chaseK ?? DEFAULT_K
+  const settings = useSettingsStore()
+  // 速度滑条(0~100) → 追向比例 K(0.12~0.57)；显式传入 chaseK 时优先（测试/特殊场景）。
+  // 默认 40 → K=0.30，与旧的默认手感一致。滑条实时映射到 K（tick 每帧读 getK）。
+  function getK(): number {
+    if (options?.chaseK != null) return options.chaseK
+    const s = Math.min(100, Math.max(0, settings.gridAnimSpeed ?? 40))
+    return 0.12 + (s / 100) * 0.45
+  }
+  // 用户在设置中关闭动画开关时，若正在动画则立即落位（静默跟手停止）。
+  watch(
+    () => settings.gridAnimEnabled,
+    (on) => {
+      if (!on && animActive) finish()
+    }
+  )
 
   let container: HTMLElement | null = null
   let ro: ResizeObserver | null = null
@@ -202,6 +216,7 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
   // 滚动锚定：长列表滚到底缩放跨列时，网格整体重组会改变 scrollTop 对应的可见内容 →
   //   每帧微调滚动容器 scrollTop 让「锚点卡片」停在视口原位置，阅读位置不丢、不再整批重排。
   function tick() {
+    const K = getK() // 每帧读取最新速度（滑条实时生效）
     const cs = cards()
     if (!cs.length) {
       finish()
@@ -310,8 +325,9 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
       return
     }
 
-    // 跨列：以「上一帧自然布局」作起点（First=lastRects），目标=当前自然（Last）
-    if (reduceMotion) {
+    // 关闭动画（用户开关 / 系统 reduce-motion）：直接跟随自然流，无 FLIP、无过渡。
+    if (!settings.gridAnimEnabled || reduceMotion) {
+      if (animActive) finish()
       lastRects = natural
       lastCols = cols
       return

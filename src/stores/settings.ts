@@ -19,6 +19,9 @@ export const useSettingsStore = defineStore('settings', () => {
   // 界面缩放系数（浏览器式 zoom，1 = 100%）。作用于整个渲染窗口，实时生效、无需重启。
   // 默认 1；持久化到 settings 表 uiScale 键，启动入口（src/main.ts）按其重新应用。
   const uiScale = ref(1)
+  // 卡片重排动画（窗口缩放/侧栏收起导致列数变化时）：总开关 + 速度（0~100 映射到追向比例 K）。
+  const gridAnimEnabled = ref(true)
+  const gridAnimSpeed = ref(40)
   // 是否已初始化：主题仅在首次（应用启动）应用一次，之后进入设置页不再重播切换动画
   let initialized = false
 
@@ -45,6 +48,8 @@ export const useSettingsStore = defineStore('settings', () => {
       }
       if (r.key === 'gpuAcceleration') gpuAcceleration.value = r.value === '1'
       if (r.key === 'uiScale') uiScale.value = parseFloat(r.value) || 1
+      if (r.key === 'gridAnimEnabled') gridAnimEnabled.value = r.value !== '0'
+      if (r.key === 'gridAnimSpeed') gridAnimSpeed.value = parseInt(r.value, 10) || 40
       if (r.key === 'tmdb_api_key') tmdbKey.value = r.value
       if (r.key === 'vndb_token') vndbToken.value = r.value
       if (r.key === 'proxy') proxy.value = r.value
@@ -66,8 +71,10 @@ export const useSettingsStore = defineStore('settings', () => {
       // + applyTheme 的 onCovered 回调），避免在旧主题界面闪现一帧高亮跳变
     }
     if (key === 'gpuAcceleration') gpuAcceleration.value = value === '1'
-    if (key === 'uiScale') uiScale.value = parseFloat(value) || 1
-    if (key === 'tmdb_api_key') tmdbKey.value = value
+      if (key === 'uiScale') uiScale.value = parseFloat(value) || 1
+      if (key === 'gridAnimEnabled') gridAnimEnabled.value = value !== '0'
+      if (key === 'gridAnimSpeed') gridAnimSpeed.value = parseInt(value, 10) || 40
+      if (key === 'tmdb_api_key') tmdbKey.value = value
     if (key === 'vndb_token') vndbToken.value = value
     if (key === 'proxy') proxy.value = value
   }
@@ -78,5 +85,5 @@ export const useSettingsStore = defineStore('settings', () => {
     theme.value = v
   }
 
-  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, gpuAcceleration, uiScale, tmdbKey, vndbToken, proxy, load, set, commitTheme }
+  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, load, set, commitTheme }
 })
