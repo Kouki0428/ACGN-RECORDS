@@ -1,0 +1,23 @@
+# Conventional Commits 提交信息模板
+# 格式：<type>(<scope>): <subject>
+# 示例：
+#   feat(home): 新增卡片悬浮预览
+#   fix(sync): 修复 Bangumi 评分清零误删问题
+#   chore: 更新依赖
+#
+# type 类型：
+#   feat     新功能
+#   fix      修复 bug
+#   docs     文档变更
+#   style    代码格式（不影响运行逻辑）
+#   refactor 重构（既非新功能也非修 bug）
+#   perf     性能优化
+#   test     测试相关
+#   build    构建/依赖/工具链变动
+#   chore    杂务（其它不属于上面的改动）
+#   revert   回滚某次提交
+#
+# 规则：
+#   - subject 用祈使句、小写开头、不加句号、简洁说明「做了什么」
+#   - 空一行后可写 body：说明「为什么」和「具体改动」（可选）
+#   - scope 可省略（如 chore: 更新依赖）
