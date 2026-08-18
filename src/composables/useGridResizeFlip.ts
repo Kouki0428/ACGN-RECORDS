@@ -49,12 +49,12 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
   const cardSelector = options?.cardSelector ?? '.card'
   const settings = useSettingsStore()
   // 速度滑条语义：0 = 最快（左），1 = 最慢（右），默认 0.2（偏快）。
-  // 滑条值 s∈[0,1] 反相映射到追向比例 K：s=0(快)→K=0.55，s=1(慢)→K=0.06（更慢），s=0.2(默认)→K≈0.45（跟手快）。
+  // 滑条值 s∈[0,1] 反相映射到追向比例 K：s=0(快)→K=0.55，s=1(慢)→K=0.03（更慢），s=0.2(默认)→K≈0.45（跟手快）。
   // 滑条实时映射到 K（tick 每帧读 getK）；显式传入 chaseK 时优先（测试/特殊场景）。
   function getK(): number {
     if (options?.chaseK != null) return options.chaseK
     const s = Math.min(1, Math.max(0, settings.gridAnimSpeed ?? 0.2))
-    return 0.55 - s * 0.49
+    return 0.55 - s * 0.52
   }
   // 用户在设置中关闭动画开关时，若正在动画则立即落位（静默跟手停止）。
   watch(
