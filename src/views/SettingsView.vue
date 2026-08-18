@@ -193,7 +193,8 @@ function setUiScale(factor: number) {
 }
 
 // ---------- 卡片重排动画（实时生效，无需重启） ----------
-const gridAnimSpeedLocal = ref(40)
+// 滑条语义：0 = 最快（左），1 = 最慢（右），默认 0.2（偏快）。
+const gridAnimSpeedLocal = ref(0.2)
 function onAnimSpeedInput(e: Event) {
   const v = Number((e.target as HTMLInputElement).value)
   gridAnimSpeedLocal.value = v
@@ -480,32 +481,6 @@ async function doClearCache() {
 
       <hr class="divider" />
 
-      <div class="anim-control">
-        <label class="progress-editor">
-          <input type="checkbox" :checked="settings.gridAnimEnabled" @change="toggleGridAnim" />
-          卡片重排动画（窗口缩放 / 侧栏收起导致列数变化时）
-        </label>
-        <div class="scale-control" :class="{ disabled: !settings.gridAnimEnabled }">
-          <div class="scale-head">
-            <span>动画速度</span>
-            <span class="scale-val">{{ gridAnimSpeedLocal }}%</span>
-          </div>
-          <input
-            class="scale-range"
-            type="range"
-            min="0"
-            max="100"
-            step="1"
-            :value="gridAnimSpeedLocal"
-            :disabled="!settings.gridAnimEnabled"
-            @input="onAnimSpeedInput"
-          />
-          <p class="hint">左慢右快；关闭上方开关即瞬间重排、无过渡。</p>
-        </div>
-      </div>
-
-      <hr class="divider" />
-
       <label class="progress-editor">
         <input type="checkbox" :checked="gpuLocal" @change="toggleGpu" />
         启用 GPU 硬件加速
@@ -516,6 +491,39 @@ async function doClearCache() {
       <div class="row" v-if="gpuNeedsRestart">
         <span class="warn-text">GPU 加速设置已更改，需重启应用生效：</span>
         <button class="btn btn--accent" @click="restartApp">立即重启</button>
+      </div>
+    </section>
+
+    <!-- 动画 -->
+    <section class="panel">
+      <h2>动画</h2>
+      <p class="hint">控制主页 / 长列表卡片在窗口缩放、侧栏收起导致列数变化时的重排过渡。</p>
+      <div class="anim-control">
+        <label class="progress-editor">
+          <input type="checkbox" :checked="settings.gridAnimEnabled" @change="toggleGridAnim" />
+          卡片重排动画（窗口缩放 / 侧栏收起导致列数变化时）
+        </label>
+        <div class="scale-control" :class="{ disabled: !settings.gridAnimEnabled }">
+          <div class="scale-head">
+            <span>动画速度</span>
+            <span class="scale-val">{{ Math.round(gridAnimSpeedLocal * 100) }}%</span>
+          </div>
+          <input
+            class="scale-range"
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            :value="gridAnimSpeedLocal"
+            :disabled="!settings.gridAnimEnabled"
+            @input="onAnimSpeedInput"
+          />
+          <div class="scale-ends">
+            <span>快</span>
+            <span>慢</span>
+          </div>
+          <p class="hint">左快右慢；关闭上方开关即瞬间重排、无过渡。</p>
+        </div>
       </div>
     </section>
 
@@ -799,6 +807,13 @@ async function doClearCache() {
 }
 .scale-presets {
   margin-top: 8px;
+}
+.scale-ends {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-dim);
+  font-size: 12px;
+  margin-top: 2px;
 }
 .anim-control {
   margin-top: 14px;

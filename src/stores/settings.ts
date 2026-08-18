@@ -19,9 +19,11 @@ export const useSettingsStore = defineStore('settings', () => {
   // 界面缩放系数（浏览器式 zoom，1 = 100%）。作用于整个渲染窗口，实时生效、无需重启。
   // 默认 1；持久化到 settings 表 uiScale 键，启动入口（src/main.ts）按其重新应用。
   const uiScale = ref(1)
-  // 卡片重排动画（窗口缩放/侧栏收起导致列数变化时）：总开关 + 速度（0~100 映射到追向比例 K）。
+  // 卡片重排动画（窗口缩放/侧栏收起导致列数变化时）：总开关 + 速度。
+  // 速度滑条语义：0 = 最快（左），1 = 最慢（右），默认 0.2（偏快）。
+  // 该 0~1 值经 useGridResizeFlip.getK() 反相映射到追向比例 K（0=快→K≈0.55，1=慢→K≈0.12）。
   const gridAnimEnabled = ref(true)
-  const gridAnimSpeed = ref(40)
+  const gridAnimSpeed = ref(0.2)
   // 是否已初始化：主题仅在首次（应用启动）应用一次，之后进入设置页不再重播切换动画
   let initialized = false
 
@@ -49,7 +51,15 @@ export const useSettingsStore = defineStore('settings', () => {
       if (r.key === 'gpuAcceleration') gpuAcceleration.value = r.value === '1'
       if (r.key === 'uiScale') uiScale.value = parseFloat(r.value) || 1
       if (r.key === 'gridAnimEnabled') gridAnimEnabled.value = r.value !== '0'
-      if (r.key === 'gridAnimSpeed') gridAnimSpeed.value = parseInt(r.value, 10) || 40
+      if (r.key === 'gridAnimSpeed') {
+        const v = parseFloat(r.value)
+        // 兼容旧版 0~100 量纲（旧值越大越快）：反相映射到新 0~1（0=快）。
+        gridAnimSpeed.value = isFinite(v)
+          ? v > 1
+            ? Math.min(1, Math.max(0, 1 - v / 100))
+            : v
+          : 0.2
+      }
       if (r.key === 'tmdb_api_key') tmdbKey.value = r.value
       if (r.key === 'vndb_token') vndbToken.value = r.value
       if (r.key === 'proxy') proxy.value = r.value
@@ -73,7 +83,10 @@ export const useSettingsStore = defineStore('settings', () => {
     if (key === 'gpuAcceleration') gpuAcceleration.value = value === '1'
       if (key === 'uiScale') uiScale.value = parseFloat(value) || 1
       if (key === 'gridAnimEnabled') gridAnimEnabled.value = value !== '0'
-      if (key === 'gridAnimSpeed') gridAnimSpeed.value = parseInt(value, 10) || 40
+      if (key === 'gridAnimSpeed') {
+        const v = parseFloat(value)
+        gridAnimSpeed.value = isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.2
+      }
       if (key === 'tmdb_api_key') tmdbKey.value = value
     if (key === 'vndb_token') vndbToken.value = value
     if (key === 'proxy') proxy.value = value
