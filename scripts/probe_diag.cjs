@@ -1,0 +1,5 @@
+const e = require('electron')
+console.log('process.type =', process.type)
+console.log('electron keys =', Object.keys(e).slice(0, 40).join(','))
+console.log('has app =', !!e.app, 'has ipcRenderer =', !!e.ipcRenderer)
+process.exit(0)

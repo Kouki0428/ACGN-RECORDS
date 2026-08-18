@@ -1,0 +1,25 @@
+# electron-builder 配置（Windows 目标，NSIS 安装包）
+appId: com.acgnrecords.app
+productName: ACGN Records
+copyright: Copyright © 2026
+
+directories:
+  output: release
+  buildResources: resources
+
+files:
+  - dist
+  - dist-electron
+
+win:
+  target:
+    - nsis
+  artifactName: ${productName}-${version}-setup.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+
+# native 模块需在打包前用 electron-rebuild 重编译（见 package.json 的 rebuild:sqlite）

@@ -1,0 +1,28 @@
+node_modules
+dist
+dist-electron
+release
+*.log
+.DS_Store
+*.db
+*.db-shm
+*.db-wal
+.vite
+
+# 开发期残留 electron PID 记录（kill-stale 脚本用）
+.electron-dev.pid
+
+# ── 构建 / 类型检查产物 ──
+dist-tsc/
+tsconfig.node.tsbuildinfo
+vite.config.d.ts
+vite.config.js
+
+# ── 打包 / 临时 / 测试残留 ──
+bundle.js
+tmp/
+dev/
+.tmp_archive_test/
+
+# ── 本地工作记忆与自动化（machine-local，不纳入版本控制）──
+.workbuddy/

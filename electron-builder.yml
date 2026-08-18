@@ -1,0 +1,39 @@
+# Electron Builder 配置
+# 目标：产出「绿色版 / 便携版」——一个解压即用的程序文件夹，数据写在 exe 同级，
+# 整个文件夹可随意拷贝、放到 U 盘，不写入系统 %APPDATA%。
+
+appId: com.yhq18.acgn-records
+productName: ACGN Records
+copyright: Copyright © 2026 yhq18
+
+directories:
+  # 打包输出目录
+  output: release
+  # 资源目录（图标等，缺省时使用 Electron 默认图标，不影响功能）
+  buildResources: build
+
+# 纳入分发包的文件（其余由 electron-builder 按 dependencies 自动收集 + 重编原生模块）
+files:
+  - dist-electron/**/*
+  - dist/**/*
+  - package.json
+  # 排除 sourcemap，减小体积
+  - "!**/*.map"
+
+# 原生模块 better-sqlite3 需要在打包时按 Electron 的 ABI 重新编译（默认开启）
+npmRebuild: true
+
+win:
+  # dir = 解压即用的文件夹（绿色版）。不要用 portable（单 exe 自解压到临时目录，
+  # 数据会随临时目录被清理而丢失）。
+  target:
+    - dir
+  artifactName: ${productName}-${version}-win-portable
+
+mac:
+  target:
+    - dir
+
+linux:
+  target:
+    - dir
