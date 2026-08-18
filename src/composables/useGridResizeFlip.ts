@@ -16,7 +16,8 @@ import { useSettingsStore } from '@/stores/settings'
 // 正确做法（业界真正稳健的网格动画）：
 //   网格始终自然 auto-fill；只让【卡片位置】靠 transform 逐帧惯性追向「当前真实自然布局」。
 //   - 列数一变（3↔2↔6）：所有卡片的自然位置都变了 → 全部 translate 平滑滑动 = 必有可见中间过程。
-//   - 卡片宽度/高度永远是自然正确值（不进 0 宽列、EpisodeGrid 不换行爆炸）→ 无高度突变。
+//   - 网格始终自然 auto-fill（不进 0 宽列）→ 卡片「布局」宽高永远正确（EpisodeGrid 不换行爆炸）；
+//     视觉尺寸靠 transform:scale（origin=左上）与位置同 K 追向 → 缩放与移动同一节奏、不脱节（无尺寸瞬跳）。
 //   - 列数中途多次变化（连续拖拽 3→2→1）：tick 每帧把目标刷新为最新 natural，起点=上一帧视觉，
 //     跨度恒为「上一帧视觉→最新目标」→ 平滑连续、跟手、永不乱飞、永不跳列。
 //   - 起点(First) = 上一帧自然布局(lastRects)；目标(Last) = 当前自然布局(natural)。
@@ -192,6 +193,7 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
       if (!c.isConnected) return
       c.style.transition = ''
       c.style.transform = ''
+      c.style.transformOrigin = ''
       c.style.zIndex = ''
     })
     animActive = false
@@ -274,21 +276,29 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
         next.set(c, new DOMRect(nl, nt, r.width, r.height))
         continue
       }
-      // prev 上一帧渲染位置（post-scroll 帧）；本帧滚动变了 delta → 平移回当前 post-scroll 帧
+      // 位置与尺寸同时按 K 追向「当前自然布局」→ 缩放与移动同一节奏、不脱节。
+      const nw = r.width
+      const nh = r.height
       const prev = visRects.get(c)
       const pTop = (prev ? prev.top : nt) - delta
       const pLeft = prev ? prev.left : nl
+      const pW = prev ? prev.width : nw
+      const pH = prev ? prev.height : nh
       const cl = pLeft + (nl - pLeft) * K
       const ct = pTop + (nt - pTop) * K
-      next.set(c, new DOMRect(cl, ct, r.width, r.height))
+      const cw = pW + (nw - pW) * K
+      const ch = pH + (nh - pH) * K
+      next.set(c, new DOMRect(cl, ct, cw, ch))
       const dx = cl - nl
       const dy = ct - nt
-      maxDiff = Math.max(maxDiff, Math.hypot(dx, dy))
-      if (Math.abs(dx) < 0.4 && Math.abs(dy) < 0.4) {
+      const sx = nw ? cw / nw : 1
+      const sy = nh ? ch / nh : 1
+      maxDiff = Math.max(maxDiff, Math.hypot(dx, dy), Math.abs(cw - nw), Math.abs(ch - nh))
+      if (Math.abs(dx) < 0.4 && Math.abs(dy) < 0.4 && Math.abs(cw - nw) < 0.4 && Math.abs(ch - nh) < 0.4) {
         c.style.transform = ''
         c.style.zIndex = ''
       } else {
-        c.style.transform = `translate(${dx}px, ${dy}px)`
+        c.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`
         c.style.zIndex = '5'
       }
     }
@@ -362,15 +372,20 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
     }
     if (anchorEl) anchorVpTarget = lastRects.get(anchorEl)!.top
     visRects = new Map(lastRects) // 起点 = 旧布局位置
-    // 立即把卡片钉在「旧位置」（First），避免下一帧 tick 前出现一帧自然新位置闪烁
+    // 立即把卡片钉在「旧位置 + 旧尺寸」（First），避免下一帧 tick 前出现一帧自然新位置/新尺寸闪烁。
+    // 尺寸也走 transform:scale（origin=左上）与位置同步追向，使「缩放」与「移动」同一节奏、不脱节。
     for (const c of cs) {
       const v = visRects.get(c)
       const nat = natural.get(c)
       if (!v || !nat) continue
       const dx = v.left - nat.left
       const dy = v.top - nat.top
-      if (Math.abs(dx) < 0.4 && Math.abs(dy) < 0.4) c.style.transform = ''
-      else c.style.transform = `translate(${dx}px, ${dy}px)`
+      const sx = nat.width ? v.width / nat.width : 1
+      const sy = nat.height ? v.height / nat.height : 1
+      c.style.transformOrigin = '0 0'
+      const near = Math.abs(dx) < 0.4 && Math.abs(dy) < 0.4 && Math.abs(sx - 1) < 0.004 && Math.abs(sy - 1) < 0.004
+      if (near) c.style.transform = ''
+      else c.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`
     }
     lastCols = cols
     animActive = true
