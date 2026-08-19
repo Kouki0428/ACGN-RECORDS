@@ -127,6 +127,9 @@ function cellClass(ep: EpisodeCell): string {
 // 的层叠上下文；定位用 position:fixed + 实时 getBoundingClientRect（视口坐标），
 // 因此页面（主内容区 / 作品悬浮窗内部）无论由哪个滚动容器滚动，都能通过
 // 捕获阶段的 scroll 监听 + 重算让它牢牢贴在对应格子旁、跟随滑动。
+// 另有一路「悬浮卡可见期间常驻 rAF 跟随循环」：逐帧读取格子实时位置（含 transform 位移），
+// 使主页卡片 FLIP 重排动画（卡片靠 transform:translate 平移、不触发 scroll/resize）期间，
+// 悬浮卡也逐帧贴住对应格子一起移动，不会卡在动画起始位置。
 // 单例：activeIndex 为当前展示的格子下标；鼠标离开格子【不关闭】；
 // 关闭条件：①悬停到另一个格子（切换）②点右上角叉 ③点击卡片外区域
 // ④点格子打开单集评论 ⑤（新增）鼠标曾进入过卡片本体、再滑出整个卡片即关闭。
@@ -223,6 +226,7 @@ function onCellEnter(i: number, ev: MouseEvent) {
   hoverCell.value = cell
   scrollBox.value = findScrollBox(cell)
   hasEnteredCard.value = false // 切换到新格子，重置「是否进过卡片」状态
+  startFollow() // 启动逐帧跟随（含 FLIP 重排动画期间贴住格子）
 }
 function closeCard() {
   if (openGridId.value === myGridId) openGridId.value = -1
@@ -230,6 +234,7 @@ function closeCard() {
   hoverCell.value = null
   scrollBox.value = null
   hasEnteredCard.value = false
+  stopFollow() // 停止逐帧跟随
 }
 // 鼠标进入悬停卡片本体：标记「滑到过上面」。
 // 配合 onCardLeave：一旦进入过卡片、再滑出整个卡片（无论移到格子还是别处）即关闭，
@@ -315,6 +320,36 @@ function onScrollCapture() {
 function onResize() {
   if (hoverCell.value) scheduleRepos()
 }
+// 悬浮卡跟随：只要悬浮卡可见，就持续用 rAF 读取格子实时位置（含 transform 位移）。
+// 这样滚动 / 窗口缩放 / 主页卡片 FLIP 重排动画（卡片靠 transform:translate 平移）期间，
+// 悬浮卡都逐帧贴住对应格子，不会卡在动画起始位置不动。
+// 仅当格子位置（含 transform）真正变化时才 bump tick，静止时不浪费重算。
+let followRaf = 0
+let lastRectKey = ''
+function startFollow() {
+  if (followRaf) return
+  lastRectKey = ''
+  const loop = () => {
+    if (!hoverCell.value) {
+      followRaf = 0
+      return
+    }
+    const r = hoverCell.value.getBoundingClientRect()
+    const key = `${r.left.toFixed(1)},${r.top.toFixed(1)},${r.width.toFixed(1)},${r.height.toFixed(1)}`
+    if (key !== lastRectKey) {
+      lastRectKey = key
+      tick.value++
+    }
+    followRaf = requestAnimationFrame(loop)
+  }
+  followRaf = requestAnimationFrame(loop)
+}
+function stopFollow() {
+  if (followRaf) {
+    cancelAnimationFrame(followRaf)
+    followRaf = 0
+  }
+}
 onMounted(() => {
   document.addEventListener('pointerdown', onDocPointerDown)
   document.addEventListener('scroll', onScrollCapture, true)
@@ -325,6 +360,7 @@ onUnmounted(() => {
   document.removeEventListener('scroll', onScrollCapture, true)
   window.removeEventListener('resize', onResize)
   if (rafId) cancelAnimationFrame(rafId)
+  stopFollow()
   if (openGridId.value === myGridId) openGridId.value = -1
 })
 </script>
