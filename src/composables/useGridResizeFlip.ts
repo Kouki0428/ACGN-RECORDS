@@ -28,10 +28,8 @@ import { useSettingsStore } from '@/stores/settings'
 //   - 动画期间临时 overflow:visible（让滑动出界的卡片完整可见，否则 overflow-x:clip 裁掉=看不到中间过程）
 //     + 关闭卡片 transform-transition（避免与每帧 RAF 驱动冲突，否则 transform 被二次平滑→动画不可见）。
 //   - 只钉「可见（含 80px 缓冲）卡片」；屏幕外保持自然流、滚入无动画（看不见、省性能）。
-//   - ⚠️ 滚动锚定（长列表滚到底缩放跨列必备）：列数一变网格整体重组 → 固定 scrollTop 会让视口
-//     显示的卡片被整批替换（=「整个大规模重排」）。故跨列时选「视口中央最近可见卡」为锚点，每帧微调
-//     滚动容器 scrollTop 让其停在原视口位置 → 阅读位置不丢、所有卡片平滑滑动而非整批跳换。
-//     transform 计算统一用 post-scroll 自然位置(natural.top - delta)，visRects 同步平移 delta。
+//   - ⚠️ 动画期间锁定滚动：跨列重排时禁止用户滚动（wheel/touch/方向键），
+//     避免滚动与位置追向相互干扰导致页面抽动；动画结束即解锁还原。
 //   - 收敛（最大位移 < 阈值）即落位清样式；宽松兜底 2.5s 仅防极端挂起。
 //   - prefers-reduced-motion 降级（直接落位）。
 // ─────────────────────────────────────────────────────────────────────────────
@@ -83,9 +81,9 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
   let cleanupTimer = 0 // 宽松兜底（仅防极端挂起）
   let reduceMotion = false
   let savedOverflow: string | null = null // 动画期间临时解除网格容器裁切时保存的原 overflow
-  let scrollEl: HTMLElement | null = null // 滚动容器（长列表 .content），用于缩放/跨列时锚定阅读位置
-  let anchorEl: HTMLElement | null = null // 锚定卡片（视口中央最近可见卡）
-  let anchorVpTarget = 0 // 锚定卡片希望保持的视口 top
+  let scrollEl: HTMLElement | null = null // 滚动容器（长列表 .content），动画期间锁定其滚动
+  let lockedScrollTop = 0 // 动画开始时记录的 scrollTop，锁定期间保持不变
+  let scrollLockCleanup: (() => void) | null = null // 解除滚动锁定的清理函数
 
   // 基线：上一帧「自然布局」矩形（crossing 时的 First 来源） + 当前稳定列数。
   let lastRects = new Map<HTMLElement, DOMRect>()
@@ -160,30 +158,6 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
     return null
   }
 
-  // 从给定矩形集里挑「视口内、中心离视口垂直中点最近」的卡片作为滚动锚点。
-  function pickAnchor(
-    cs: HTMLElement[],
-    rects: Map<HTMLElement, DOMRect>,
-    vh: number
-  ): { el: HTMLElement; top: number } | null {
-    let best = Infinity
-    let el: HTMLElement | null = null
-    let top = 0
-    for (const c of cs) {
-      const r = rects.get(c)
-      if (!r || !c.isConnected) continue
-      if (r.top >= vh || r.bottom <= 0) continue
-      const center = r.top + r.height / 2
-      const d = Math.abs(center - vh / 2)
-      if (d < best) {
-        best = d
-        el = c
-        top = r.top
-      }
-    }
-    return el ? { el, top } : null
-  }
-
   // 收敛 / 急切收尾：清卡片内联样式，回归自然流，重置基线。
   function finish() {
     if (cleanupTimer) {
@@ -211,7 +185,10 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
     })
     animActive = false
     visRects.clear()
-    anchorEl = null // 动画结束，清除滚动锚点（阅读位置已由锚定保留）
+    if (scrollLockCleanup) {
+      scrollLockCleanup()
+      scrollLockCleanup = null
+    }
     // 重置基线：记录当前自然布局（作为下次 crossing 的 First）
     const natural = measureNatural(cs)
     lastRects = natural
@@ -227,10 +204,40 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
     }, 2500)
   }
 
+  // 动画期间锁定滚动容器：阻断 wheel / touchmove / 方向键等滚动输入，并兜底拉回锁定位置。
+  // 仅在真实滚动容器(scrollEl)上生效；动画结束 finish() 中调用 scrollLockCleanup 解锁。
+  function lockScroll() {
+    const el = scrollEl
+    if (!el || scrollLockCleanup) return
+    lockedScrollTop = el.scrollTop
+    const preventWheel = (e: WheelEvent) => e.preventDefault()
+    const preventTouch = (e: TouchEvent) => e.preventDefault()
+    const preventKeys = (e: KeyboardEvent) => {
+      const block = [' ', 'PageUp', 'PageDown', 'Home', 'End',
+        'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)
+      if (block) e.preventDefault()
+    }
+    // 兜底：万一仍发生滚动（惯性/程序触发），拉回锁定位置（钳制到可滚动范围，避免缩短时死循环）
+    const onScroll = () => {
+      const maxS = Math.max(0, el.scrollHeight - el.clientHeight)
+      const target = Math.min(lockedScrollTop, maxS)
+      if (Math.abs(el.scrollTop - target) > 0.5) el.scrollTop = target
+    }
+    el.addEventListener('wheel', preventWheel, { passive: false, capture: true })
+    el.addEventListener('touchmove', preventTouch, { passive: false, capture: true })
+    window.addEventListener('keydown', preventKeys, { capture: true, passive: false })
+    el.addEventListener('scroll', onScroll, { passive: true })
+    scrollLockCleanup = () => {
+      el.removeEventListener('wheel', preventWheel, { capture: true })
+      el.removeEventListener('touchmove', preventTouch, { capture: true })
+      el.removeEventListener('scroll', onScroll)
+      window.removeEventListener('keydown', preventKeys, { capture: true })
+    }
+  }
+
   // 单一 tick：卡片位置(transform)逐帧惯性追向「当前自然布局」。
   // 网格始终自然(auto-fill) → 卡片永远在正确宽度/高度（EpisodeGrid 不会换行爆炸），列数变几次都不乱飞。
-  // 滚动锚定：长列表滚到底缩放跨列时，网格整体重组会改变 scrollTop 对应的可见内容 →
-  //   每帧微调滚动容器 scrollTop 让「锚点卡片」停在视口原位置，阅读位置不丢、不再整批重排。
+  // 动画期间滚动已锁定（见 onObserve 的 lockScroll），本 tick 不操纵 scrollTop。
   function tick() {
     const K = getK() // 每帧读取最新速度（滑条实时生效）
     const cs = cards()
@@ -241,46 +248,16 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
     const natural = measureNatural(cs) // 清零 transform 后测量的「自然」矩形（当前 scrollTop 下）
     const vh = window.innerHeight
 
-    // ── 滚动锚定：保持锚点卡片视口位置不变 ──
-    let delta = 0 // 本帧需要平移的滚动量（正值=内容上移）
-    if (scrollEl) {
-      // 锚点离开视口/失联 → 重新选一个当前可见卡，避免被强制拉回导致抖动
-      if (
-        !anchorEl ||
-        !anchorEl.isConnected ||
-        (() => {
-          const a = natural.get(anchorEl)
-          return !a || a.top <= -400 || a.top >= vh + 400
-        })()
-      ) {
-        const pick = pickAnchor(cs, natural, vh)
-        if (pick) {
-          anchorEl = pick.el
-          anchorVpTarget = pick.top
-        }
-      }
-      if (anchorEl && anchorEl.isConnected) {
-        const aNat = natural.get(anchorEl)
-        if (aNat) {
-          const d = aNat.top - anchorVpTarget
-          if (Math.abs(d) > 0.3) {
-            const maxS = Math.max(0, scrollEl.scrollHeight - scrollEl.clientHeight)
-            const ns = Math.min(Math.max(scrollEl.scrollTop + d, 0), maxS)
-            delta = ns - scrollEl.scrollTop
-            scrollEl.scrollTop = ns
-          }
-        }
-      }
-    }
+    // 动画期间滚动已锁定（见 onObserve 的 lockScroll），scrollTop 不变，无需锚定/平移。
 
-    // 屏幕外判定 / 目标位置均以「post-scroll 自然位置」(natural.top - delta) 为准
+    // 屏幕外判定 / 目标位置均以自然位置 natural.top 为准（动画期间滚动已锁定）
     const next = new Map<HTMLElement, DOMRect>()
     let maxDiff = 0
     for (const c of cs) {
       if (!c.isConnected) continue
       const r = natural.get(c)
       if (!r) continue
-      const nt = r.top - delta // post-scroll 自然 top
+      const nt = r.top // 自然 top（滚动已锁定）
       const nl = r.left // 纵向滚动不影响水平
       // 屏幕外 → 释放（不再钉），自然流（滚入已是新布局）
       if (nt < -OFFSCREEN || nt > vh + OFFSCREEN) {
@@ -295,7 +272,7 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
       const nw = r.width
       const nh = r.height
       const prev = visRects.get(c)
-      const pTop = (prev ? prev.top : nt) - delta
+      const pTop = prev ? prev.top : nt
       const pLeft = prev ? prev.left : nl
       const pW = prev ? prev.width : nw
       const cl = pLeft + (nl - pLeft) * K
@@ -368,23 +345,9 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
     cs.forEach((c) => {
       if (c.isConnected) c.style.transition = 'none'
     })
-    // 选滚动锚点 + 解析滚动容器：长列表缩放跨列时锚定阅读位置，避免整列表大幅重排。
-    const vh = window.innerHeight
+    // 解析滚动容器并锁定滚动：动画期间禁止用户滚动，避免与位置追向相互干扰导致抽动。
     scrollEl = resolveScrollEl()
-    anchorEl = null
-    let best = Infinity
-    for (const c of cs) {
-      const r = lastRects.get(c)
-      if (!r) continue
-      if (r.top >= vh || r.bottom <= 0) continue
-      const center = r.top + r.height / 2
-      const d = Math.abs(center - vh / 2)
-      if (d < best) {
-        best = d
-        anchorEl = c
-      }
-    }
-    if (anchorEl) anchorVpTarget = lastRects.get(anchorEl)!.top
+    lockScroll()
     visRects = new Map(lastRects) // 起点 = 旧布局位置
     // 立即把卡片钉在「旧位置 + 旧宽度」（First），避免下一帧 tick 前出现一帧自然新位置/新宽度闪烁。
     // 直接设 inline width = 旧宽度（不改 transform:scale）→ 内部内容像素尺寸恒定、不变形；
