@@ -115,9 +115,9 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
   margin-inline: auto;
   width: calc(100% - 64px);
   max-width: 1000px;
-  /* 统一高度上限：与单集评论(.ec-modal)/搜索(.search-card)一致，均为 80vh。
-     内部 body（作品/角色/人物卡）自身已 max-height:80vh + 内部滚动，此处作为容器层兜底，
-     确保任何新 body 也不会超出视口。 */
-  max-height: 80vh;
+  /* 统一高度上限：与单集评论(.ec-modal)/搜索(.search-card)一致，均为 calc(100vh - 24vh)=76vh。
+     配合 top:12vh → 上下各留 12vh，对称。内部 body 自身已 max-height:80vh + 内部滚动，
+     此处作为容器层兜底，确保任何新 body 也不会超出视口。 */
+  max-height: calc(100vh - 24vh);
 }
 </style>

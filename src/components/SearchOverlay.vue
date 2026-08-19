@@ -381,7 +381,7 @@ watch(isOpen, async (v) => {
 .search-card {
   width: calc(100% - 64px);
   max-width: 1000px;
-  max-height: 80vh;
+  max-height: calc(100vh - 24vh);
   display: flex;
   flex-direction: column;
   background: var(--bg-panel);
