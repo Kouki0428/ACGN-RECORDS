@@ -139,6 +139,9 @@ function createWindow(): void {
     height: 760,
     minWidth: 920,
     minHeight: 600,
+    // 自动隐藏原生菜单栏：顶部的「ACGN Records / 编辑」菜单条默认不显示（按 Alt 临时浮现），
+    // 但菜单仍保留 → Ctrl+R 重载 / Ctrl+Shift+I 开 DevTools / Ctrl+C·V·X 编辑快捷键均有效。
+    autoHideMenuBar: true,
     title: 'ACGN Records',
     // 与暗色主题渐变底色（--bg 的 #14171c，即 --bg-grad 的 60% 停靠色，覆盖窗口绝大部分区域）一致，
     // 这样缩放窗口时 Chromium 重绘滞后一帧、露出的“窗口底色”与内容背景同色，肉眼不可见，消除“后面还有一层”的黑边/色差。

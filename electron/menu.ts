@@ -1,27 +1,49 @@
 import electron from 'electron'
 const { Menu, app } = electron
 
-/** 移除原生菜单栏（Windows/Linux）：应用顶部的「ACGN Records / 编辑」菜单条不再显示，
- *  让窗口只剩自渲染内容区（边栏 + 主区）。macOS 必须保留应用菜单（含退出/关于），故仅桌面端移除。
- *  注意：复制/剪切/粘贴（Ctrl+C/V/X）等编辑快捷键由渲染进程 Web 内容原生处理，移除菜单不受影响；
- *  F12 默认不再打开 DevTools，开发期调试改用 `win.webContents.openDevTools()` 或 vite-plugin-electron
- *  的 openDevTools 配置。 */
+/** 菜单栏自动隐藏（Windows/Linux）：菜单本身保留（故 Ctrl+R 重载 / Ctrl+Shift+I 开
+ *  DevTools / Ctrl+C·V·X 编辑快捷键都仍然有效），但顶部的「ACGN Records / 编辑」菜单条
+ *  默认不显示，按 Alt 才临时浮现。配合 main.ts 中 BrowserWindow 的 autoHideMenuBar:true。
+ *  macOS 的菜单条始终显示（系统规范），且需保留 退出 / 关于。 */
 export function buildMenu(): void {
+  const editSubmenu: Electron.MenuItemConstructorOptions[] = [
+    { role: 'cut' },
+    { role: 'copy' },
+    { role: 'paste' }
+  ]
+
   if (process.platform === 'darwin') {
-    // macOS：保留极简应用菜单（否则无 退出 / 关于）
+    // macOS：标准应用菜单（含 关于 / 隐藏 / 退出），菜单条始终可见
     const template: Electron.MenuItemConstructorOptions[] = [
       {
         label: app.name,
         submenu: [
           { role: 'about' },
           { type: 'separator' },
+          { role: 'hide' },
+          { role: 'hideOthers' },
+          { type: 'separator' },
           { role: 'quit' }
         ]
-      }
+      },
+      { label: '编辑', submenu: editSubmenu }
     ]
     Menu.setApplicationMenu(Menu.buildFromTemplate(template))
   } else {
-    // Windows / Linux：直接移除应用菜单栏（顶部的「ACGN Records / 编辑」条消失）
-    Menu.setApplicationMenu(null)
+    // Windows / Linux：保留菜单但默认隐藏菜单条（autoHideMenuBar 在 main.ts 设置）。
+    // 含 重新加载 / 开发者工具（DevTools 快捷键 Ctrl+Shift+I）+ 退出，以及编辑子菜单。
+    const template: Electron.MenuItemConstructorOptions[] = [
+      {
+        label: app.name,
+        submenu: [
+          { role: 'reload' },
+          { role: 'toggleDevTools' },
+          { type: 'separator' },
+          { role: 'quit' }
+        ]
+      },
+      { label: '编辑', submenu: editSubmenu }
+    ]
+    Menu.setApplicationMenu(Menu.buildFromTemplate(template))
   }
 }
