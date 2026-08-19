@@ -925,8 +925,13 @@ watch(
 }
 .ec-list {
   padding: 12px 16px 16px;
-  margin-top: 12px;
+  margin: 12px auto 0;
   border-top: 1px solid var(--border-soft);
+  /* 评论列表内容放大到 120%：zoom 整体缩放，但满宽块放大后横向溢出被裁，
+     故容器宽度收窄到 1/1.2 并居中，视觉上仍与上方等宽、内部内容放大 120%。 */
+  box-sizing: border-box;
+  width: calc(100% / 1.2);
+  zoom: 1.2;
 }
 .ec-list-head {
   display: flex;
