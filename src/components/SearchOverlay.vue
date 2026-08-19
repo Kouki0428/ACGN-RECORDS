@@ -371,7 +371,7 @@ watch(isOpen, async (v) => {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding-top: 12vh;
+  padding-top: 8vh;
 }
 /* 当实体卡（角色/CV/作品）叠在搜索之上时：搜索遮罩转为透明基底（pointer-events 关掉，
    卡片内容由 v-show 隐藏），让实体卡干净地叠在上面；关闭实体卡后底层搜索自然显现。 */
@@ -381,7 +381,7 @@ watch(isOpen, async (v) => {
 .search-card {
   width: calc(100% - 64px);
   max-width: 1000px;
-  max-height: calc(100vh - 24vh);
+  max-height: calc(100vh - 16vh);
   display: flex;
   flex-direction: column;
   background: var(--bg-panel);
