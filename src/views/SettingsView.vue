@@ -173,10 +173,11 @@ const themeOptions: { value: ThemePref; label: string }[] = [
   { value: 'light', label: '浅色' },
   { value: 'system', label: '跟随系统' }
 ]
-async function setTheme(v: ThemePref) {
+async function setTheme(v: ThemePref, e?: MouseEvent) {
   await settings.set('theme', v) // 先持久化到库
-  // 截旧画面 → 盖遮罩（显示旧高亮）→ 切按钮高亮（被遮，不可见）→ 切根主题 → 扫开
-  void applyTheme(v, () => settings.commitTheme(v))
+  // View Transitions：以被点按钮为圆心做圆形揭示；onCovered（按钮高亮切换）与新主题同帧原子生效
+  const origin = e ? { x: e.clientX, y: e.clientY } : undefined
+  void applyTheme(v, () => settings.commitTheme(v), origin)
 }
 
 // ---------- 界面缩放（实时生效，无需重启） ----------
@@ -595,7 +596,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
           :key="opt.value"
           class="seg-item"
           :class="{ active: settings.theme === opt.value }"
-          @click="setTheme(opt.value)"
+          @click="setTheme(opt.value, $event)"
         >
           {{ opt.label }}
         </button>

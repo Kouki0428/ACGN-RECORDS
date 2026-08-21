@@ -1127,6 +1127,31 @@ textarea.input {
   scroll-margin-top: 56px;
 }
 
+/* ===== View Transitions：主题切换「圆形揭示」动画 =====
+   旧帧静止在底层（animation:none 保持全可见），新帧以 --vt-x/--vt-y 为圆心、
+   从 0 半径扩散到 --vt-r（最远角距离）揭示。坐标由 theme.ts 在切换前写入 :root。
+   动画期间浏览器自动拦截输入，无需手动锁滚动。 */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-new(root) {
+  clip-path: circle(0px at var(--vt-x, 50%) var(--vt-y, 50%));
+  animation: vt-reveal 0.55s var(--ease-out) both;
+}
+@keyframes vt-reveal {
+  to {
+    clip-path: circle(var(--vt-r, 150vmax) at var(--vt-x, 50%) var(--vt-y, 50%));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
+
 /* ===== 骨架屏（加载占位）===== */
 .skeleton {
   position: relative;
