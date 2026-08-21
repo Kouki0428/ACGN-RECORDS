@@ -1,11 +1,14 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
 import { useEpisodeCommentModal } from '@/composables/useEpisodeCommentModal'
 import { useEntityCard } from '@/composables/useEntityCard'
 import { useSearchOverlay } from '@/composables/searchOverlay'
 import { episodeClient } from '@/services/episodeClient'
 import BgmBbcode from '@/components/BgmBbcode.vue'
-import { reactionGifUrl, REACTION_VALUES } from '@/constants/bgmReactions'
+import ReactionPicker from '@/components/ReactionPicker.vue'
+import CommentReactions from '@/components/CommentReactions.vue'
+import { SMILEYS } from '@/constants/bgmSmileys'
+import { reactionGifUrl } from '@/constants/bgmReactions'
 import type { EpisodeComment, EpisodeDetail } from '@shared/types'
 
 // 本组件现为「单一 overlay 容器」EntitySubjectCard 的内嵌 body（单集评论，state.kind==='episode'）。
@@ -97,17 +100,7 @@ function fmtTime(ts: number | string | null): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-// 表情回应（reactions）辅助：计数取 total，缺省用 users 长度
-function rxTotal(rx: any): number {
-  return typeof rx.total === 'number' ? rx.total : rx.users ? rx.users.length : 0
-}
-// 悬停卡片只显示回应者昵称列表（最多 10 个，超出加「等」）
-function rxNames(rx: any): string {
-  const users = rx.users || []
-  const names = users.map((u: any) => u.nickname || u.username || '用户')
-  if (names.length > 10) return names.slice(0, 10).join('、') + ' 等'
-  return names.join('、') || '暂无回应'
-}
+// 表情回应展示/计数已拆至 CommentReactions.vue；此处仅保留「发表回应」所需辅助。
 
 // —— 表情回应（发表）——
 const reactingTo = ref<number | null>(null) // 当前打开表情选择器的评论 id（顶层/子评论共用，仅一个）
@@ -263,41 +256,6 @@ async function onSendReply(target: EpisodeComment) {
 // —— 评论输入框的 BBCode 工具栏 + 实时预览 ——
 const taRef = ref<HTMLTextAreaElement | null>(null)
 
-// Bangumi 表情包面板：仅列出真实存在的表情（URL 已逐一验证可达）。
-// 发出评论时插入 (代码) 文本，Bangumi 端会自行渲染成图。
-const SMILEY_BASE = 'https://lain.bgm.tv/img/smiles/'
-const p2 = (n: number) => String(n).padStart(2, '0')
-const SMILEYS: { code: string; src: string }[] = [
-  // 早期 bgm 系列（bgm/NN.png，已验证 01-10/12-22 存在）
-  ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22].map((n) => ({
-    code: `(bgm${n})`,
-    src: `${SMILEY_BASE}bgm/${p2(n)}.png`
-  })),
-  // 主 bgm 系列（tv/NN.gif，bgm24..85 → tv/01..tv/62）
-  ...Array.from({ length: 62 }, (_, k) => {
-    const n = k + 24
-    return { code: `(bgm${n})`, src: `${SMILEY_BASE}tv/${p2(n - 23)}.gif` }
-  }),
-  // tv_vs 系列（bgm200..238 → tv_vs/bgm_N.png，即“b2xx”系列）
-  ...Array.from({ length: 39 }, (_, k) => {
-    const n = k + 200
-    return { code: `(bgm${n})`, src: `${SMILEY_BASE}tv_vs/bgm_${n}.png` }
-  }),
-  // tv_500 特殊系列（仅 500/501/505/515..519 真实存在）
-  ...[500, 501, 505, 515, 516, 517, 518, 519].map((n) => ({
-    code: `(bgm${n})`,
-    src: `${SMILEY_BASE}tv_500/bgm_${n}.gif`
-  })),
-  // musume / blake 娘系列（06..41 已验证存在）
-  ...Array.from({ length: 36 }, (_, k) => {
-    const n = k + 6
-    return { code: `(musume_${p2(n)})`, src: `${SMILEY_BASE}musume/musume_${p2(n)}.gif` }
-  }),
-  ...Array.from({ length: 36 }, (_, k) => {
-    const n = k + 6
-    return { code: `(blake_${p2(n)})`, src: `${SMILEY_BASE}blake/blake_${p2(n)}.gif` }
-  })
-]
 const showSmiley = ref(false)
 function toggleSmiley() {
   showSmiley.value = !showSmiley.value
@@ -512,50 +470,18 @@ watch(
             >
               <svg class="ec-heart" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
             </button>
-            <div v-if="reactingTo === c.id" class="ec-react-picker" @click.stop>
-              <div class="ec-react-picker-title">发表表情回应</div>
-              <div class="ec-react-grid">
-                <button
-                  v-for="v in REACTION_VALUES"
-                  :key="v"
-                  type="button"
-                  class="ec-react-item"
-                  :class="{ on: reactedValues(c).has(v) }"
-                  :title="'表情 ' + v"
-                  @click="onReact(c, v)"
-                >
-                  <img :src="reactionGifUrl(v)" referrerpolicy="no-referrer" alt="" />
-                </button>
-              </div>
-            </div>
+            <ReactionPicker v-if="reactingTo === c.id" :reacted="reactedValues(c)" @select="(v) => onReact(c, v)" />
           </div>
           <BgmBbcode :text="c.content" as="span" class="ec-c-content" />
 
           <!-- 表情回应（reactions，仅登录态返回；别人给这条评论发的表情包） -->
-          <div v-if="c.reactions && c.reactions.length" class="ec-reactions">
-            <span
-              v-for="(rx, ri) in c.reactions"
-              :key="ri"
-              class="ec-reaction"
-              :class="{ 'ec-reaction--mine': meInReaction(rx) }"
-              role="button"
-              tabindex="0"
-              :title="loggedIn ? '点击用此表情回应' : '登录后可用'"
-              @click="quickReact(c, rx.value)"
-              @keydown.enter.prevent="quickReact(c, rx.value)"
-            >
-              <img
-                v-if="reactionGifUrl(rx.value)"
-                :src="reactionGifUrl(rx.value)"
-                class="ec-rx-img"
-                alt=""
-                referrerpolicy="no-referrer"
-              />
-              <template v-else>{{ rx.value }}</template>
-              <span class="ec-rx-count">{{ rxTotal(rx) }}</span>
-              <span class="ec-rx-tip">{{ rxNames(rx) }}</span>
-            </span>
-          </div>
+          <CommentReactions
+            v-if="c.reactions && c.reactions.length"
+            :reactions="c.reactions"
+            :me="me"
+            :logged-in="loggedIn"
+            @quick-react="(v) => quickReact(c, v)"
+          />
 
           <!-- 嵌套子评论（Bangumi 评论回复） -->
           <div v-if="c.replies && c.replies.length" class="ec-replies">
@@ -591,50 +517,18 @@ watch(
                   >
                     <svg class="ec-heart" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
                   </button>
-                  <div v-if="reactingTo === r.id" class="ec-react-picker" @click.stop>
-                    <div class="ec-react-picker-title">发表表情回应</div>
-                    <div class="ec-react-grid">
-                      <button
-                        v-for="v in REACTION_VALUES"
-                        :key="v"
-                        type="button"
-                        class="ec-react-item"
-                        :class="{ on: reactedValues(r).has(v) }"
-                        :title="'表情 ' + v"
-                        @click="onReact(r, v)"
-                      >
-                        <img :src="reactionGifUrl(v)" referrerpolicy="no-referrer" alt="" />
-                      </button>
-                    </div>
-                  </div>
+                  <ReactionPicker v-if="reactingTo === r.id" :reacted="reactedValues(r)" @select="(v) => onReact(r, v)" />
                 </div>
                 <BgmBbcode :text="r.content" as="span" class="ec-c-content" />
 
                 <!-- 子评论的表情回应 -->
-                <div v-if="r.reactions && r.reactions.length" class="ec-reactions">
-                  <span
-                    v-for="(rx, ri) in r.reactions"
-                    :key="ri"
-                    class="ec-reaction"
-                    :class="{ 'ec-reaction--mine': meInReaction(rx) }"
-                    role="button"
-                    tabindex="0"
-                    :title="loggedIn ? '点击用此表情回应' : '登录后可用'"
-                    @click="quickReact(r, rx.value)"
-                    @keydown.enter.prevent="quickReact(r, rx.value)"
-                  >
-                    <img
-                      v-if="reactionGifUrl(rx.value)"
-                      :src="reactionGifUrl(rx.value)"
-                      class="ec-rx-img"
-                      alt=""
-                      referrerpolicy="no-referrer"
-                    />
-                    <template v-else>{{ rx.value }}</template>
-                    <span class="ec-rx-count">{{ rxTotal(rx) }}</span>
-                    <span class="ec-rx-tip">{{ rxNames(rx) }}</span>
-                  </span>
-                </div>
+                <CommentReactions
+                  v-if="r.reactions && r.reactions.length"
+                  :reactions="r.reactions"
+                  :me="me"
+                  :logged-in="loggedIn"
+                  @quick-react="(v) => quickReact(r, v)"
+                />
 
                 <!-- 子评论的回复输入框（回复归属其所属顶层评论 c，relatedId 指向子评论 r） -->
                 <div v-if="replyingTo === r.id" class="ec-reply-box">
@@ -1123,151 +1017,7 @@ watch(
   inset: 0;
   z-index: 45;
 }
-.ec-react-picker {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 50;
-  width: max-content;
-  padding: 10px;
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: var(--shadow);
-}
-.ec-react-picker-title {
-  font-size: 12px;
-  color: var(--text-dim);
-  margin-bottom: 8px;
-}
-.ec-react-grid {
-  display: grid;
-  grid-template-columns: repeat(4, auto);
-  gap: 8px;
-}
-.ec-react-item {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3px;
-  background: var(--bg-elev);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: border-color 0.12s ease, background 0.12s ease, transform 0.08s ease;
-}
-.ec-react-item img {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-  pointer-events: none;
-}
-.ec-react-item:hover {
-  border-color: var(--accent-2);
-  background: color-mix(in srgb, var(--accent-2) 12%, var(--bg-elev));
-}
-.ec-react-item:active {
-  transform: scale(0.94);
-}
-.ec-react-item.on {
-  border-color: var(--accent-2);
-  background: color-mix(in srgb, var(--accent-2) 18%, var(--bg-elev));
-}
-.ec-reactions {
-  margin-top: 6px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.ec-reaction {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 12px;
-  line-height: 1;
-  color: var(--text-dim);
-  background: color-mix(in srgb, var(--text-dim) 12%, var(--bg-elev));
-  border: 1px solid var(--border);
-  padding: 3px 7px;
-  border-radius: 999px;
-  cursor: pointer;
-  user-select: none;
-  transition: border-color 0.12s ease, background 0.12s ease;
-}
-.ec-reaction:hover {
-  border-color: color-mix(in srgb, var(--accent-2) 55%, var(--border));
-}
-/* 浅色模式：表情卡片背景更浅 */
-:global(:root[data-theme="light"]) .ec-reaction {
-  background: color-mix(in srgb, var(--text-dim) 6%, var(--bg-elev));
-  border-color: color-mix(in srgb, var(--text-dim) 14%, var(--border));
-}
-/* 我自己做过的表情回应：高亮（强调色边框 + 淡底色 + 文字/数字强调色） */
-.ec-reaction--mine {
-  color: var(--accent-2);
-  background: color-mix(in srgb, var(--accent-2) 16%, var(--bg-elev));
-  border-color: color-mix(in srgb, var(--accent-2) 55%, var(--border));
-}
-.ec-reaction--mine .ec-rx-count {
-  color: var(--accent-2);
-}
-:global(:root[data-theme="light"]) .ec-reaction--mine {
-  background: color-mix(in srgb, var(--accent-2) 12%, var(--bg-elev));
-  border-color: color-mix(in srgb, var(--accent-2) 45%, var(--border));
-}
-.ec-rx-img {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
-  vertical-align: middle;
-  border-radius: 3px;
-}
-.ec-rx-count {
-  margin-left: 3px;
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-dim);
-}
-/* 悬停卡片：只显示回应者昵称列表，圆角浮层。
-   左对齐到表情标签（而非水平居中），避免卡片左半超出悬浮窗左边界被裁切。 */
-.ec-rx-tip {
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 0;
-  transform: translateY(4px);
-  width: max-content;
-  max-width: min(280px, 80vw);
-  padding: 7px 10px;
-  border-radius: 10px;
-  background: var(--bg-elev);
-  border: 1px solid var(--border);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
-  color: var(--text);
-  font-size: 12px;
-  line-height: 1.5;
-  text-align: left;
-  white-space: normal;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity 0.15s ease, transform 0.15s ease;
-  z-index: 20;
-}
-.ec-reaction:hover .ec-rx-tip {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-}
-/* 浅色模式：悬停卡片用更实的浅色底，保证可读 */
-:global(:root[data-theme="light"]) .ec-rx-tip {
-  background: #fff;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
-}
+
 .ec-replies {
   margin-top: 8px;
   padding-left: 12px;
