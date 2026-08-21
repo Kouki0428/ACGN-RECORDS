@@ -12,6 +12,8 @@ import SynopsisBox from '@/components/SynopsisBox.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import DetailAnchors, { type AnchorItem } from '@/components/DetailAnchors.vue'
 import { useSearchOverlay } from '@/composables/searchOverlay'
+import { useContextMenu } from '@/composables/useContextMenu'
+import { buildCardMenu } from '@/composables/useCardContextMenu'
 import { animeClient } from '@/services/animeClient'
 import { subjectClient } from '@/services/subjectClient'
 import type { Subject, AnimeDetail, AnimeWatchingItem, EpisodeMarkPayload } from '@shared/types'
@@ -25,6 +27,7 @@ import { useCollectionModal } from '@/composables/useCollectionModal'
 // 关联作品 / 单行本点击：打开作品悬浮窗（而非跳网页）
 const { open: openSubjectCard } = useEntityCard()
 const { open: openSearch } = useSearchOverlay()
+const { open: openMenu } = useContextMenu()
 
 // 详情页吸顶锚点（区块顺序与模板一致）
 const anchors: AnchorItem[] = [
@@ -34,6 +37,23 @@ const anchors: AnchorItem[] = [
   { key: 'relations', label: '关联条目' },
   { key: 'tucao', label: '吐槽' }
 ]
+
+// 卡片右键菜单：快速改状态 / 在 Bangumi 打开 / 删除收藏
+function onCardMenu(e: MouseEvent, w: AnimeWatchingItem) {
+  openMenu(
+    e,
+    buildCardMenu(
+      {
+        providerSubjectId: w.providerSubjectId,
+        collectionId: w.collectionId,
+        status: w.status ?? activeStatus.value,
+        category: 'anime',
+        title: w.titleCn || w.title
+      },
+      { onChanged: refreshList }
+    )
+  )
+}
 function onSubjectSelect(id: number) {
   openSubjectCard('subject', id)
 }
@@ -310,6 +330,7 @@ onUnmounted(() => {
           @click="openDetail(w.subjectId)"
           @keydown.enter.prevent="openDetail(w.subjectId)"
           @keydown.space.prevent="openDetail(w.subjectId)"
+          @contextmenu.prevent="onCardMenu($event, w)"
         >
           <CoverImage :src="w.imageUrl" :alt="w.title" class="card-cover" />
           <div class="title">{{ w.titleCn || w.title }}</div>

@@ -193,7 +193,7 @@ export function registerCollectionIpc(): void {
     const rows = db
       .prepare(
         `SELECT c.id AS collectionId, c.subject_id AS subjectId, c.ep_status AS epStatus,
-                c.vol_status AS volStatus,
+                c.vol_status AS volStatus, c.status AS status,
                 s.title, s.title_cn AS titleCn, s.image_url AS imageUrl,
                 s.total_volumes AS totalVolumes, s.total_episodes AS totalEpisodes,
                 s.series AS series, s.provider_subject_id AS providerSubjectId,
@@ -230,8 +230,9 @@ export function registerCollectionIpc(): void {
     }
 
     return rows.map((r) => {
-      const { providerSubjectId, ...rest } = r
-      return { ...rest, series: r.series == null ? null : !!r.series }
+      // providerSubjectId 现为公开字段（右键菜单「在 Bangumi 打开」/删除收藏需要），不再剥离
+      const { series } = r
+      return { ...r, series: series == null ? null : !!series }
     })
   })
 

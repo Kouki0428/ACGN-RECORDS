@@ -9,11 +9,37 @@ import { dbClient } from '@/services/dbClient'
 import { animeClient } from '@/services/animeClient'
 import { collectionClient } from '@/services/collectionClient'
 import { useEntityCard } from '@/composables/useEntityCard'
+import { useContextMenu } from '@/composables/useContextMenu'
+import { buildCardMenu } from '@/composables/useCardContextMenu'
 import { useGridResizeFlip } from '@/composables/useGridResizeFlip'
 import type { AnimeDetail, EpisodeMarkPayload } from '@shared/types'
 import type { EpisodeCell } from '@/components/EpisodeGrid.vue'
 
 const { open: openSubject } = useEntityCard()
+const { open: openMenu } = useContextMenu()
+
+// 主页卡片右键菜单：快速改状态 / 在 Bangumi 打开 / 删除收藏（状态变化后周历同步刷新）
+function onCardMenu(e: MouseEvent, c: HomeCard) {
+  const category = activeTab.value // 'anime' | 'light_novel' | 'manga' 即 Category 子集
+  openMenu(
+    e,
+    buildCardMenu(
+      {
+        providerSubjectId: c.providerSubjectId,
+        collectionId: c.collectionId,
+        status: c.status,
+        category,
+        title: c.titleCn || c.title
+      },
+      {
+        onChanged: () => {
+          void loadTab(activeTab.value)
+          void loadWeek()
+        }
+      }
+    )
+  )
+}
 
 // 主页卡片在窗口缩放/侧栏收起跨列数断点时平滑过渡（与动画列表一致）。
 // 由 useGridResizeFlip 统一驱动：卡片「位置平移 + 宽度渐变」按同一节奏同步
@@ -383,6 +409,7 @@ onMounted(() => {
         @click="openCard(c)"
         @keydown.enter.prevent="openCard(c)"
         @keydown.space.prevent="openCard(c)"
+        @contextmenu.prevent="onCardMenu($event, c)"
       >
         <div class="hcard-inner">
         <div class="hcard-cover">

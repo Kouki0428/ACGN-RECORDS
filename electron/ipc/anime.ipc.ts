@@ -257,7 +257,8 @@ export function registerAnimeIpc(): void {
     const db = await getDb()
     return db
       .prepare(
-        `SELECT c.id AS collectionId, c.subject_id AS subjectId, c.ep_status AS epStatus,
+        `SELECT c.id AS collectionId, c.subject_id AS subjectId, c.ep_status AS epStatus, c.status AS status,
+                s.provider_subject_id AS providerSubjectId,
                 s.title, s.title_cn AS titleCn, s.image_url AS imageUrl, s.total_episodes AS totalEpisodes,
                 c.rating AS rating, c.local_updated_at AS markedAt, s.rating AS siteRating
          FROM collections c

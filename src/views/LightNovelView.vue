@@ -12,6 +12,8 @@ import SynopsisBox from '@/components/SynopsisBox.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import DetailAnchors, { type AnchorItem } from '@/components/DetailAnchors.vue'
 import { useSearchOverlay } from '@/composables/searchOverlay'
+import { useContextMenu } from '@/composables/useContextMenu'
+import { buildCardMenu } from '@/composables/useCardContextMenu'
 import { collectionClient } from '@/services/collectionClient'
 import type { Subject, CollectionDetail, CollectionItem } from '@shared/types'
 import { statusLabel } from '@/utils/statusLabels'
@@ -24,6 +26,7 @@ import { useCollectionModal } from '@/composables/useCollectionModal'
 // 关联作品 / 单行本点击：打开作品悬浮窗（而非跳网页）
 const { open: openSubjectCard } = useEntityCard()
 const { open: openSearch } = useSearchOverlay()
+const { open: openMenu } = useContextMenu()
 
 // 详情页吸顶锚点
 const anchors: AnchorItem[] = [
@@ -33,6 +36,23 @@ const anchors: AnchorItem[] = [
   { key: 'relations', label: '关联条目' },
   { key: 'tucao', label: '吐槽' }
 ]
+
+// 卡片右键菜单：快速改状态 / 在 Bangumi 打开 / 删除收藏
+function onCardMenu(e: MouseEvent, r: CollectionItem) {
+  openMenu(
+    e,
+    buildCardMenu(
+      {
+        providerSubjectId: r.providerSubjectId,
+        collectionId: r.collectionId,
+        status: r.status ?? activeStatus.value,
+        category: 'light_novel',
+        title: r.titleCn || r.title
+      },
+      { onChanged: refreshReading }
+    )
+  )
+}
 function onSubjectSelect(id: number) {
   openSubjectCard('subject', id)
 }
@@ -254,6 +274,7 @@ onUnmounted(() => {
           @click="openDetail(r.subjectId)"
           @keydown.enter.prevent="openDetail(r.subjectId)"
           @keydown.space.prevent="openDetail(r.subjectId)"
+          @contextmenu.prevent="onCardMenu($event, r)"
         >
           <CoverImage :src="r.imageUrl" :alt="r.title" class="card-cover" />
           <div class="title">{{ r.titleCn || r.title }}</div>

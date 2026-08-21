@@ -7,6 +7,7 @@ import EntitySubjectCard from './components/EntitySubjectCard.vue'
 import CollectionModal from './components/CollectionModal.vue'
 import ImageLightbox from './components/ImageLightbox.vue'
 import ToastHost from './components/ToastHost.vue'
+import ContextMenu from './components/ContextMenu.vue'
 import { useGridResizeFlip } from './composables/useGridResizeFlip'
 import { useNavHistory } from './composables/useNavHistory'
 import { useSearchOverlay } from './composables/searchOverlay'
@@ -121,6 +122,8 @@ onUnmounted(() => {
     <ImageLightbox />
     <!-- 全局 Toast 操作反馈（保存成功/失败等），最顶层 -->
     <ToastHost />
+    <!-- 全局右键菜单（列表卡片快速改状态 / Bangumi 打开 / 删除收藏） -->
+    <ContextMenu />
   </div>
 </template>
 

@@ -550,11 +550,15 @@ export interface AnimeDetail {
 export interface AnimeWatchingItem {
   collectionId: number
   subjectId: number
+  /** Bangumi 条目 id（字符串形式；右键菜单「在 Bangumi 打开」/删除收藏用） */
+  providerSubjectId?: string
   title: string
   titleCn?: string
   imageUrl?: string
   epStatus: number
   totalEpisodes?: number | null
+  /** 收藏状态（Bangumi type：1 想看 / 2 看过 / 3 在看 / 4 搁置 / 5 抛弃） */
+  status?: number
   /** 我的评分（1-10，Bangumi 评分制；未评分则为 null） */
   rating?: number | null
   /** Bangumi 站方评分（10 分制 1 位小数，来自 subjects.rating；用户未评分时回退显示） */
@@ -605,10 +609,14 @@ export interface CollectionDetail {
 export interface CollectionItem {
   collectionId: number
   subjectId: number
+  /** Bangumi 条目 id（字符串形式；右键菜单「在 Bangumi 打开」/删除收藏用） */
+  providerSubjectId?: string
   title: string
   titleCn?: string
   imageUrl?: string
   epStatus: number
+  /** 收藏状态（Bangumi type：1 想看 / 2 看过 / 3 在看 / 4 搁置 / 5 抛弃） */
+  status?: number
   /** 已读卷数（漫画/轻小说用；动画/游戏为 0） */
   volStatus: number
   totalVolumes?: number | null
