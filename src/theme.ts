@@ -17,10 +17,11 @@ let mql: MediaQueryList | null = null
 let currentPref: ThemePref = 'dark'
 let firstApply = true
 
-// —— 深色预设皮肤（仅深色模式生效；classic=经典不写属性）——
-let darkPreset = 'classic'
-export function setDarkPreset(p: string) {
-  darkPreset = p || 'classic'
+// —— 主题预设皮肤：深 / 浅各自一套（classic=经典不写属性，走样式表默认）——
+// 深色：oled 纯黑 / bangumi 粉夜 / ink 墨绿夜；浅色：pure 纯白 / pink 粉白 / paper 墨绿纸
+const presets: Record<'dark' | 'light', string> = { dark: 'classic', light: 'classic' }
+export function setThemePreset(mode: 'dark' | 'light', p: string) {
+  presets[mode] = p || 'classic'
 }
 
 // —— 定时切换时段（'HH:mm'，浅色起 ~ 深色起；支持跨午夜）——
@@ -93,9 +94,10 @@ export async function applyTheme(
   if (pref === 'scheduled') ensureScheduleTicker()
   const target = resolve(pref)
 
-  // 深色预设皮肤：仅深色模式写 data-preset（classic 不写，走样式表默认）
+  // 预设皮肤：按解析后的主题取对应（深/浅各一套）；classic 不写属性，走样式表默认。
   // 注意写在同值早退之前——切换预设但主题未变时也要刷新皮肤属性
-  const presetAttr = target === 'dark' && darkPreset !== 'classic' ? darkPreset : ''
+  const pv = presets[target]
+  const presetAttr = pv !== 'classic' ? pv : ''
   if (presetAttr) root.dataset.preset = presetAttr
   else delete root.dataset.preset
   try {

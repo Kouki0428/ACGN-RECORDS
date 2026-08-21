@@ -175,12 +175,20 @@ const themeOptions: { value: ThemePref; label: string }[] = [
   { value: 'scheduled', label: '定时' }
 ]
 
-// 深色风格预设（仅深色模式生效）
+// 深色风格预设（深色主题下的皮肤）
 const darkPresets = [
   { value: 'classic', label: '经典' },
   { value: 'oled', label: 'OLED 纯黑' },
   { value: 'bangumi', label: '粉夜' },
   { value: 'ink', label: '墨绿夜' }
+]
+
+// 浅色风格预设（浅色主题下的皮肤）
+const lightPresets = [
+  { value: 'classic', label: '经典' },
+  { value: 'pure', label: '纯白' },
+  { value: 'pink', label: '粉白' },
+  { value: 'paper', label: '墨绿纸' }
 ]
 
 // 强调色预设（'' = 默认粉，由「默认」按钮处理）
@@ -648,9 +656,9 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         </label>
       </div>
 
-      <!-- 深色风格预设（仅深色模式生效） -->
+      <!-- 主题风格预设（深/浅各自一套，切换主题时分别生效） -->
       <hr class="divider" />
-      <p class="hint">深色风格（仅深色模式下生效，浅色模式忽略）。</p>
+      <p class="hint">深色风格——切换到深色主题时的外观。</p>
       <div class="seg">
         <button
           v-for="p in darkPresets"
@@ -659,6 +667,19 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
           class="seg-item"
           :class="{ active: settings.darkPreset === p.value }"
           @click="settings.set('darkPreset', p.value)"
+        >
+          {{ p.label }}
+        </button>
+      </div>
+      <p class="hint" style="margin-top: 12px">浅色风格——切换到浅色主题时的外观。</p>
+      <div class="seg">
+        <button
+          v-for="p in lightPresets"
+          :key="p.value"
+          type="button"
+          class="seg-item"
+          :class="{ active: settings.lightPreset === p.value }"
+          @click="settings.set('lightPreset', p.value)"
         >
           {{ p.label }}
         </button>

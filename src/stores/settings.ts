@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { dbClient } from '@/services/dbClient'
-import { applyTheme, setDarkPreset, setSchedule, type ThemePref } from '@/theme'
+import { applyTheme, setThemePreset, setSchedule, type ThemePref } from '@/theme'
 import { applyAccent } from '@/utils/accent'
 
 export const useSettingsStore = defineStore('settings', () => {
@@ -35,8 +35,9 @@ export const useSettingsStore = defineStore('settings', () => {
   const proxy = ref('')
   // 自定义强调色（'' = 默认粉）。写入 :root 的 --accent / --accent-grad，全局派生换色
   const accentColor = ref('')
-  // 深色预设皮肤：classic 经典 / oled 纯黑 / bangumi 粉夜 / ink 墨绿夜（仅深色模式生效）
+  // 主题预设皮肤：深 / 浅各自一套（classic=经典）。深色：oled/bangumi/ink；浅色：pure/pink/paper
   const darkPreset = ref('classic')
+  const lightPreset = ref('classic')
   // 定时切换时段：浅色起 ~ 深色起（'HH:mm'，支持跨午夜），theme='scheduled' 时生效
   const scheduleLight = ref('07:00')
   const scheduleDark = ref('19:00')
@@ -77,7 +78,11 @@ export const useSettingsStore = defineStore('settings', () => {
       }
       if (r.key === 'darkPreset') {
         darkPreset.value = r.value || 'classic'
-        setDarkPreset(darkPreset.value)
+        setThemePreset('dark', darkPreset.value)
+      }
+      if (r.key === 'lightPreset') {
+        lightPreset.value = r.value || 'classic'
+        setThemePreset('light', lightPreset.value)
       }
       if (r.key === 'scheduleLight') scheduleLight.value = r.value || '07:00'
       if (r.key === 'scheduleDark') scheduleDark.value = r.value || '19:00'
@@ -118,8 +123,13 @@ export const useSettingsStore = defineStore('settings', () => {
     }
     if (key === 'darkPreset') {
       darkPreset.value = value || 'classic'
-      setDarkPreset(darkPreset.value)
+      setThemePreset('dark', darkPreset.value)
       // 预设变化需刷新 data-preset 属性与原生底色（同主题早退分支也会同步，这里显式触发一次）
+      void applyTheme(theme.value)
+    }
+    if (key === 'lightPreset') {
+      lightPreset.value = value || 'classic'
+      setThemePreset('light', lightPreset.value)
       void applyTheme(theme.value)
     }
     if (key === 'scheduleLight' || key === 'scheduleDark') {
@@ -136,5 +146,5 @@ export const useSettingsStore = defineStore('settings', () => {
     theme.value = v
   }
 
-  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, darkPreset, scheduleLight, scheduleDark, load, set, commitTheme }
+  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, darkPreset, lightPreset, scheduleLight, scheduleDark, load, set, commitTheme }
 })

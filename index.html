@@ -16,7 +16,7 @@
           }
           document.documentElement.setAttribute('data-theme', t)
           var p = localStorage.getItem('acgn-preset-resolved')
-          if (p && t === 'dark') document.documentElement.setAttribute('data-preset', p)
+          if (p && p !== 'classic') document.documentElement.setAttribute('data-preset', p)
         } catch (e) {}
       })()
     </script>

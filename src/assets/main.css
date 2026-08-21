@@ -128,6 +128,47 @@
   --sidebar-bg: linear-gradient(180deg, #111a15 0%, #0e1411 100%);
   --bg-deep: #0b100d;
 }
+
+/* ===== 浅色预设皮肤（data-theme=light + data-preset 组合生效）===== */
+/* 纯白：中性白、极简灰阶 */
+:root[data-theme="light"][data-preset="pure"] {
+  --bg: #ffffff;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #f5f7fa 0%, #ffffff 60%);
+  --bg-panel: #ffffff;
+  --bg-elev: #f3f5f8;
+  --bg-elev-hover: #eaeef3;
+  --border-hover: #c9d1dc;
+  --border: #dde3ea;
+  --border-soft: #edf0f4;
+  --sidebar-bg: linear-gradient(180deg, #ffffff 0%, #f2f4f8 100%);
+  --bg-deep: #e8ecf1;
+}
+/* 粉白：Bangumi 樱粉调浅色 */
+:root[data-theme="light"][data-preset="pink"] {
+  --bg: #fbf1f4;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #f7e3ea 0%, #fbf1f4 60%);
+  --bg-panel: #fffdfe;
+  --bg-elev: #f8e8ed;
+  --bg-elev-hover: #f1dbe2;
+  --border-hover: #dcc3cc;
+  --border: #ecd6dd;
+  --border-soft: #f4e4e9;
+  --sidebar-bg: linear-gradient(180deg, #fdf5f7 0%, #fbf1f4 100%);
+  --bg-deep: #f3e2e8;
+}
+/* 墨绿纸：冷绿纸感浅色 */
+:root[data-theme="light"][data-preset="paper"] {
+  --bg: #f1f5ef;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #e5eee3 0%, #f1f5ef 60%);
+  --bg-panel: #fafdf8;
+  --bg-elev: #e7efe6;
+  --bg-elev-hover: #dbe7da;
+  --border-hover: #bfd0c1;
+  --border: #d3e0d4;
+  --border-soft: #e4ede5;
+  --sidebar-bg: linear-gradient(180deg, #f4f8f2 0%, #f1f5ef 100%);
+  --bg-deep: #e6eee4;
+}
 :root[data-theme="light"] ::-webkit-scrollbar-thumb {
   background-color: rgba(0, 0, 0, 0.18);
 }
