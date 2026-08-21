@@ -8,6 +8,7 @@ import EmptyState from '@/components/EmptyState.vue'
 import { dbClient } from '@/services/dbClient'
 import { animeClient } from '@/services/animeClient'
 import { collectionClient } from '@/services/collectionClient'
+import { archiveClient } from '@/services/archiveClient'
 import { useEntityCard } from '@/composables/useEntityCard'
 import { useContextMenu } from '@/composables/useContextMenu'
 import { buildCardMenu } from '@/composables/useCardContextMenu'
@@ -282,25 +283,40 @@ async function loadWeek() {
       title: string
       image: string | null
       airDate: string | null
-      totalEpisodes: number | null
-      epStatus: number
       providerSubjectId: string | null
     }>(
       `SELECT s.id AS subjectId, s.title_cn AS titleCn, s.title AS title, s.image_url AS image,
-              s.air_date AS airDate, s.total_episodes AS totalEpisodes, c.ep_status AS epStatus,
-              s.provider_subject_id AS providerSubjectId
+              s.air_date AS airDate, s.provider_subject_id AS providerSubjectId
        FROM collections c JOIN subjects s ON s.id = c.subject_id
-       WHERE s.category = 'anime' AND c.status = 3 AND s.provider = 'bangumi'
-         AND s.air_date IS NOT NULL`
+       WHERE s.category = 'anime' AND c.status = 3 AND s.provider = 'bangumi'`
     )
+    // air_date 缺失的条目：用离线 Archive 库的开播日期兜底（主库同步时可能尚未公布）
+    const missing = rows.filter(
+      (r) => !r.airDate && r.providerSubjectId && /^\d+$/.test(String(r.providerSubjectId))
+    )
+    if (missing.length) {
+      try {
+        const dates = await archiveClient.subjectDates(
+          missing.map((r) => Number(r.providerSubjectId))
+        )
+        for (const r of missing) {
+          const d = dates[Number(r.providerSubjectId)]
+          if (d) r.airDate = d
+        }
+      } catch {
+        /* 离线库不可用时跳过兜底 */
+      }
+    }
+    // 当季窗口：近 140 天内开播（覆盖一个季度 + 缓冲），多年长番/完结旧作不进周历
+    const p2 = (n: number) => String(n).padStart(2, '0')
+    const cutoff = new Date(Date.now() - 140 * 864e5)
+    const cutStr = `${cutoff.getFullYear()}-${p2(cutoff.getMonth() + 1)}-${p2(cutoff.getDate())}`
     const items: WeekItem[] = []
     for (const r of rows) {
-      if (!r.airDate) continue
+      if (!r.airDate || r.airDate < cutStr) continue
       const d = new Date(`${r.airDate}T00:00:00`)
       if (Number.isNaN(d.getTime())) continue
-      // 在播启发式：无总集数 或 已看 < 总集数 → 视为连载中（完结作品不再出现在周历）
-      if (r.totalEpisodes && r.totalEpisodes > 0 && r.epStatus >= r.totalEpisodes) continue
-      // 周历条目点击打开作品悬浮窗：必须传 Bangumi provider id（铁律）
+      // 点击打开作品悬浮窗：必须传 Bangumi provider id（铁律）
       const pid = Number(r.providerSubjectId)
       items.push({
         id: Number.isFinite(pid) && pid > 0 ? pid : r.subjectId,
@@ -343,32 +359,6 @@ onMounted(() => {
 
 <template>
   <div class="home">
-    <!-- 本周放送（追番周历）：在追动画按开播星期分布，今天高亮 -->
-    <div v-if="weekItems.length" class="week-strip">
-      <div
-        v-for="(d, i) in weekDays"
-        :key="d"
-        class="week-day"
-        :class="{ today: i === todayIdx }"
-      >
-        <div class="wd-head">{{ d }}<span v-if="i === todayIdx" class="wd-today">今天</span></div>
-        <div class="wd-list">
-          <button
-            v-for="it in weekItems.filter((w) => w.weekday === i)"
-            :key="it.id"
-            type="button"
-            class="wd-item"
-            :title="`${it.title} · 点击打开`"
-            @click="openSubject('subject', it.id)"
-          >
-            <img v-if="it.image" :src="it.image" :alt="it.title" loading="lazy" />
-            <span v-else class="wd-empty">无封面</span>
-          </button>
-          <span v-if="weekItems.every((w) => w.weekday !== i)" class="wd-none">—</span>
-        </div>
-      </div>
-    </div>
-
     <!-- 三个子分类（仅显示在看/在读的在追作品） -->
     <div class="subtabs">
       <button
@@ -480,6 +470,33 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- 本周放送（追番周历）：放在页面底部辅助区，不抢占「第一时间点格子」的首屏 -->
+    <div v-if="weekItems.length" class="week-strip">
+      <div class="week-cap">本周放送<span class="week-cap-sub">按开播星期 · 点击封面打开作品</span></div>
+      <div
+        v-for="(d, i) in weekDays"
+        :key="d"
+        class="week-day"
+        :class="{ today: i === todayIdx }"
+      >
+        <div class="wd-head">{{ d }}<span v-if="i === todayIdx" class="wd-today">今天</span></div>
+        <div class="wd-list">
+          <button
+            v-for="it in weekItems.filter((w) => w.weekday === i)"
+            :key="it.id"
+            type="button"
+            class="wd-item"
+            :title="`${it.title} · 点击打开`"
+            @click="openSubject('subject', it.id)"
+          >
+            <img v-if="it.image" :src="it.image" :alt="it.title" loading="lazy" />
+            <span v-else class="wd-empty">无封面</span>
+          </button>
+          <span v-if="weekItems.every((w) => w.weekday !== i)" class="wd-none">—</span>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -491,16 +508,31 @@ onMounted(() => {
   margin: -15px auto 0;
 }
 
-/* ===== 本周放送（追番周历）===== */
+/* ===== 本周放送（追番周历，页面底部辅助区）===== */
 .week-strip {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 8px;
-  margin: 6px 0 18px;
-  padding: 10px;
+  margin: 28px 0 0;
+  padding: 12px;
   background: var(--bg-panel);
   border: 1px solid var(--border);
   border-radius: 14px;
+}
+.week-cap {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+.week-cap-sub {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-dim);
 }
 .week-day {
   min-width: 0;

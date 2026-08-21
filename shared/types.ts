@@ -934,6 +934,8 @@ export interface AcgnApi {
     searchByTag: (tag: string, limit?: number) => Promise<ArchiveTagSubject[]>
     /** 离线 Archive 缺封面：匿名从 Bangumi v0 联网补图并回写 Archive 缓存；返回 { [id]: url } */
     ensureCovers: (ids: number[]) => Promise<Record<number, string>>
+    /** 批量取离线库作品开播日期（YYYY-MM-DD；主页周历对 air_date 缺失的兜底）。键为 Bangumi 数字 id */
+    subjectDates: (ids: number[]) => Promise<Record<number, string | null>>
     /** 订阅更新进度；返回取消订阅函数 */
     onProgress: (cb: (p: ArchiveProgress) => void) => () => void
     /** 删除整个离线数据库目录（db / wal / shm / dump.zip / extract），返回是否成功 */

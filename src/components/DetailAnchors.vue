@@ -11,12 +11,21 @@ export interface AnchorItem {
 const props = defineProps<{ items: AnchorItem[] }>()
 
 const activeKey = ref('')
+// 仅展示「目标元素真实存在」的锚点：动画/游戏没有单行本区块（SubjectRelations
+// 空数据不渲染根节点），按存在性过滤后对应 chip 自动隐藏，无需各视图硬编码。
+const shownItems = ref<AnchorItem[]>([])
 let scroller: HTMLElement | null = null
 let raf = 0
 
+function refreshShown() {
+  shownItems.value = props.items.filter(
+    (it) => !!document.querySelector(`[data-anchor="${it.key}"]`)
+  )
+}
+
 function querySections(): HTMLElement[] {
   const out: HTMLElement[] = []
-  for (const it of props.items) {
+  for (const it of shownItems.value) {
     const el = document.querySelector<HTMLElement>(`[data-anchor="${it.key}"]`)
     if (el) out.push(el)
   }
@@ -53,7 +62,13 @@ onMounted(async () => {
   scroller = document.querySelector('.content')
   scroller?.addEventListener('scroll', onScroll, { passive: true })
   await nextTick()
+  refreshShown()
   updateActive()
+  // 部分区块由异步数据驱动渲染（如角色/关联补全后才有根节点），延迟复查一次
+  window.setTimeout(() => {
+    refreshShown()
+    updateActive()
+  }, 600)
 })
 onUnmounted(() => {
   scroller?.removeEventListener('scroll', onScroll)
@@ -63,6 +78,7 @@ watch(
   () => props.items,
   async () => {
     await nextTick()
+    refreshShown()
     updateActive()
   },
   { deep: true }
@@ -72,7 +88,7 @@ watch(
 <template>
   <div class="anchor-bar">
     <button
-      v-for="it in items"
+      v-for="it in shownItems"
       :key="it.key"
       type="button"
       class="anchor-chip"

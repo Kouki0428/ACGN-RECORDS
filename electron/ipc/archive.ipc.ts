@@ -1,6 +1,6 @@
 import electron from 'electron'
 const { ipcMain } = electron
-import { getArchiveMeta, updateArchive, searchSubjects, deleteArchive, getArchiveSubjectsByTag, ensureArchiveSubjectCovers } from '../services/archive/archive.service'
+import { getArchiveMeta, updateArchive, searchSubjects, deleteArchive, getArchiveSubjectsByTag, ensureArchiveSubjectCovers, getArchiveSubjectDates } from '../services/archive/archive.service'
 
 export function registerArchiveIpc(): void {
   ipcMain.handle('archive:getMeta', async () => getArchiveMeta())
@@ -28,6 +28,12 @@ export function registerArchiveIpc(): void {
   ipcMain.handle('archive:ensureCovers', async (_event, ids: number[]) =>
     ensureArchiveSubjectCovers(ids)
   )
+
+  // 批量取离线库的作品开播日期（主页周历对 air_date 缺失条目的兜底）。Map → 普通对象便于结构化克隆
+  ipcMain.handle('archive:subjectDates', async (_event, ids: number[]) => {
+    const map = await getArchiveSubjectDates(Array.isArray(ids) ? ids.map(Number).filter(Number.isFinite) : [])
+    return Object.fromEntries(map)
+  })
 
   ipcMain.handle('archive:delete', async () => {
     await deleteArchive()

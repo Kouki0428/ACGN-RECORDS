@@ -8,6 +8,8 @@ export const archiveClient = {
   searchByTag: (tag: string, limit = 300) =>
     window.acgn.archive.searchByTag(tag, limit) as Promise<ArchiveTagSubject[]>,
   ensureCovers: (ids: number[]) => window.acgn.archive.ensureCovers(ids) as Promise<Record<number, string>>,
+  subjectDates: (ids: number[]) =>
+    window.acgn.archive.subjectDates(ids) as Promise<Record<number, string | null>>,
   onProgress: (cb: (p: ArchiveProgress) => void) => window.acgn.archive.onProgress(cb),
   delete: () => window.acgn.archive.delete() as Promise<boolean>
 }

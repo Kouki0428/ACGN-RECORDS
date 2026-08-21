@@ -151,6 +151,8 @@ const api: AcgnApi = {
     search: (query, type, limit) => ipcRenderer.invoke('archive:search', query, type, limit),
     searchByTag: (tag, limit) => ipcRenderer.invoke('archive:searchByTag', tag, limit),
     ensureCovers: (ids: number[]) => ipcRenderer.invoke('archive:ensureCovers', ids) as Promise<Record<number, string>>,
+    subjectDates: (ids: number[]) =>
+      ipcRenderer.invoke('archive:subjectDates', ids) as Promise<Record<number, string | null>>,
     onProgress: (cb) => {
       const listener = (_event: unknown, p: unknown) => cb(p as any)
       ipcRenderer.on('archive:progress', listener)
