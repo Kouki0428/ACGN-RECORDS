@@ -52,21 +52,25 @@ function onLeave() {
 </script>
 
 <template>
-  <div ref="el" class="ellipsis-title" @mouseenter="onEnter" @mouseleave="onLeave">{{ text }}</div>
-  <Teleport to="body">
-    <Transition name="tip-fade">
-      <div
-        v-if="show"
-        class="ellipsis-tip"
-        :class="{ above: pos.above }"
-        :style="{ left: pos.left + 'px', top: pos.top + 'px', maxWidth: pos.maxWidth + 'px' }"
-        @mouseenter="onEnter"
-        @mouseleave="onLeave"
-      >
-        {{ text }}
-      </div>
-    </Transition>
-  </Teleport>
+  <!-- 单根：Teleport 放在标题元素内部（tooltip 渲染到 body，不受父级 overflow 影响），
+       使外部传入的 class 能正常落在真实元素上（消除 fragment non-props 警告） -->
+  <div ref="el" class="ellipsis-title" @mouseenter="onEnter" @mouseleave="onLeave">
+    {{ text }}
+    <Teleport to="body">
+      <Transition name="tip-fade">
+        <div
+          v-if="show"
+          class="ellipsis-tip"
+          :class="{ above: pos.above }"
+          :style="{ left: pos.left + 'px', top: pos.top + 'px', maxWidth: pos.maxWidth + 'px' }"
+          @mouseenter="onEnter"
+          @mouseleave="onLeave"
+        >
+          {{ text }}
+        </div>
+      </Transition>
+    </Teleport>
+  </div>
 </template>
 
 <style scoped>

@@ -100,15 +100,14 @@ onUnmounted(() => {
     <SidebarNav />
     <main class="content">
       <div class="content-inner">
-        <!-- 路由切换淡入淡出（仅 opacity，零布局影响，不干扰 FLIP/滚动位置）。
-             :duration 强制用定时器判定过渡结束，不依赖 transitionend 事件——
-             规避「leave 过渡事件偶发丢失导致 mode=out-in 不挂载新视图（页面空白）」。
-             RouteErrorBoundary：视图 setup/渲染抛错时显示可见错误卡，替代静默白屏。 -->
+        <!-- 路由视图：不加 Transition。
+             曾用 <Transition mode="out-in"> 做切换淡入淡出，但会偶发「新视图已挂载却停留在
+             opacity:0 的 enter-from 态」→ 整页空白、刷新才恢复（诊断：DOM 存在但不可见，
+             Console 仅有 EllipsisTitle fragment 警告；详见 .workbuddy/memory/2026-08-21）。
+             纯 CSS 进场动画如需再引入，须避开 Vue 过渡状态机（用 animation 而非 transition）。 -->
         <router-view v-slot="{ Component }">
           <RouteErrorBoundary>
-            <Transition name="page" mode="out-in" :duration="{ enter: 180, leave: 140 }">
-              <component :is="Component" />
-            </Transition>
+            <component :is="Component" />
           </RouteErrorBoundary>
         </router-view>
       </div>
