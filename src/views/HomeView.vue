@@ -4,6 +4,7 @@ import CoverImage from '@/components/CoverImage.vue'
 import EpisodeGrid from '@/components/EpisodeGrid.vue'
 import ProgressEditor from '@/components/ProgressEditor.vue'
 import EllipsisTitle from '@/components/EllipsisTitle.vue'
+import EmptyState from '@/components/EmptyState.vue'
 import { dbClient } from '@/services/dbClient'
 import { animeClient } from '@/services/animeClient'
 import { collectionClient } from '@/services/collectionClient'
@@ -268,10 +269,24 @@ onMounted(() => {
       >{{ t.label }}</button>
     </div>
 
-    <!-- 卡片区 -->
-    <div v-if="loading" class="home-loading">加载中…</div>
-    <div v-else-if="displayCards.length === 0" class="home-empty">该分类下还没有在看/在读的作品</div>
-    <div v-else class="home-cards">
+    <!-- 卡片区：首次加载显示骨架屏；切换分类时保留旧内容并轻微降透明（不闪烁） -->
+    <div v-if="loading && cards.length === 0" class="home-cards" aria-hidden="true">
+      <div v-for="i in 4" :key="i" class="hcard skel-card">
+        <div class="hcard-inner">
+          <div class="hcard-cover skeleton"></div>
+          <div class="hcard-body">
+            <div class="skeleton sk-line" style="width: 72%"></div>
+            <div class="skeleton sk-block"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <EmptyState
+      v-else-if="!loading && displayCards.length === 0"
+      text="还没有在看 / 在读的作品"
+      hint="先去对应栏目把作品标记为「在看」，就会出现在这里"
+    />
+    <div v-else class="home-cards" :class="{ 'is-switching': loading }">
       <div
         v-for="c in displayCards"
         :key="c.subjectId"
@@ -395,11 +410,29 @@ onMounted(() => {
   border-radius: 2px;
 }
 
-.home-loading,
-.home-empty {
-  padding: 40px;
-  text-align: center;
-  color: var(--text-dim);
+/* 首次加载骨架卡：与真实 hcard 同构，避免加载完成时布局跳动 */
+.skel-card {
+  pointer-events: none;
+  height: 132px;
+}
+.skel-card .hcard-cover {
+  border-radius: 8px;
+}
+.hcard-body .sk-line {
+  height: 14px;
+  margin: 2px 0 6px;
+}
+.hcard-body .sk-block {
+  flex: 1;
+  min-height: 58px;
+}
+/* 切换分类时保留旧内容、轻微降透明过渡（不闪白） */
+.home-cards {
+  transition: opacity var(--dur) ease;
+}
+.home-cards.is-switching {
+  opacity: 0.45;
+  pointer-events: none;
 }
 
 /* 自适应排布：auto-fill + minmax 连续自适应，且「至少 2 列」。

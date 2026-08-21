@@ -2,11 +2,13 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useCollectionModal } from '@/composables/useCollectionModal'
 import { useModalZ } from '@/composables/useModalZ'
+import { useToast } from '@/composables/useToast'
 import { collectionClient } from '@/services/collectionClient'
 import { statusVerbs } from '@/utils/collectionVerbs'
 
 // 全局单例：状态由 open() 写入，本组件只负责渲染与提交
 const modal = useCollectionModal()
+const toast = useToast()
 // 最后打开的悬浮窗抬到最上层
 const z = useModalZ(modal.isOpen)
 
@@ -134,8 +136,10 @@ async function onSave() {
       private: draftPrivate.value,
       rating: showRating.value ? modal.rating.value : undefined
     })
+    toast.ok('收藏已保存')
   } catch (e) {
     errorMsg.value = e instanceof Error ? e.message : String(e)
+    toast.err('收藏保存失败')
     console.warn('[CollectionModal] 保存收藏失败：', e)
     saving.value = false
   }

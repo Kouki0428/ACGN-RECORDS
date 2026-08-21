@@ -9,6 +9,8 @@ import SubjectRelations from '@/components/SubjectRelations.vue'
 import StatusTabs from '@/components/StatusTabs.vue'
 import CoverImage from '@/components/CoverImage.vue'
 import SynopsisBox from '@/components/SynopsisBox.vue'
+import EmptyState from '@/components/EmptyState.vue'
+import { useSearchOverlay } from '@/composables/searchOverlay'
 import { animeClient } from '@/services/animeClient'
 import { subjectClient } from '@/services/subjectClient'
 import type { Subject, AnimeDetail, AnimeWatchingItem, EpisodeMarkPayload } from '@shared/types'
@@ -21,6 +23,7 @@ import { useCollectionModal } from '@/composables/useCollectionModal'
 
 // 关联作品 / 单行本点击：打开作品悬浮窗（而非跳网页）
 const { open: openSubjectCard } = useEntityCard()
+const { open: openSearch } = useSearchOverlay()
 function onSubjectSelect(id: number) {
   openSubjectCard('subject', id)
 }
@@ -303,9 +306,13 @@ onUnmounted(() => {
           </div>
           <div v-else class="meta">已看 {{ w.epStatus }} / {{ w.totalEpisodes || 12 }}</div>
         </div>
-        <p v-if="watching.length === 0" class="placeholder">
-          还没有{{ currentLabel }}的动画，先搜索添加一部吧。
-        </p>
+        <EmptyState
+          v-if="watching.length === 0"
+          :text="`还没有${currentLabel}的动画`"
+          hint="从 Bangumi 搜索并添加到收藏，即可在这里标记单集进度"
+        >
+          <button class="btn btn--primary btn--sm" @click="openSearch()">搜索添加</button>
+        </EmptyState>
       </div>
     </div>
   </div>

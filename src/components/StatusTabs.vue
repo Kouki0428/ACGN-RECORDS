@@ -73,29 +73,57 @@ watch(refreshTick, loadCounts)
 .status-tab {
   padding: 5px 14px;
   border-radius: 999px;
-  border: 1px solid var(--border, #2a3342);
+  border: 1px solid var(--border);
   background: transparent;
-  color: var(--text-dim, #8b94a3);
+  color: var(--text-dim);
   font-size: 13px;
   line-height: 1.4;
   cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  transition:
+    color var(--dur-fast) ease,
+    border-color var(--dur-fast) ease,
+    background var(--dur-fast) ease,
+    box-shadow var(--dur) var(--ease-out),
+    transform 0.12s var(--ease-out);
 }
 .status-tab:hover {
-  color: var(--text, #e6e9ef);
-  border-color: var(--text-dim, #8b94a3);
+  color: var(--text);
+  border-color: var(--border-hover);
+  background: var(--bg-elev);
 }
+.status-tab:active {
+  transform: scale(0.96);
+}
+/* 激活态：品牌渐变胶囊 + 同色柔和投影，视觉重心明确 */
 .status-tab.active {
-  background: var(--accent, #f7b500);
-  border-color: var(--accent, #f7b500);
-  color: #11151c;
+  background: var(--accent-grad);
+  border-color: transparent;
+  color: #fff;
   font-weight: 600;
+  box-shadow: 0 3px 12px rgba(255, 92, 138, 0.32);
 }
-/* 状态计数：稍小、半透明，强调标签本身 */
+.status-tab.active:hover {
+  filter: brightness(1.05);
+}
+/* 状态计数：独立小徽章，激活态反白半透明，未激活为暗色块 */
 .count {
-  margin-left: 5px;
+  margin-left: 6px;
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
   font-size: 11px;
-  opacity: 0.72;
+  line-height: 16px;
+  text-align: center;
   font-weight: 600;
+  background: var(--bg-elev);
+  color: inherit;
+}
+.status-tab:not(.active) .count {
+  color: var(--text-dim);
+}
+.status-tab.active .count {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
 }
 </style>

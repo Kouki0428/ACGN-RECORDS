@@ -11,6 +11,8 @@ import GameGallery from '@/components/GameGallery.vue'
 import StatusTabs from '@/components/StatusTabs.vue'
 import CoverImage from '@/components/CoverImage.vue'
 import SynopsisBox from '@/components/SynopsisBox.vue'
+import EmptyState from '@/components/EmptyState.vue'
+import { useSearchOverlay } from '@/composables/searchOverlay'
 import { apiClient } from '@/services/apiClient'
 import { collectionClient } from '@/services/collectionClient'
 import { purchaseClient } from '@/services/purchaseClient'
@@ -23,6 +25,7 @@ import { useCollectionModal } from '@/composables/useCollectionModal'
 
 // 关联作品 / 单行本点击：打开作品悬浮窗（而非跳网页）
 const { open: openSubjectCard } = useEntityCard()
+const { open: openSearch } = useSearchOverlay()
 function onSubjectSelect(id: number) {
   openSubjectCard('subject', id)
 }
@@ -332,9 +335,13 @@ onUnmounted(() => {
           </div>
           <div v-else class="meta">已通关 {{ r.epStatus }} 条路线</div>
         </div>
-        <p v-if="playing.length === 0" class="placeholder">
-          还没有{{ currentLabel }}的游戏，先搜索添加一部吧。
-        </p>
+        <EmptyState
+          v-if="playing.length === 0"
+          :text="`还没有${currentLabel}的游戏`"
+          hint="从 Bangumi 搜索并添加到收藏，即可在这里追踪通关进度"
+        >
+          <button class="btn btn--primary btn--sm" @click="openSearch()">搜索添加</button>
+        </EmptyState>
       </div>
     </div>
   </div>

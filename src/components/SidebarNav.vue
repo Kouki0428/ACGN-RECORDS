@@ -58,12 +58,20 @@ function onSpinEnd() {
     </div>
 
     <!-- 全局搜索：展开态保留输入框外观（非真实 input，不可输入），点击整行在应用中央叠加搜索卡片 -->
-    <div class="nav-search" role="button" tabindex="0" @click="openSearch" @keyup.enter="openSearch">
+    <div
+      class="nav-search"
+      role="button"
+      tabindex="0"
+      title="搜索作品 / 角色 / 人物（Ctrl+K）"
+      @click="openSearch"
+      @keyup.enter="openSearch"
+    >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="11" cy="11" r="7" />
         <line x1="16.5" y1="16.5" x2="21" y2="21" />
       </svg>
       <span class="ns-fake-input">搜索…</span>
+      <span class="ns-kbd">Ctrl K</span>
     </div>
 
     <nav>
@@ -71,6 +79,7 @@ function onSpinEnd() {
         v-for="item in items"
         :key="item.to"
         :to="item.to"
+        :title="item.label"
         :class="{ 'router-link-active': route.path === item.to }"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -83,6 +92,7 @@ function onSpinEnd() {
     <router-link
       to="/settings"
       class="nav-gear"
+      title="设置"
       :class="{ 'router-link-active': route.path === '/settings', spinning: isSpinning, pressed: isPressed }"
       @mousedown="press"
       @mouseup="release"

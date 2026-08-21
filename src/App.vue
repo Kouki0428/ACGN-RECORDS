@@ -6,14 +6,18 @@ import SearchOverlay from './components/SearchOverlay.vue'
 import EntitySubjectCard from './components/EntitySubjectCard.vue'
 import CollectionModal from './components/CollectionModal.vue'
 import ImageLightbox from './components/ImageLightbox.vue'
+import ToastHost from './components/ToastHost.vue'
 import { useGridResizeFlip } from './composables/useGridResizeFlip'
 import { useNavHistory } from './composables/useNavHistory'
 import { useSearchOverlay } from './composables/searchOverlay'
 import { useEntityCard } from './composables/useEntityCard'
 import { useCollectionModal } from './composables/useCollectionModal'
+import { useAppHotkeys } from './composables/useAppHotkeys'
 
 // 窗口缩放时作品卡片的 FLIP 补间（列数跨阈值时平滑滑动）
 useGridResizeFlip()
+// 全局键盘快捷键（Ctrl+K 搜索 / Ctrl+, 设置）
+useAppHotkeys()
 
 // 鼠标侧键前进/后退：3 = 后退(X1)，4 = 前进(X2)
 const router = useRouter()
@@ -94,7 +98,12 @@ onUnmounted(() => {
     <SidebarNav />
     <main class="content">
       <div class="content-inner">
-        <router-view />
+        <!-- 路由切换淡入淡出（仅 opacity，零布局影响，不干扰 FLIP/滚动位置） -->
+        <router-view v-slot="{ Component }">
+          <Transition name="page" mode="out-in">
+            <component :is="Component" />
+          </Transition>
+        </router-view>
       </div>
     </main>
     <!-- 全局唯一模糊遮罩：所有悬浮窗共用，避免逐个悬浮窗切换时模糊层反复重算闪烁 -->
@@ -110,6 +119,8 @@ onUnmounted(() => {
     <CollectionModal />
     <!-- 全局图片放大预览：点击作品/角色/人物悬浮窗封面时弹出全屏大图 -->
     <ImageLightbox />
+    <!-- 全局 Toast 操作反馈（保存成功/失败等），最顶层 -->
+    <ToastHost />
   </div>
 </template>
 

@@ -9,6 +9,8 @@ import CollectionBar from '@/components/CollectionBar.vue'
 import StatusTabs from '@/components/StatusTabs.vue'
 import CoverImage from '@/components/CoverImage.vue'
 import SynopsisBox from '@/components/SynopsisBox.vue'
+import EmptyState from '@/components/EmptyState.vue'
+import { useSearchOverlay } from '@/composables/searchOverlay'
 import { collectionClient } from '@/services/collectionClient'
 import type { Subject, CollectionDetail, CollectionItem } from '@shared/types'
 import { statusLabel } from '@/utils/statusLabels'
@@ -20,6 +22,7 @@ import { useCollectionModal } from '@/composables/useCollectionModal'
 
 // 关联作品 / 单行本点击：打开作品悬浮窗（而非跳网页）
 const { open: openSubjectCard } = useEntityCard()
+const { open: openSearch } = useSearchOverlay()
 function onSubjectSelect(id: number) {
   openSubjectCard('subject', id)
 }
@@ -249,9 +252,13 @@ onUnmounted(() => {
             话 {{ r.epStatus }}/{{ r.totalEpisodes && r.totalEpisodes > 0 ? r.totalEpisodes : '??' }}<template v-if="r.series != false"> - 卷 {{ r.volStatus }}/{{ r.totalVolumes && r.totalVolumes > 0 ? r.totalVolumes : '??' }}</template>
           </div>
         </div>
-        <p v-if="reading.length === 0" class="placeholder">
-          还没有{{ currentLabel }}的漫画，先搜索添加一部吧。
-        </p>
+        <EmptyState
+          v-if="reading.length === 0"
+          :text="`还没有${currentLabel}的漫画`"
+          hint="从 Bangumi 搜索并添加到收藏，即可在这里追踪阅读进度"
+        >
+          <button class="btn btn--primary btn--sm" @click="openSearch()">搜索添加</button>
+        </EmptyState>
       </div>
     </div>
   </div>

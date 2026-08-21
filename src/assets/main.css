@@ -40,6 +40,12 @@
   --rating-site-color: #b6bdc8;
   --rating-site-bg: rgba(174, 182, 194, 0.18);
   --rating-site-border: rgba(174, 182, 194, 0.34);
+  /* ===== 动效与交互统一令牌 ===== */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 0.15s;
+  --dur: 0.22s;
+  /* 键盘焦点环 / 输入聚焦光环（accent-2 蓝系，深浅主题通用） */
+  --ring: 0 0 0 3px rgba(91, 157, 255, 0.22);
 }
 
 /* ===== 浅色主题：覆盖配色变量（跟随系统解析为 light 或手动选 light 时生效） ===== */
@@ -115,6 +121,21 @@
   box-sizing: border-box;
 }
 
+/* ===== 键盘可达性：仅键盘导航时显示焦点环（鼠标点击不显示） ===== */
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+/* 表单控件/按钮已有自定义聚焦光环（box-shadow），不叠加外圈 outline */
+.input:focus-visible,
+.btn:focus-visible,
+.progress-editor input[type='number']:focus-visible {
+  outline: none;
+}
+
 html,
 body,
 #app {
@@ -128,20 +149,6 @@ body,
 }
 
 /* 滚动条 */
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-::-webkit-scrollbar-thumb {
-  background: #313a46;
-  border-radius: 8px;
-  border: 2px solid transparent;
-  background-clip: content-box;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #3d4856;
-  background-clip: content-box;
-}
 ::-webkit-scrollbar-track {
   background: transparent;
 }
@@ -287,6 +294,12 @@ body,
   height: 18px;
   flex-shrink: 0;
   opacity: 0.85;
+  transition: transform var(--dur) var(--ease-out);
+}
+/* 图标 hover 微抬（不含齿轮：其 svg 有自转动画，避免冲突） */
+.sidebar nav a:hover svg {
+  opacity: 1;
+  transform: translateY(-1px);
 }
 .sidebar .nav-label {
   white-space: nowrap;
@@ -347,12 +360,36 @@ body,
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* 快捷键提示小徽章（Ctrl K）：hover 整行时高亮 */
+.sidebar .nav-search .ns-kbd {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 2px 6px;
+  letter-spacing: 0.4px;
+  opacity: 0.75;
+  transition: color var(--dur-fast), border-color var(--dur-fast), opacity var(--dur-fast);
+  user-select: none;
+}
+.sidebar .nav-search:hover .ns-kbd {
+  color: var(--accent-2);
+  border-color: var(--accent-2);
+  opacity: 1;
+}
 /* 折叠态：固定高度 38px 不变（防偏移），去掉边框/背景，只留放大镜图标，hover 才高亮 */
 .sidebar.collapsed .nav-search {
   height: 38px;
   padding: 0 10px;
   border-color: transparent;
   background: transparent;
+}
+.sidebar.collapsed .nav-search .ns-kbd {
+  display: none;
 }
 .sidebar.collapsed .nav-search:hover {
   background: var(--bg-elev);
@@ -544,7 +581,40 @@ body,
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 10px;
-  transition: transform 0.12s ease, border-color 0.15s, box-shadow 0.15s;
+  transition: transform 0.12s ease, border-color var(--dur-fast), box-shadow var(--dur-fast);
+}
+/* ===== 进场动效：网格卡片上浮淡入，前几张错峰（列表切换状态时重放，提供反馈） =====
+   仅 opacity/transform 的短动画；结束后不保留填充 → 不与 FLIP 写入的 inline transform 冲突。
+   尊重系统「减少动态效果」。 */
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.grid .card,
+.home-cards .hcard {
+  animation: card-in 0.34s var(--ease-out) backwards;
+}
+.grid .card:nth-child(2),
+.home-cards .hcard:nth-child(2) { animation-delay: 0.03s; }
+.grid .card:nth-child(3),
+.home-cards .hcard:nth-child(3) { animation-delay: 0.06s; }
+.grid .card:nth-child(n + 4):nth-child(-n + 6),
+.home-cards .hcard:nth-child(n + 4):nth-child(-n + 6) { animation-delay: 0.09s; }
+.grid .card:nth-child(n + 7):nth-child(-n + 9),
+.home-cards .hcard:nth-child(n + 7):nth-child(-n + 9) { animation-delay: 0.12s; }
+.grid .card:nth-child(n + 10),
+.home-cards .hcard:nth-child(n + 10) { animation-delay: 0.15s; }
+@media (prefers-reduced-motion: reduce) {
+  .grid .card,
+  .home-cards .hcard {
+    animation: none;
+  }
 }
 .card.watching,
 .card[role='button'] {
@@ -565,8 +635,21 @@ body,
 }
 .card:hover {
   transform: translateY(-3px);
-  border-color: #3a4554;
+  border-color: var(--border-hover);
   box-shadow: var(--shadow);
+}
+/* 封面 hover 微缩放：卡片上浮时封面轻微放大 + 提亮，增强「可点」反馈。
+   仅 transform/filter，不影响布局；与 FLIP 重排动画无冲突（FLIP 只写卡片自身 inline 样式）。
+   注意不要加常驻 will-change（长期合成层会复现窗口缩放黑边问题）。 */
+.card .card-cover,
+.card > img {
+  transition: transform var(--dur) var(--ease-out), filter var(--dur) var(--ease-out);
+}
+.card[role='button']:hover .card-cover,
+.card.watching:hover .card-cover,
+.card.watching:hover > img {
+  transform: scale(1.035);
+  filter: brightness(1.05);
 }
 .card > img {
   width: 100%;
@@ -786,7 +869,7 @@ select.input:focus,
 textarea.input:focus {
   outline: none;
   border-color: var(--accent-2);
-  box-shadow: 0 0 0 3px rgba(91, 157, 255, 0.18);
+  box-shadow: var(--ring);
 }
 textarea.input {
   resize: vertical;
@@ -805,10 +888,18 @@ textarea.input {
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: filter 0.15s, transform 0.08s, background 0.15s, border-color 0.15s;
+  transition: filter var(--dur-fast), transform 0.12s var(--ease-out), background var(--dur-fast),
+    border-color var(--dur-fast), box-shadow var(--dur);
 }
-.btn:active {
-  transform: translateY(1px);
+.btn:focus {
+  outline: none;
+}
+.btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.985);
 }
 .btn:disabled {
   opacity: 0.55;
@@ -820,6 +911,7 @@ textarea.input {
 }
 .btn--primary:hover:not(:disabled) {
   filter: brightness(1.08);
+  box-shadow: 0 4px 16px rgba(91, 157, 255, 0.32);
 }
 .btn--accent {
   background: var(--accent-grad);
@@ -827,6 +919,7 @@ textarea.input {
 }
 .btn--accent:hover:not(:disabled) {
   filter: brightness(1.06);
+  box-shadow: 0 4px 16px rgba(255, 92, 138, 0.3);
 }
 .btn--ghost {
   background: var(--bg-elev);
@@ -980,4 +1073,43 @@ textarea.input {
   display: block;
   width: 18px;
   height: 18px;
+}
+
+/* ===== 路由切换过渡（仅 opacity，零布局影响，不干扰 FLIP/滚动位置测量） ===== */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.16s ease;
+}
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+}
+
+/* ===== 骨架屏（加载占位）===== */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-elev);
+  border-radius: 8px;
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.07), transparent);
+  animation: shimmer 1.4s infinite;
+}
+:root[data-theme='light'] .skeleton::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+}
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after {
+    animation: none;
+  }
 }

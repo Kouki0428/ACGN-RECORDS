@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import type { Category } from '@shared/types'
 import { collectionClient } from '@/services/collectionClient'
 import { useCollectionModal } from '@/composables/useCollectionModal'
+import { useToast } from '@/composables/useToast'
 import { statusVerbs, collectionPhrase } from '@/utils/collectionVerbs'
 
 const props = defineProps<{
@@ -13,6 +14,7 @@ const props = defineProps<{
 }>()
 
 const modal = useCollectionModal()
+const toast = useToast()
 
 // 是否已收藏 + 收藏状态 + 吐槽 + 我的评价评分
 const status = ref<number | null>(null)
@@ -69,7 +71,9 @@ async function onDelete() {
   if (status.value == null) return
   try {
     await modal.remove()
+    toast.ok('已取消收藏')
   } catch (e) {
+    toast.err('取消收藏失败')
     console.warn('[CollectionBar] 删除收藏失败：', e)
   }
 }
