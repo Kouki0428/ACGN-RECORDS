@@ -8,6 +8,7 @@ import { proxyImg } from '@/utils/imgProxy'
 import { useSearchOverlay } from '@/composables/searchOverlay'
 import { useModalZ } from '@/composables/useModalZ'
 import { useEntityCard } from '@/composables/useEntityCard'
+import { useRecent } from '@/composables/useRecent'
 
 const auth = useAuthStore()
 // 未登录时不允许搜人物（v0 角色/人物检索需令牌，匿名返回空），显示登录入口而非模糊报错
@@ -24,6 +25,7 @@ const { isOpen, close: rawClose } = useSearchOverlay()
 // 最后打开的悬浮窗抬到最上层
 const z = useModalZ(isOpen)
 const entity = useEntityCard()
+const { searchHistory, recentSubjects, pushSearchTerm, removeSearchTerm, clearSearchHistory, clearRecentSubjects } = useRecent()
 // 实体卡（角色/CV/作品）是否正叠在搜索之上。是的话搜索遮罩变「透明基底」：
 // 不再关闭、只隐藏自身卡片内容，让实体卡干净地叠在上面；关闭实体卡时底层搜索自然显现，
 // 从而「关闭实体卡 → 回到搜索」天然成立，无需 returnTo 重开（避免偶发全部关闭）。
@@ -151,6 +153,7 @@ async function doSearch() {
     // 丢弃过期请求的结果：仅采用「最后一次」搜索的返回，杜绝条/人串台。
     if (seq !== searchSeq) return
     results.value = res
+    pushSearchTerm(q)
     // 新一次搜索（含切换 domain / 切换二级分类）从第一页开始；条目/人物各自独立页码。
     if (domain.value === 'subject') subjectPage.value = 1
     else personPage.value = 1
@@ -209,6 +212,19 @@ function clearKw() {
   results.value = []
   searching.value = false
   inputEl.value?.focus()
+}
+
+// 点击历史词 → 直接填入并立即检索（跳过防抖）
+function applyHistoryTerm(term: string) {
+  kw.value = term
+  if (domain.value === 'person') domain.value = 'subject'
+  void doSearch()
+  inputEl.value?.focus()
+}
+
+// 删除单条历史词（不触发检索）
+function dropHistoryTerm(term: string) {
+  removeSearchTerm(term)
 }
 
 function onOverlayClick() {
@@ -314,7 +330,46 @@ watch(isOpen, async (v) => {
             </button>
             <div v-if="auth.error" class="ph err">{{ auth.error }}</div>
           </div>
-          <div v-else-if="!kw.trim()" class="ph hint">输入关键词开始搜索</div>
+          <!-- 空关键词：搜索历史 + 最近浏览（高频重复路径的快捷入口） -->
+          <div v-else-if="!kw.trim()" class="ph ph--start">
+            <template v-if="searchHistory.length || recentSubjects.length">
+              <div v-if="searchHistory.length" class="start-block">
+                <div class="start-head">
+                  <span>搜索历史</span>
+                  <button class="start-clear" type="button" @click="clearSearchHistory()">清空</button>
+                </div>
+                <div class="hist-chips">
+                  <span v-for="t in searchHistory" :key="t" class="hist-chip">
+                    <button class="hist-term" type="button" :title="`搜索「${t}」`" @click="applyHistoryTerm(t)">{{ t }}</button>
+                    <button class="hist-x" type="button" title="删除该记录" @click="dropHistoryTerm(t)">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+                    </button>
+                  </span>
+                </div>
+              </div>
+              <div v-if="recentSubjects.length" class="start-block">
+                <div class="start-head">
+                  <span>最近打开</span>
+                  <button class="start-clear" type="button" @click="clearRecentSubjects()">清空</button>
+                </div>
+                <div class="recent-row">
+                  <button
+                    v-for="s in recentSubjects"
+                    :key="s.id"
+                    class="recent-item"
+                    type="button"
+                    :title="s.title"
+                    @click="entity.openInstant('subject', s.id)"
+                  >
+                    <img v-if="s.image" :src="proxyImg(s.image)" :alt="s.title" loading="lazy" />
+                    <span v-else class="recent-empty">无封面</span>
+                    <span class="recent-title">{{ s.title }}</span>
+                  </button>
+                </div>
+              </div>
+            </template>
+            <p v-else class="hint">输入关键词开始搜索</p>
+          </div>
           <div v-else-if="results.length === 0" class="ph">没有找到与“{{ kw.trim() }}”相关的结果</div>
 
           <div v-else class="grid">
@@ -545,6 +600,130 @@ watch(isOpen, async (v) => {
 }
 .ph.err {
   color: #ff6b6b;
+}
+/* ===== 空关键词起始页：搜索历史 + 最近浏览 ===== */
+.ph--start {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 18px;
+  padding: 18px 6px;
+}
+.start-block .start-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+.start-clear {
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.start-clear:hover {
+  background: var(--bg-deep);
+  color: var(--text);
+}
+.hist-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.hist-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.hist-term {
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  padding: 5px 4px 5px 12px;
+  cursor: pointer;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hist-term:hover {
+  color: var(--accent-2);
+}
+.hist-x {
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 5px 9px 5px 3px;
+  display: inline-flex;
+  align-items: center;
+}
+.hist-x svg {
+  width: 11px;
+  height: 11px;
+}
+.hist-x:hover {
+  color: var(--err);
+}
+.recent-row {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+.recent-item {
+  flex: 0 0 84px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+.recent-item img,
+.recent-item .recent-empty {
+  width: 84px;
+  aspect-ratio: 3 / 4;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-soft);
+  transition: transform var(--dur) var(--ease-out), border-color var(--dur-fast);
+}
+.recent-item:hover img {
+  transform: translateY(-2px);
+  border-color: var(--accent-2);
+}
+.recent-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.recent-title {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.recent-item:hover .recent-title {
+  color: var(--text);
 }
 .grid {
   display: grid;

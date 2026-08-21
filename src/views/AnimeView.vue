@@ -291,7 +291,12 @@ onUnmounted(() => {
           v-for="w in watching"
           :key="w.collectionId"
           class="card watching"
+          role="button"
+          tabindex="0"
+          aria-label="打开「{{ w.titleCn || w.title }}」详情"
           @click="openDetail(w.subjectId)"
+          @keydown.enter.prevent="openDetail(w.subjectId)"
+          @keydown.space.prevent="openDetail(w.subjectId)"
         >
           <CoverImage :src="w.imageUrl" :alt="w.title" class="card-cover" />
           <div class="title">{{ w.titleCn || w.title }}</div>

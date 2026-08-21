@@ -290,9 +290,13 @@ onMounted(() => {
       <div
         v-for="c in displayCards"
         :key="c.subjectId"
-        type="button"
         class="hcard"
+        role="button"
+        tabindex="0"
+        :aria-label="`打开「${c.titleCn || c.title}」`"
         @click="openCard(c)"
+        @keydown.enter.prevent="openCard(c)"
+        @keydown.space.prevent="openCard(c)"
       >
         <div class="hcard-inner">
         <div class="hcard-cover">

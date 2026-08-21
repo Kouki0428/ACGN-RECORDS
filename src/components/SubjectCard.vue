@@ -7,6 +7,7 @@ import { animeClient } from '@/services/animeClient'
 import { collectionClient } from '@/services/collectionClient'
 import { useEntityCard } from '@/composables/useEntityCard'
 import { useSearchOverlay } from '@/composables/searchOverlay'
+import { useRecent } from '@/composables/useRecent'
 import EpisodeGrid from '@/components/EpisodeGrid.vue'
 import SubjectMetaPanel from '@/components/SubjectMetaPanel.vue'
 import SubjectCharacters from '@/components/SubjectCharacters.vue'
@@ -26,6 +27,7 @@ const { openImage: openPoster } = useImagePreview()
 // 外层遮罩、层级(z-index)、Esc/背景点击关闭均由宿主统一管理，这里只负责面板内容。
 // 与 EntityCard 共用同一导航栈（state.kind === 'subject' 时由本组件渲染）。
 const { isOpen, state, close, push, back, navDir } = useEntityCard()
+const { pushRecentSubject } = useRecent()
 const searchOverlay = useSearchOverlay()
 // 当前卡片对应的 Bangumi 作品 id（本地窗口即可靠，不随联网详情替换而丢失 camel/snake 字段差异）
 const providerId = computed(() => {
@@ -419,7 +421,12 @@ async function load() {
         full.subject = { ...full.subject, rating: detail.value.subject.rating }
       }
       detail.value = full
-      if (full) shownProviderId.value = id
+      if (full) {
+        shownProviderId.value = id
+        // 记录最近浏览（搜索浮层「最近打开」入口的数据源）：标题取中文优先
+        const s = full.subject
+        if (s) pushRecentSubject(id, s.title_cn || s.title || '', s.image_url ?? null)
+      }
       await scrollTopOnce()
       // 本地缺详情（detailLocal 为空）导致上面未提前加载进度/收藏时，此处补加载（仍本地，秒级）
       if (!(local && local.subject)) {

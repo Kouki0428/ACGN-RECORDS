@@ -19,6 +19,8 @@ const attrs = useAttrs()
     v-if="props.src"
     :src="proxyImg(props.src)"
     :alt="props.alt"
+    loading="lazy"
+    decoding="async"
     :class="[attrs.class, 'cover-media']"
   />
   <div
