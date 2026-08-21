@@ -3,7 +3,7 @@ import './services/api/http'
 import { setManualProxy, flushNetworkNow } from './services/api/http'
 import { getNetworkStats, getNetworkHistory } from './services/db/repositories/networkStats.repository'
 import electron from 'electron'
-const { app, BrowserWindow, ipcMain, shell, protocol, Tray, Menu, nativeImage } = electron
+const { app, BrowserWindow, ipcMain, shell, protocol, Tray, Menu, nativeImage, dialog } = electron
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { writeFileSync, existsSync, mkdirSync, copyFileSync, cpSync } from 'node:fs'
@@ -168,13 +168,58 @@ function createWindow(): void {
     win = null
   })
 
-  // 关闭行为：closeBehavior='minimize' 时点 X 缩到托盘（不退出，后台同步继续）；
-  // 'exit' 或应用正在退出时放行默认关闭。
+  // 关闭行为：minimize → 缩到托盘；exit → 直接退出。
+  // exit 且用户从未选择过（首次关闭）→ 弹窗询问「缩到托盘 / 直接退出」，
+  // 可勾选记住；此后按记忆行为静默执行。
   win.on('close', (e) => {
-    if (!isQuitting && closeBehavior === 'minimize') {
+    if (isQuitting) return
+    if (closeBehavior === 'minimize') {
       e.preventDefault()
       win?.hide()
+      return
     }
+    // exit 模式：未做过选择时询问一次
+    void (async () => {
+      const chosen = await getSetting('closeBehaviorChosen')
+      if (chosen === '1') {
+        app.quit()
+        return
+      }
+      const r = await dialog.showMessageBox(win!, {
+        type: 'question',
+        title: '关闭 ACGN Records',
+        message: '点击关闭时要最小化到系统托盘吗？',
+        detail:
+          '缩到托盘后应用继续在后台运行，定时同步不中断；托盘图标右键菜单随时可真正退出。',
+        buttons: ['缩到托盘', '直接退出'],
+        defaultId: 1,
+        cancelId: 1,
+        checkboxLabel: '记住我的选择，不再询问',
+        checkboxChecked: true
+      })
+      const pick: 'minimize' | 'exit' = r.response === 0 ? 'minimize' : 'exit'
+      if (r.checkboxChecked) {
+        try {
+          await setSetting('closeBehavior', pick)
+          await setSetting('closeBehaviorChosen', '1')
+        } catch {
+          /* 写库失败仅本次生效 */
+        }
+        closeBehavior = pick
+      }
+      if (pick === 'minimize') {
+        win?.hide()
+        return
+      }
+      isQuitting = true
+      try {
+        tray?.destroy()
+      } catch {
+        /* ignore */
+      }
+      app.quit()
+    })()
+    e.preventDefault() // 拦下同步默认行为，等待上面的异步决策
   })
 
   // 禁用鼠标侧键（后退 X1 / 前进 X2）触发的浏览器原生前进后退，
@@ -221,7 +266,24 @@ ipcMain.handle('app:getNetworkStats', async () => {
 // closeBehavior：'minimize'（默认，点 X 缩到托盘）/ 'exit'（点 X 直接退出）。
 // 启动期同步读一次 settings 表（同 gpuAcceleration 模式）；渲染端改动经 app:setCloseBehavior 更新缓存。
 let tray: import('electron').Tray | null = null
-let closeBehavior: 'minimize' | 'exit' = 'minimize'
+// 默认 'exit'（托盘功能默认关闭）；用户首次关闭时弹窗选择后记忆
+let closeBehavior: 'minimize' | 'exit' = 'exit'
+function readCloseBehaviorSync(): 'minimize' | 'exit' {
+  try {
+    const require = createRequire(import.meta.url)
+    const Database = require('better-sqlite3') as { new (p: string, o?: object): any }
+    const dbPath = join(app.getPath('userData'), 'acgn-records.db')
+    const db = new Database(dbPath, { readonly: true, fileMustExist: true })
+    const row = db.prepare('SELECT value FROM settings WHERE key = ?').get('closeBehavior') as
+      | { value: string }
+      | undefined
+    db.close()
+    // 未设置过 = 默认直接退出（托盘功能默认关闭；首次关闭时会弹窗询问一次）
+    return row?.value === 'minimize' ? 'minimize' : 'exit'
+  } catch {
+    return 'exit'
+  }
+}
 function showMainWindow() {
   if (!win) createWindow()
   else {

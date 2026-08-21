@@ -104,15 +104,16 @@ watch(
 .anchor-bar {
   position: sticky;
   top: -26px; /* 抵消 .content 顶部内边距，吸附在滚动口最上沿 */
-  z-index: 50;
+  z-index: 5; /* 压过详情封面横幅（同为 positioned，否则按树序被横幅盖住/参与其渐隐） */
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
   padding: 8px 2px;
   margin-bottom: 4px;
-  background: color-mix(in srgb, var(--bg) 86%, transparent);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  /* 磨砂玻璃：低不透明度底 + 强模糊，让模糊封面的光晕透出来、随横幅一起「渐隐」 */
+  background: color-mix(in srgb, var(--bg) 62%, transparent);
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
 }
 .anchor-chip {
   padding: 4px 12px;

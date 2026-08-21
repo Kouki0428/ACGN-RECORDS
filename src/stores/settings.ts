@@ -40,8 +40,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const lightPreset = ref('classic')
   // 详情页封面横幅背景（模糊放大的封面作装饰）开关，默认开
   const detailBanner = ref(true)
-  // 窗口关闭行为：minimize=点 X 缩到托盘（默认）/ exit=直接退出
-  const closeBehavior = ref<'minimize' | 'exit'>('minimize')
+  // 窗口关闭行为：默认 exit=点 X 直接退出；勾选后 minimize=缩到托盘。首次点 X 时主进程会弹窗询问一次
+  const closeBehavior = ref<'minimize' | 'exit'>('exit')
   // 定时切换时段：浅色起 ~ 深色起（'HH:mm'，支持跨午夜），theme='scheduled' 时生效
   const scheduleLight = ref('07:00')
   const scheduleDark = ref('19:00')

@@ -293,23 +293,21 @@ export function registerCollectionIpc(): void {
          WHERE watched = 1 AND watched_at IS NOT NULL AND watched_at >= ? AND watched_at < ?`
       )
       .get(start, end) as { n: number }
-    // 本年有活动的收藏（任一变更即算）
+    // 本年有「实际标记」的收藏：以单集看过事件为口径（collections.local_updated_at 会被
+    // 同步/API 拉取刷新，不能作为用户标记依据）
     const actRow = db
       .prepare(
-        `SELECT COUNT(DISTINCT id) AS n FROM collections
-         WHERE local_updated_at >= ? AND local_updated_at < ?`
+        `SELECT COUNT(DISTINCT collection_id) AS n FROM episode_progress
+         WHERE watched = 1 AND watched_at IS NOT NULL AND watched_at >= ? AND watched_at < ?`
       )
       .get(start, end) as { n: number }
 
-    // 月度活跃（12 桶）：单集标记 + 收藏变更 合并计数
+    // 月度活跃（12 桶）：仅统计单集看过标记（真实用户动作，排除拉取噪声）
     const monthly = new Array(12).fill(0)
     const eps = db
       .prepare(`SELECT watched_at t FROM episode_progress WHERE watched=1 AND watched_at BETWEEN ? AND ?`)
       .all(start, end) as Array<{ t: number }>
-    const cols = db
-      .prepare(`SELECT local_updated_at t FROM collections WHERE local_updated_at BETWEEN ? AND ?`)
-      .all(start, end) as Array<{ t: number }>
-    for (const r of [...eps, ...cols]) {
+    for (const r of eps) {
       const m = new Date(r.t * 1000).getMonth()
       monthly[m]++
     }
