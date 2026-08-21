@@ -1,6 +1,6 @@
 {
   "name": "acgn-records",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "type": "module",
   "description": "ACGN Records - 轻量级 ACGN 进度追踪与统计桌面应用",
