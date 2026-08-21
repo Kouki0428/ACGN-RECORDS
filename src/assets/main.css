@@ -920,6 +920,29 @@ body,
   display: flex;
   flex-direction: column;
   gap: 4px;
+  /* 封面横幅的定位上下文 */
+  position: relative;
+}
+/* 封面横幅：模糊放大的封面铺在详情头部作装饰（可在设置关闭）。
+   绝对定位 + 负内边距外溢到窗口边缘；后续兄弟（.detail__main / .panel）
+   设为 positioned 使其绘制在横幅之上。 */
+.detail-banner {
+  position: absolute;
+  top: -26px;
+  left: -30px;
+  right: -30px;
+  height: 400px;
+  background-size: cover;
+  background-position: center 25%;
+  filter: blur(70px) saturate(1.45);
+  opacity: 0.32;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, #000 45%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 45%, transparent 100%);
+}
+.detail__main,
+.detail > .panel {
+  position: relative;
 }
 .detail__main {
   display: flex;

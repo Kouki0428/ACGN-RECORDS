@@ -1,9 +1,9 @@
-// 必须最先 import：让主进程所有 fetch 自动走代理/TLS 配置（详见该模块）
+﻿// 必须最先 import：让主进程所有 fetch 自动走代理/TLS 配置（详见该模块）
 import './services/api/http'
 import { setManualProxy, flushNetworkNow } from './services/api/http'
 import { getNetworkStats, getNetworkHistory } from './services/db/repositories/networkStats.repository'
 import electron from 'electron'
-const { app, BrowserWindow, ipcMain, shell, protocol } = electron
+const { app, BrowserWindow, ipcMain, shell, protocol, Tray, Menu, nativeImage } = electron
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { writeFileSync, existsSync, mkdirSync, copyFileSync, cpSync } from 'node:fs'
@@ -168,6 +168,15 @@ function createWindow(): void {
     win = null
   })
 
+  // 关闭行为：closeBehavior='minimize' 时点 X 缩到托盘（不退出，后台同步继续）；
+  // 'exit' 或应用正在退出时放行默认关闭。
+  win.on('close', (e) => {
+    if (!isQuitting && closeBehavior === 'minimize') {
+      e.preventDefault()
+      win?.hide()
+    }
+  })
+
   // 禁用鼠标侧键（后退 X1 / 前进 X2）触发的浏览器原生前进后退，
   // 改由渲染进程统一处理（详情↔列表 + 标签页路由），避免双重跳转。
   // 命令串在不同 Electron 版本可能是 browser-backward / browser-back / browser-forward，
@@ -208,6 +217,45 @@ ipcMain.handle('app:getNetworkStats', async () => {
 })
 
 // 退出前强制落库：把 debounce 攒批的网络统计增量写入 network_stats，避免数据丢失。
+// ===== 托盘常驻 + 关闭行为 =====
+// closeBehavior：'minimize'（默认，点 X 缩到托盘）/ 'exit'（点 X 直接退出）。
+// 启动期同步读一次 settings 表（同 gpuAcceleration 模式）；渲染端改动经 app:setCloseBehavior 更新缓存。
+let tray: import('electron').Tray | null = null
+let closeBehavior: 'minimize' | 'exit' = 'minimize'
+function showMainWindow() {
+  if (!win) createWindow()
+  else {
+    if (win.isMinimized()) win.restore()
+    win.show()
+    win.focus()
+  }
+}
+function createTray() {
+  try {
+    // 内嵌生成的 32×32 品牌粉圆角方块 PNG（仓库无图标资源）
+    const TRAY_PNG =
+      'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAWklEQVR4nO3XOw4AIAgEUQ7qibw01mqMxA9QjImt80pXxHC0VD29lvefBq9BP+NbhEd8ifCMT4iIeIcAEAqIjAMAAAAAAAAANMV/AEAKQPguSLGMUmxDD8TYar3jvZMwbVaxAAAAAElFTkSuQmCC'
+    const img = nativeImage.createFromDataURL(`data:image/png;base64,${TRAY_PNG}`)
+    tray = new Tray(img)
+    tray.setToolTip('ACGN Records')
+    const menu = Menu.buildFromTemplate([
+      { label: '显示主界面', click: () => showMainWindow() },
+      { type: 'separator' },
+      {
+        label: '退出',
+        click: () => {
+          isQuitting = true
+          app.quit()
+        }
+      }
+    ])
+    tray.setContextMenu(menu)
+    tray.on('click', () => showMainWindow())
+  } catch (e) {
+    console.warn('[tray] 创建失败（忽略，功能降级）：', e)
+    tray = null
+  }
+}
 let isQuitting = false
 app.on('before-quit', (event) => {
   if (isQuitting) return
@@ -248,6 +296,12 @@ app.whenReady().then(() => {
   createWindow()
   buildMenu()
   setupAutoSync()
+  // 托盘常驻 + 关闭行为（启动期同步读 settings，运行期经 app:setCloseBehavior 更新）
+  closeBehavior = readCloseBehaviorSync()
+  createTray()
+  ipcMain.handle('app:setCloseBehavior', (_e, v: unknown) => {
+    if (v === 'exit' || v === 'minimize') closeBehavior = v
+  })
   // 同步引擎状态 → 渲染进程（侧栏同步指示灯订阅 sync:stateChanged）
   onSyncState((s) => {
     const w = BrowserWindow.getAllWindows()[0]

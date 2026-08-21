@@ -707,6 +707,17 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         >默认</button>
       </div>
 
+      <!-- 窗口与装饰 -->
+      <hr class="divider" />
+      <label class="progress-editor">
+        <input type="checkbox" :checked="settings.detailBanner" @change="settings.set('detailBanner', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
+        详情页封面横幅背景（模糊放大的封面作顶部装饰）
+      </label>
+      <label class="progress-editor">
+        <input type="checkbox" :checked="settings.closeBehavior === 'minimize'" @change="settings.set('closeBehavior', ($event.target as HTMLInputElement).checked ? 'minimize' : 'exit')" />
+        关闭按钮最小化到托盘（后台同步继续；从托盘菜单可真正退出）
+      </label>
+
       <hr class="divider" />
 
       <div class="scale-control">

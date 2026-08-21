@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia'
+﻿import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { dbClient } from '@/services/dbClient'
 import { applyTheme, setThemePreset, setSchedule, type ThemePref } from '@/theme'
@@ -38,6 +38,10 @@ export const useSettingsStore = defineStore('settings', () => {
   // 主题预设皮肤：深 / 浅各自一套（classic=经典）。深色：oled/bangumi/ink；浅色：pure/pink/paper
   const darkPreset = ref('classic')
   const lightPreset = ref('classic')
+  // 详情页封面横幅背景（模糊放大的封面作装饰）开关，默认开
+  const detailBanner = ref(true)
+  // 窗口关闭行为：minimize=点 X 缩到托盘（默认）/ exit=直接退出
+  const closeBehavior = ref<'minimize' | 'exit'>('minimize')
   // 定时切换时段：浅色起 ~ 深色起（'HH:mm'，支持跨午夜），theme='scheduled' 时生效
   const scheduleLight = ref('07:00')
   const scheduleDark = ref('19:00')
@@ -83,6 +87,11 @@ export const useSettingsStore = defineStore('settings', () => {
       if (r.key === 'lightPreset') {
         lightPreset.value = r.value || 'classic'
         setThemePreset('light', lightPreset.value)
+      }
+      if (r.key === 'detailBanner') detailBanner.value = r.value !== '0'
+      if (r.key === 'closeBehavior') {
+        closeBehavior.value = r.value === 'exit' ? 'exit' : 'minimize'
+        void window.acgn?.app?.setCloseBehavior?.(closeBehavior.value)
       }
       if (r.key === 'scheduleLight') scheduleLight.value = r.value || '07:00'
       if (r.key === 'scheduleDark') scheduleDark.value = r.value || '19:00'
@@ -132,6 +141,11 @@ export const useSettingsStore = defineStore('settings', () => {
       setThemePreset('light', lightPreset.value)
       void applyTheme(theme.value)
     }
+    if (key === 'detailBanner') detailBanner.value = value !== '0'
+    if (key === 'closeBehavior') {
+      closeBehavior.value = value === 'exit' ? 'exit' : 'minimize'
+      void window.acgn?.app?.setCloseBehavior?.(closeBehavior.value)
+    }
     if (key === 'scheduleLight' || key === 'scheduleDark') {
       if (key === 'scheduleLight') scheduleLight.value = value || '07:00'
       else scheduleDark.value = value || '19:00'
@@ -146,5 +160,5 @@ export const useSettingsStore = defineStore('settings', () => {
     theme.value = v
   }
 
-  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, darkPreset, lightPreset, scheduleLight, scheduleDark, load, set, commitTheme }
+  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, darkPreset, lightPreset, detailBanner, closeBehavior, scheduleLight, scheduleDark, load, set, commitTheme }
 })

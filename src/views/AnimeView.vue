@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
 import EpisodeGrid from '@/components/EpisodeGrid.vue'
 import TucaoBox from '@/components/TucaoBox.vue'
@@ -14,6 +14,8 @@ import DetailAnchors, { type AnchorItem } from '@/components/DetailAnchors.vue'
 import { useSearchOverlay } from '@/composables/searchOverlay'
 import { useContextMenu } from '@/composables/useContextMenu'
 import { buildCardMenu } from '@/composables/useCardContextMenu'
+import { useSettingsStore } from '@/stores/settings'
+import { proxyImg } from '@/utils/imgProxy'
 import { animeClient } from '@/services/animeClient'
 import { subjectClient } from '@/services/subjectClient'
 import type { Subject, AnimeDetail, AnimeWatchingItem, EpisodeMarkPayload } from '@shared/types'
@@ -28,6 +30,7 @@ import { useCollectionModal } from '@/composables/useCollectionModal'
 const { open: openSubjectCard } = useEntityCard()
 const { open: openSearch } = useSearchOverlay()
 const { open: openMenu } = useContextMenu()
+const settings = useSettingsStore()
 
 // 详情页吸顶锚点（区块顺序与模板一致）
 const anchors: AnchorItem[] = [
@@ -285,6 +288,7 @@ onUnmounted(() => {
     <template v-if="selected">
       <DetailAnchors :items="anchors" />
       <div class="detail">
+      <div v-if="settings.detailBanner && selected.subject.image_url" class="detail-banner" :style="{ backgroundImage: `url(${proxyImg(selected.subject.image_url)})` }"></div>
       <div class="detail__main" data-anchor="overview">
         <CoverImage
           :src="selected.subject.image_url"

@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { apiClient } from '@/services/apiClient'
 import { proxyImg } from '@/utils/imgProxy'
 import { useEntityCard } from '@/composables/useEntityCard'
 import { collectionClient } from '@/services/collectionClient'
 import UserStatsModal from '@/components/UserStatsModal.vue'
+import ActivityHeatmap from '@/components/ActivityHeatmap.vue'
 import type { TimelineItem, UserStats } from '@shared/types'
 
 const auth = useAuthStore()
+const router = useRouter()
 const items = ref<TimelineItem[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -101,14 +104,46 @@ async function openStats() {
   showStats.value = true
 }
 
+// 观看活动热力图数据（近一年按天标记次数）
+const heatData = ref<{ day: string; count: number }[]>([])
+
 onMounted(async () => {
   await auth.refresh()
   await load()
+  // 观看活动热力图（失败静默，不影响时间胶囊）
+  try {
+    heatData.value = (await apiClient.heatmap(365)) ?? []
+  } catch {
+    heatData.value = []
+  }
 })
 </script>
 
 <template>
   <div class="detail" ref="rootEl">
+    <!-- 观看活动热力图（近一年标记密度） -->
+    <section class="panel">
+      <div class="panel-head">
+        <h3>观看活动 · 近一年</h3>
+        <button
+          class="stats-btn"
+          type="button"
+          title="年度报告"
+          aria-label="年度报告"
+          @click="router.push('/annual')"
+        >
+          <svg class="stats-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            <rect x="2" y="3" width="12" height="11" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.5" />
+            <line x1="2" y1="6.4" x2="14" y2="6.4" stroke="currentColor" stroke-width="1.4" />
+            <line x1="5.5" y1="1.8" x2="5.5" y2="4.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            <line x1="10.5" y1="1.8" x2="10.5" y2="4.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
+      <ActivityHeatmap v-if="heatData.length" :data="heatData" />
+      <p v-else class="hint">还没有标记记录，去标记一集试试。</p>
+    </section>
+
     <section class="panel">
       <div class="panel-head">
         <h3>时间胶囊</h3>

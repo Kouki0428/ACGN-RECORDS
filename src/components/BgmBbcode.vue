@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useEntityCard } from '@/composables/useEntityCard'
 import { useEpisodeCommentModal } from '@/composables/useEpisodeCommentModal'
+import { useImagePreview } from '@/composables/useImagePreview'
 
 /**
  * Bangumi BBCode 渲染器（安全版）。
@@ -219,6 +220,7 @@ function toHtml(nodes: BbNode[]): string {
 // 命中域名：bgm.tv / bangumi.tv / chii.in / next.bgm.tv（官方域名）以及 bangumi.lol（镜像站）。
 const entity = useEntityCard()
 const epModal = useEpisodeCommentModal()
+const { openImage } = useImagePreview()
 type BgmLinkType = 'subject' | 'character' | 'person' | 'episode'
 function classifyBgmLink(href: string): { type: BgmLinkType; id: number } | null {
   const m =
@@ -234,6 +236,12 @@ function classifyBgmLink(href: string): { type: BgmLinkType; id: number } | null
 }
 function onClickInternal(e: MouseEvent) {
   const el = e.target as HTMLElement | null
+  // BBCode 内嵌图片：点击放大（复用全局 ImageLightbox）
+  if (el?.classList?.contains('bb-img') && (el as HTMLImageElement).src) {
+    e.preventDefault()
+    openImage((el as HTMLImageElement).src, (el as HTMLImageElement).alt)
+    return
+  }
   const a = el?.closest?.('a.bb-link-internal') as HTMLAnchorElement | null
   if (!a) return
   e.preventDefault()
@@ -281,6 +289,7 @@ const html = computed(() => toHtml(parseBbcode(props.text || '')))
   border-radius: 6px;
   vertical-align: middle;
   margin: 2px 0;
+  cursor: zoom-in; /* 点击放大（ImageLightbox） */
 }
 /* 引用他人语句块（[quote]...[/quote]）：左侧竖线 + 缩进 + 浅底，醒目区别于正文。
   灰色底卡（不再用品牌色），两侧加深灰色双引号「" "」包裹引用内容；

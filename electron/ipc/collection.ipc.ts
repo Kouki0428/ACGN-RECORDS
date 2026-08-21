@@ -279,6 +279,91 @@ export function registerCollectionIpc(): void {
     return await getSnapshotHistory(limit)
   })
 
+  // 年度报告：聚合某一年（默认当年）的标记集数 / 活跃收藏 / 月度活跃 / 分类分布 /
+  // 高分佳作 / 收藏总量变化（快照差分，无快照时为 null）
+  ipcMain.handle('collection:annualReport', async (_event, year?: number) => {
+    const db = await getDb()
+    const y = Number.isFinite(year) && (year as number) > 2000 ? Math.floor(year as number) : new Date().getFullYear()
+    const start = Math.floor(new Date(y, 0, 1).getTime() / 1000)
+    const end = Math.floor(new Date(y + 1, 0, 1).getTime() / 1000)
+
+    const epRow = db
+      .prepare(
+        `SELECT COUNT(*) AS n FROM episode_progress
+         WHERE watched = 1 AND watched_at IS NOT NULL AND watched_at >= ? AND watched_at < ?`
+      )
+      .get(start, end) as { n: number }
+    // 本年有活动的收藏（任一变更即算）
+    const actRow = db
+      .prepare(
+        `SELECT COUNT(DISTINCT id) AS n FROM collections
+         WHERE local_updated_at >= ? AND local_updated_at < ?`
+      )
+      .get(start, end) as { n: number }
+
+    // 月度活跃（12 桶）：单集标记 + 收藏变更 合并计数
+    const monthly = new Array(12).fill(0)
+    const eps = db
+      .prepare(`SELECT watched_at t FROM episode_progress WHERE watched=1 AND watched_at BETWEEN ? AND ?`)
+      .all(start, end) as Array<{ t: number }>
+    const cols = db
+      .prepare(`SELECT local_updated_at t FROM collections WHERE local_updated_at BETWEEN ? AND ?`)
+      .all(start, end) as Array<{ t: number }>
+    for (const r of [...eps, ...cols]) {
+      const m = new Date(r.t * 1000).getMonth()
+      monthly[m]++
+    }
+
+    // 分类分布（当前总量；book=light_novel+manga、game=galgame+game 归并）
+    const catRows = db
+      .prepare(
+        `SELECT s.category AS cat, COUNT(*) AS n FROM collections c JOIN subjects s ON s.id=c.subject_id GROUP BY 1`
+      )
+      .all() as Array<{ cat: string; n: number }>
+    const dist = { anime: 0, light_novel: 0, manga: 0, game: 0 }
+    for (const r of catRows) {
+      if (r.cat === 'anime') dist.anime += r.n
+      else if (r.cat === 'light_novel' || r.cat === 'manga') dist[r.cat] += r.n
+      else dist.game += r.n
+    }
+
+    // 高分佳作 TOP5（全时期评分，≥7 分）
+    const topRated = db
+      .prepare(
+        `SELECT COALESCE(NULLIF(s.title_cn,''), s.title) AS title, c.rating AS rating,
+                s.provider_subject_id AS pid
+         FROM collections c JOIN subjects s ON s.id = c.subject_id
+         WHERE c.rating >= 7 ORDER BY c.rating DESC, c.local_updated_at DESC LIMIT 5`
+      )
+      .all()
+
+    // 收藏总量变化：当年首个快照 vs 最新总数（无快照时 null）
+    const totalNowRow = db.prepare('SELECT COUNT(*) AS n FROM collections').get() as { n: number }
+    const snap = db
+      .prepare(`SELECT total FROM stats_snapshots WHERE month LIKE ? ORDER BY month ASC LIMIT 1`)
+      .get(`${y}-%`) as { total: number } | undefined
+
+    return {
+      year: y,
+      episodesMarked: epRow.n,
+      activeCollections: actRow.n,
+      monthly,
+      categories: [
+        { key: 'anime', label: '动画', count: dist.anime },
+        { key: 'light_novel', label: '小说', count: dist.light_novel },
+        { key: 'manga', label: '漫画', count: dist.manga },
+        { key: 'game', label: '游戏', count: dist.game }
+      ],
+      topRated: topRated.map((t: any) => ({
+        title: t.title ?? '',
+        rating: t.rating,
+        url: t.pid && /^\d+$/.test(String(t.pid)) ? `https://bgm.tv/subject/${t.pid}` : undefined
+      })),
+      totalStart: snap?.total ?? null,
+      totalNow: totalNowRow.n
+    }
+  })
+
   // 新建 / 更新收藏（收藏悬浮窗「保存」）：写本地库（含吐槽 / 仅自己可见 / 我的前 10 tag），
   // 已登录则同步到 Bangumi（含 tags + private）。本地必定成功，同步失败仅保留 dirty 待重试。
   ipcMain.handle('collection:saveCollection', async (_event, payload: SaveCollectionPayload) => {

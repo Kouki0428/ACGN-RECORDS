@@ -3,6 +3,7 @@ const { ipcMain } = electron
 import { unifiedSearch } from '../services/api/normalizer'
 import { getGalleryForSubject } from '../services/api/cg'
 import { fetchTimeline } from '../services/api/timeline'
+import { getDb } from '../services/db/connection'
 import type { SearchQuery } from '../../shared/types'
 
 /** 注册检索相关 IPC（统一搜索：条目 / 人物 + Galgame CG 画廊 + 时间胶囊） */
@@ -30,5 +31,29 @@ export function registerApiIpc(): void {
   // 时间胶囊（操作历史）：解析 bgm.tv/user/{username}/timeline 只读 HTML（非官方 API 端点）
   ipcMain.handle('personal:timeline', async (_event, username: string, page?: number) => {
     return fetchTimeline(username, page ?? 1)
+  })
+
+  // 观看活动热力图：按天聚合近 N 天的标记活动
+  // （单集看过次数 + 收藏状态/进度/评分变更次数），供个人页 GitHub 风格热力格渲染
+  ipcMain.handle('personal:heatmap', async (_event, days = 365) => {
+    const db = await getDb()
+    const n = Math.max(30, Math.min(731, Number(days) || 365))
+    const since = Math.floor(Date.now() / 1000) - n * 86400
+    const rows = db
+      .prepare(
+        `SELECT day, SUM(n) AS n FROM (
+           SELECT date(watched_at, 'unixepoch') AS day, COUNT(*) AS n
+           FROM episode_progress
+           WHERE watched = 1 AND watched_at IS NOT NULL AND watched_at >= ?
+           GROUP BY 1
+           UNION ALL
+           SELECT date(local_updated_at, 'unixepoch') AS day, COUNT(*) AS n
+           FROM collections
+           WHERE local_updated_at IS NOT NULL AND local_updated_at >= ?
+           GROUP BY 1
+         ) GROUP BY day ORDER BY day`
+      )
+      .all(since, since) as Array<{ day: string; n: number }>
+    return rows.map((r) => ({ day: r.day, count: r.n }))
   })
 }

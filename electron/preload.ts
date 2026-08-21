@@ -9,6 +9,7 @@ const api: AcgnApi = {
     openExternal: (url: string) => ipcRenderer.invoke('app:openExternal', url),
     relaunch: () => ipcRenderer.invoke('app:relaunch'),
     setProxy: (url: string | null) => ipcRenderer.invoke('app:setProxy', url),
+    setCloseBehavior: (v: 'minimize' | 'exit') => ipcRenderer.invoke('app:setCloseBehavior', v),
     getNetworkStats: () => ipcRenderer.invoke('app:getNetworkStats') as Promise<NetworkStatsResult>
   },
   db: {
@@ -171,7 +172,9 @@ const api: AcgnApi = {
   },
   personal: {
     timeline: (username: string, limit?: number) =>
-      ipcRenderer.invoke('personal:timeline', username, limit)
+      ipcRenderer.invoke('personal:timeline', username, limit),
+    heatmap: (days = 365) =>
+      ipcRenderer.invoke('personal:heatmap', days) as Promise<{ day: string; count: number }[]>
   },
   cache: {
     stats: () => ipcRenderer.invoke('cache:stats') as Promise<CacheStats>,
@@ -202,7 +205,8 @@ const api: AcgnApi = {
       }>
   },
   statsSnapshotHistory: (limit = 12) =>
-    ipcRenderer.invoke('collection:snapshotHistory', limit)
+    ipcRenderer.invoke('collection:snapshotHistory', limit),
+  annualReport: (year?: number) => ipcRenderer.invoke('collection:annualReport', year)
 }
 
 contextBridge.exposeInMainWorld('acgn', api)

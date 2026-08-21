@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
 import RouteEditor from '@/components/RouteEditor.vue'
 import PurchaseInfo from '@/components/PurchaseInfo.vue'
@@ -16,6 +16,8 @@ import DetailAnchors, { type AnchorItem } from '@/components/DetailAnchors.vue'
 import { useSearchOverlay } from '@/composables/searchOverlay'
 import { useContextMenu } from '@/composables/useContextMenu'
 import { buildCardMenu } from '@/composables/useCardContextMenu'
+import { useSettingsStore } from '@/stores/settings'
+import { proxyImg } from '@/utils/imgProxy'
 import { apiClient } from '@/services/apiClient'
 import { collectionClient } from '@/services/collectionClient'
 import { purchaseClient } from '@/services/purchaseClient'
@@ -30,6 +32,7 @@ import { useCollectionModal } from '@/composables/useCollectionModal'
 const { open: openSubjectCard } = useEntityCard()
 const { open: openSearch } = useSearchOverlay()
 const { open: openMenu } = useContextMenu()
+const settings = useSettingsStore()
 
 // 详情页吸顶锚点（游戏多画廊/购买两个区块）
 const anchors: AnchorItem[] = [
@@ -299,6 +302,7 @@ onUnmounted(() => {
     <template v-if="selected">
       <DetailAnchors :items="anchors" />
       <div class="detail">
+      <div v-if="settings.detailBanner && selected.subject.image_url" class="detail-banner" :style="{ backgroundImage: `url(${proxyImg(selected.subject.image_url)})` }"></div>
       <div class="detail__main" data-anchor="overview">
         <CoverImage
           :src="selected.subject.image_url"
