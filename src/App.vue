@@ -99,9 +99,11 @@ onUnmounted(() => {
     <SidebarNav />
     <main class="content">
       <div class="content-inner">
-        <!-- 路由切换淡入淡出（仅 opacity，零布局影响，不干扰 FLIP/滚动位置） -->
+        <!-- 路由切换淡入淡出（仅 opacity，零布局影响，不干扰 FLIP/滚动位置）。
+             :duration 强制用定时器判定过渡结束，不依赖 transitionend 事件——
+             规避「leave 过渡事件偶发丢失导致 mode=out-in 不挂载新视图（页面空白）」。 -->
         <router-view v-slot="{ Component }">
-          <Transition name="page" mode="out-in">
+          <Transition name="page" mode="out-in" :duration="{ enter: 180, leave: 140 }">
             <component :is="Component" />
           </Transition>
         </router-view>
