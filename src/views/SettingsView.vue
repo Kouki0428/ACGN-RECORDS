@@ -1,5 +1,6 @@
 ﻿<script setup lang="ts">
-import { onMounted, onBeforeUnmount, onUnmounted, ref, computed, watch } from 'vue'
+import { onMounted, onBeforeUnmount, ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useSettingsStore } from '@/stores/settings'
 import { useSyncStore } from '@/stores/sync'
@@ -13,6 +14,7 @@ import type { ArchiveMeta, ArchiveProgress, CacheStats, NetworkStatsResult } fro
 const auth = useAuthStore()
 const settings = useSettingsStore()
 const sync = useSyncStore()
+const router = useRouter()
 
 const token = ref('')
 const saved = ref(false)
@@ -343,104 +345,87 @@ async function doImportBackup() {
   }
 }
 
-// ---------- 分区导航（左侧锚点目录 + 关键词过滤） ----------
-interface SectionDef {
+// ---------- 母级分类（两级设置：/settings 分类卡片 → /settings/:group 详情页） ----------
+const props = defineProps<{ group?: string }>()
+
+interface GroupDef {
   key: string
   label: string
-  kw: string
+  desc: string
+  icon: string // 单 path SVG（24 viewBox，描边风格）
 }
-const sectionDefs: SectionDef[] = [
-  { key: 'account', label: 'Bangumi 账号', kw: '登录 令牌 token 授权 oauth 账号 access' },
-  { key: 'sync', label: '进度同步', kw: '同步 上传 拉取 全量 自动 push pull' },
-  { key: 'proxy', label: '网络代理', kw: '代理 proxy 网络 clash 端口 socks http' },
-  { key: 'appearance', label: '外观', kw: '主题 深色 浅色 缩放 外观 跟随系统' },
-  { key: 'animation', label: '动画', kw: '卡片 重排 动画 速度 开关 网格' },
-  { key: 'offline', label: '离线数据库', kw: '离线 数据库 下载 更新 删除 archive 镜像' },
-  { key: 'cache', label: '缓存管理', kw: '缓存 清理 图片 字节 过期' },
-  { key: 'backup', label: '备份与恢复', kw: '备份 恢复 导出 导入 应急' },
-  { key: 'usage', label: '网络使用量', kw: '流量 使用量 网络 统计 上传 下载' }
+
+const GROUPS: GroupDef[] = [
+  {
+    key: 'account',
+    label: '账号与同步',
+    desc: 'Bangumi 登录、令牌与进度同步',
+    icon: 'M8 21v-2a4 4 0 0 1 4-4h0a4 4 0 0 1 4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8'
+  },
+  {
+    key: 'storage',
+    label: '储存',
+    desc: '离线数据库、缓存管理与备份恢复',
+    icon: 'M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3Z M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6 M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3'
+  },
+  {
+    key: 'network',
+    label: '网络',
+    desc: '代理设置与流量使用统计',
+    icon: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z M3.6 9h16.8 M3.6 15h16.8 M12 3a15 15 0 0 1 0 18 M12 3a15 15 0 0 0 0 18'
+  },
+  {
+    key: 'appearance',
+    label: '外观与动画',
+    desc: '主题、界面缩放与卡片重排动画',
+    icon: 'M12 3a9 9 0 1 0 0 18h1.5a2.5 2.5 0 0 0 0-5H13a2 2 0 0 1 0-4h4.5A3.5 3.5 0 0 0 21 8.5C21 5.5 17 3 12 3Z M7.5 10.5h.01 M9.5 6.5h.01 M14 5.5h.01'
+  }
 ]
-const activeSection = ref('account')
-const filterKw = ref('')
-const sectionEls: Record<string, HTMLElement | null> = {}
-function setSectionRef(key: string) {
-  return (el: unknown) => {
-    sectionEls[key] = (el as HTMLElement) ?? null
-  }
-}
-/** 关键词过滤：匹配分区名或关键词串；空关键词全显示 */
-function sectionVisible(key: string): boolean {
-  const q = filterKw.value.trim().toLowerCase()
-  if (!q) return true
-  const def = sectionDefs.find((d) => d.key === key)
-  if (!def) return true
-  return `${def.label} ${def.kw}`.toLowerCase().includes(q)
-}
-const tocItems = computed(() => sectionDefs.filter((d) => sectionVisible(d.key)))
-let secRaf = 0
-function updateActiveSection() {
-  let cur = sectionDefs[0]?.key ?? ''
-  for (const d of sectionDefs) {
-    const el = sectionEls[d.key]
-    // 被过滤隐藏的分区跳过（display:none 时 offsetParent 为 null / 高度 0）
-    if (!el || el.offsetHeight === 0) continue
-    if (el.getBoundingClientRect().top <= 140) cur = d.key
-  }
-  activeSection.value = cur
-}
-function onSettingsScroll() {
-  if (secRaf) return
-  secRaf = requestAnimationFrame(() => {
-    secRaf = 0
-    updateActiveSection()
-  })
-}
-function jumpToSection(key: string) {
-  const el = sectionEls[key]
-  if (!el) return
-  el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
-onMounted(() => {
-  document.querySelector('.content')?.addEventListener('scroll', onSettingsScroll, { passive: true })
-})
-onUnmounted(() => {
-  document.querySelector('.content')?.removeEventListener('scroll', onSettingsScroll)
-  if (secRaf) cancelAnimationFrame(secRaf)
-})
-watch(filterKw, () => {
-  // 过滤后布局变化，下一帧重算高亮
-  requestAnimationFrame(updateActiveSection)
-})
+
+const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ?? null)
 </script>
 
 <template>
-  <div class="settings-layout">
-    <!-- 左侧锚点目录 + 过滤（sticky 跟随滚动） -->
-    <aside class="settings-toc">
-      <input
-        v-model="filterKw"
-        type="text"
-        class="input toc-filter"
-        placeholder="筛选设置…"
-        aria-label="筛选设置项"
-      />
-      <button
-        v-for="d in tocItems"
-        :key="d.key"
-        type="button"
-        class="toc-item"
-        :class="{ active: activeSection === d.key }"
-        @click="jumpToSection(d.key)"
-      >
-        {{ d.label }}
-      </button>
-    </aside>
+  <div>
+    <!-- 母级：分类卡片导航 -->
+    <template v-if="!currentGroup">
+      <h1>设置</h1>
+      <div class="settings-groups">
+        <button
+          v-for="g in GROUPS"
+          :key="g.key"
+          type="button"
+          class="sg-card"
+          @click="router.push(`/settings/${g.key}`)"
+        >
+          <span class="sg-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path :d="g.icon" />
+            </svg>
+          </span>
+          <span class="sg-text">
+            <span class="sg-label">{{ g.label }}</span>
+            <span class="sg-desc">{{ g.desc }}</span>
+          </span>
+          <svg class="sg-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9,5 16,12 9,19" />
+          </svg>
+        </button>
+      </div>
+    </template>
 
-    <div class="settings-main">
-    <h1>设置</h1>
+    <!-- 子页：分类详情 -->
+    <template v-else>
+      <header class="view-head">
+        <button class="back-btn" type="button" aria-label="返回" @click="router.push('/settings')">
+          <svg class="back-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="12" x2="4" y2="12" /><polyline points="10,5 4,12 10,19" /></svg>
+        </button>
+        <h1>{{ currentGroup.label }}</h1>
+      </header>
 
+      <template v-if="group === 'account'">
     <!-- Bangumi 账号 -->
-    <section v-show="sectionVisible('account')" :ref="setSectionRef('account')" class="panel">
+    <section class="panel">
       <h2>Bangumi 账号</h2>
 
       <!-- 登录状态 -->
@@ -508,7 +493,7 @@ watch(filterKw, () => {
     </section>
 
     <!-- 同步 -->
-    <section v-show="sectionVisible('sync')" :ref="setSectionRef('sync')" class="panel">
+    <section class="panel">
       <h2>进度同步</h2>
       <p class="hint">仅在你主动操作时与 Bangumi 通信；本地进度永不自动上传第三方。</p>
       <div class="row">
@@ -538,9 +523,11 @@ watch(filterKw, () => {
         自动全量拉取从 Bangumi（每月）
       </label>
     </section>
+      </template>
 
+      <template v-if="group === 'network'">
     <!-- 网络代理 -->
-    <section v-show="sectionVisible('proxy')" :ref="setSectionRef('proxy')" class="panel">
+    <section class="panel">
       <h2>网络代理</h2>
       <p class="hint">
         若同步时出现「请求超时（&gt;15000ms）（已尝试：直连）」或「失败 N 部」，通常是主进程无法直连
@@ -566,8 +553,40 @@ watch(filterKw, () => {
       </div>
     </section>
 
+    <!-- 网络使用量 -->
+    <section class="panel">
+      <h2>网络使用量</h2>
+      <p class="hint">
+        统计本应用通过 Bangumi 同步、离线库更新、检索增强（TMDB/VNDB）等发起的网络请求的上行 / 下行流量与次数。
+        <strong>仅本地记录，不上传。</strong>
+      </p>
+
+      <div class="arc-status" v-if="netStats?.current">
+        <div class="arc-stat"><span>当月上传</span><b>{{ fmtSize(netStats.current.sent) }}</b></div>
+        <div class="arc-stat"><span>当月下载</span><b>{{ fmtSize(netStats.current.received) }}</b></div>
+        <div class="arc-stat"><span>当月请求次数</span><b>{{ fmtCount(netStats.current.requests) }}</b></div>
+        <div class="arc-stat"><span>当月合计</span><b>{{ fmtSize(netStats.current.sent + netStats.current.received) }}</b></div>
+      </div>
+      <p v-else-if="netStats" class="hint">本月尚无网络请求记录。</p>
+      <p v-else class="hint">正在统计网络使用量…</p>
+
+      <div class="net-history" v-if="netPast.length">
+        <div class="net-hrow net-hhead">
+          <span>月份</span><span>上行</span><span>下行</span><span>请求</span>
+        </div>
+        <div class="net-hrow" v-for="h in netPast" :key="h.month">
+          <span>{{ h.month }}</span>
+          <span>{{ fmtSize(h.sent) }}</span>
+          <span>{{ fmtSize(h.received) }}</span>
+          <span>{{ fmtCount(h.requests) }}</span>
+        </div>
+      </div>
+    </section>
+      </template>
+
+      <template v-if="group === 'appearance'">
     <!-- 外观 -->
-    <section v-show="sectionVisible('appearance')" :ref="setSectionRef('appearance')" class="panel">
+    <section class="panel">
       <h2>外观</h2>
       <p class="hint">选择界面主题。选择“跟随系统”时，会随操作系统的浅色 / 深色模式自动切换。</p>
       <div class="seg">
@@ -628,7 +647,7 @@ watch(filterKw, () => {
     </section>
 
     <!-- 动画 -->
-    <section v-show="sectionVisible('animation')" :ref="setSectionRef('animation')" class="panel">
+    <section class="panel">
       <h2>动画</h2>
       <p class="hint">控制主页 / 长列表卡片在窗口缩放、侧栏收起导致列数变化时的重排过渡。</p>
       <div class="anim-control">
@@ -660,8 +679,11 @@ watch(filterKw, () => {
       </div>
     </section>
 
+      </template>
+
+      <template v-if="group === 'storage'">
     <!-- Bangumi 离线数据库 -->
-    <section v-show="sectionVisible('offline')" :ref="setSectionRef('offline')" class="panel">
+    <section class="panel">
       <h2>Bangumi 离线数据库</h2>
       <p class="hint">
         内置 Bangumi 官方每周导出的全量 wiki 数据（<a class="link" href="#" @click.prevent="openExternal('https://github.com/bangumi/Archive')">bangumi/Archive</a>）。
@@ -727,7 +749,7 @@ watch(filterKw, () => {
     </section>
 
     <!-- 缓存管理 -->
-    <section v-show="sectionVisible('cache')" :ref="setSectionRef('cache')" class="panel">
+    <section class="panel">
       <h2>缓存管理</h2>
       <p class="hint">
         以下为<strong>可重新抓取</strong>的本地辅助缓存（剧集元数据 / 角色声优 / 关联作品 / 画廊截图链接）。
@@ -763,7 +785,7 @@ watch(filterKw, () => {
     </section>
 
     <!-- 备份与恢复 -->
-    <section v-show="sectionVisible('backup')" :ref="setSectionRef('backup')" class="panel">
+    <section class="panel">
       <h2>备份与恢复</h2>
       <p class="hint">
         将<strong>全部个人数据</strong>（收藏 / 进度 / 评分 / 吐槽 / 购买记录 / 设置）导出为一个数据库文件；
@@ -787,36 +809,8 @@ watch(filterKw, () => {
       </p>
       <p v-if="backupMsg" :class="backupOk ? 'ok' : 'err'" style="margin-top: 8px">{{ backupMsg }}</p>
     </section>
-
-    <!-- 网络使用量 -->
-    <section v-show="sectionVisible('usage')" :ref="setSectionRef('usage')" class="panel">
-      <h2>网络使用量</h2>
-      <p class="hint">
-        统计本应用通过 Bangumi 同步、离线库更新、检索增强（TMDB/VNDB）等发起的网络请求的上行 / 下行流量与次数。
-        <strong>仅本地记录，不上传。</strong>
-      </p>
-
-      <div class="arc-status" v-if="netStats?.current">
-        <div class="arc-stat"><span>当月上传</span><b>{{ fmtSize(netStats.current.sent) }}</b></div>
-        <div class="arc-stat"><span>当月下载</span><b>{{ fmtSize(netStats.current.received) }}</b></div>
-        <div class="arc-stat"><span>当月请求次数</span><b>{{ fmtCount(netStats.current.requests) }}</b></div>
-        <div class="arc-stat"><span>当月合计</span><b>{{ fmtSize(netStats.current.sent + netStats.current.received) }}</b></div>
-      </div>
-      <p v-else-if="netStats" class="hint">本月尚无网络请求记录。</p>
-      <p v-else class="hint">正在统计网络使用量…</p>
-
-      <div class="net-history" v-if="netPast.length">
-        <div class="net-hrow net-hhead">
-          <span>月份</span><span>上行</span><span>下行</span><span>请求</span>
-        </div>
-        <div class="net-hrow" v-for="h in netPast" :key="h.month">
-          <span>{{ h.month }}</span>
-          <span>{{ fmtSize(h.sent) }}</span>
-          <span>{{ fmtSize(h.received) }}</span>
-          <span>{{ fmtCount(h.requests) }}</span>
-        </div>
-      </div>
-    </section>
+      </template>
+    </template><!-- /v-else 分类详情 -->
 
     <!-- 清理缓存二次确认 -->
     <div v-if="confirmingClear" class="modal-mask" @click.self="confirmingClear = false">
@@ -858,8 +852,7 @@ watch(filterKw, () => {
         </div>
       </div>
     </div>
-    </div><!-- /settings-main -->
-  </div><!-- /settings-layout -->
+  </div>
 </template>
 
 <style scoped>
@@ -1167,73 +1160,80 @@ watch(filterKw, () => {
   gap: 10px;
 }
 
-/* ===== 分区导航（左侧锚点目录 + 过滤）===== */
-.settings-layout {
-  display: flex;
-  gap: 20px;
-  align-items: flex-start;
+/* ===== 母级分类卡片（/settings 导航页）===== */
+.settings-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
 }
-.settings-toc {
-  position: sticky;
-  top: 0;
-  flex: 0 0 148px;
+.sg-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 16px;
+  text-align: left;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition:
+    transform 0.15s var(--ease-out),
+    border-color var(--dur-fast) ease,
+    box-shadow var(--dur) ease;
+}
+.sg-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent-2);
+  box-shadow: var(--shadow);
+}
+.sg-card:active {
+  transform: translateY(-1px) scale(0.99);
+}
+.sg-icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--bg-elev);
+  color: var(--accent-2);
+  transition: background var(--dur-fast) ease, color var(--dur-fast) ease;
+}
+.sg-card:hover .sg-icon {
+  background: var(--accent-2);
+  color: #fff;
+}
+.sg-icon svg {
+  width: 22px;
+  height: 22px;
+}
+.sg-text {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 3px;
-  padding-top: 2px;
 }
-.toc-filter {
-  margin-bottom: 8px;
-  padding: 7px 10px;
-  font-size: 13px;
-}
-.toc-item {
-  text-align: left;
-  padding: 7px 11px;
-  font-size: 13px;
-  border-radius: 8px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-  transition:
-    color var(--dur-fast) ease,
-    background var(--dur-fast) ease,
-    transform 0.12s var(--ease-out);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.toc-item:hover {
+.sg-label {
+  font-size: 15px;
+  font-weight: 700;
   color: var(--text);
-  background: var(--bg-elev);
 }
-.toc-item:active {
-  transform: scale(0.97);
+.sg-desc {
+  font-size: 12.5px;
+  color: var(--text-dim);
+  line-height: 1.45;
 }
-.toc-item.active {
-  color: var(--nav-active-text);
-  background: var(--bg-elev);
-  box-shadow: inset 3px 0 0 var(--accent);
-  font-weight: 600;
+.sg-chevron {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--text-dim);
+  transition: transform var(--dur-fast) ease, color var(--dur-fast) ease;
 }
-.settings-main {
-  flex: 1;
-  min-width: 0;
-}
-@media (max-width: 900px) {
-  .settings-layout {
-    flex-direction: column;
-  }
-  .settings-toc {
-    position: static;
-    flex: none;
-    flex-direction: row;
-    flex-wrap: wrap;
-    width: 100%;
-  }
-  .toc-filter {
-    width: 100%;
-  }
+.sg-card:hover .sg-chevron {
+  transform: translateX(3px);
+  color: var(--accent-2);
 }
 </style>

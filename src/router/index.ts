@@ -16,7 +16,9 @@ const routes = [
   { path: '/galgame', name: 'galgame', component: GalgameView, meta: { title: 'Galgame' } },
   { path: '/personal', name: 'personal', component: PersonalView, meta: { title: '个T��' } },
   { path: '/search', name: 'search', component: SearchView, meta: { title: '搜索' } },
-  { path: '/settings', name: 'settings', component: SettingsView, meta: { title: '设置' } }
+  { path: '/settings', name: 'settings', component: SettingsView, meta: { title: '设置' } },
+  // 设置子页：/settings/:group（account/storage/network/appearance），同一组件按 group 渲染对应分区
+  { path: '/settings/:group', name: 'settings-group', component: SettingsView, props: true, meta: { title: '设置' } }
 ]
 
 // Electron 下用 hash 模式，避�? file:// 路由问题

@@ -147,7 +147,7 @@ function onSpinEnd() {
       to="/settings"
       class="nav-gear"
       title="设置"
-      :class="{ 'router-link-active': route.path === '/settings', spinning: isSpinning, pressed: isPressed }"
+        :class="{ 'router-link-active': route.path === '/settings' || route.path.startsWith('/settings/'), spinning: isSpinning, pressed: isPressed }"
       @mousedown="press"
       @mouseup="release"
       @mouseleave="release"
