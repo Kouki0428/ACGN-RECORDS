@@ -15,6 +15,8 @@
             t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
           }
           document.documentElement.setAttribute('data-theme', t)
+          var p = localStorage.getItem('acgn-preset-resolved')
+          if (p && t === 'dark') document.documentElement.setAttribute('data-preset', p)
         } catch (e) {}
       })()
     </script>

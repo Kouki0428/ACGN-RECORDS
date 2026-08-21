@@ -87,6 +87,47 @@
 :root[data-theme="light"] * {
   scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
 }
+
+/* ===== 深色预设皮肤（仅 data-theme=dark 时由 theme.ts 写入 data-preset）===== */
+/* OLED 纯黑：省电 / 峰值对比 */
+:root[data-preset="oled"] {
+  --bg: #000000;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #0c0f15 0%, #000000 60%);
+  --bg-panel: #0a0d12;
+  --bg-elev: #12161d;
+  --bg-elev-hover: #181d25;
+  --border-hover: #2b3340;
+  --border: #1f242d;
+  --border-soft: #151920;
+  --sidebar-bg: linear-gradient(180deg, #05070b 0%, #000000 100%);
+  --bg-deep: #000000;
+}
+/* Bangumi 粉夜：暖粉调深色 */
+:root[data-preset="bangumi"] {
+  --bg: #1a1216;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #2a1b22 0%, #1a1216 60%);
+  --bg-panel: #211719;
+  --bg-elev: #2b1e22;
+  --bg-elev-hover: #35252b;
+  --border-hover: #4a333c;
+  --border: #3a2830;
+  --border-soft: #2c2025;
+  --sidebar-bg: linear-gradient(180deg, #201419 0%, #1a1216 100%);
+  --bg-deep: #150f12;
+}
+/* 墨绿夜：冷绿纸感深色 */
+:root[data-preset="ink"] {
+  --bg: #0e1411;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #16211b 0%, #0e1411 60%);
+  --bg-panel: #121b16;
+  --bg-elev: #18241d;
+  --bg-elev-hover: #1f2d25;
+  --border-hover: #31443a;
+  --border: #26352d;
+  --border-soft: #1b2822;
+  --sidebar-bg: linear-gradient(180deg, #111a15 0%, #0e1411 100%);
+  --bg-deep: #0b100d;
+}
 :root[data-theme="light"] ::-webkit-scrollbar-thumb {
   background-color: rgba(0, 0, 0, 0.18);
 }
@@ -1138,7 +1179,7 @@ textarea.input {
 }
 ::view-transition-new(root) {
   clip-path: circle(0px at var(--vt-x, 50%) var(--vt-y, 50%));
-  animation: vt-reveal 0.55s var(--ease-out) both;
+  animation: vt-reveal 0.9s var(--ease-out) both;
 }
 @keyframes vt-reveal {
   to {

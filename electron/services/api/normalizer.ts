@@ -42,32 +42,36 @@ async function classifyBook(raw: any, token?: string): Promise<Category> {
  *   **需 Bearer 令牌**（匿名返回空），虚拟=角色、现实=人物。未登录时抛错提示登录。
  *   主源检索失败（离线/网络/令牌失效）直接抛出，由渲染层显示明确错误，不塞示例数据。
  */
-export async function unifiedSearch(query: SearchQuery): Promise<SearchResultItem[]> {
+export async function unifiedSearch(query: SearchQuery, signal?: AbortSignal): Promise<SearchResultItem[]> {
   const token = (await getValidToken()) ?? undefined
   dbg('unifiedSearch domain=', query.domain, 'subjectType=', query.subjectType, 'personType=', query.personType, 'tokenPresent=', !!token)
   if (query.domain === 'person') {
     if (!token) {
       throw new Error('请先登录 Bangumi 后再搜索角色 / 人物')
     }
-    return searchPersonDomain(query, token)
+    return searchPersonDomain(query, token, signal)
   }
-  return searchSubjectDomain(query, token)
+  return searchSubjectDomain(query, token, signal)
 }
 
 async function searchSubjectDomain(
   query: SearchQuery,
-  token?: string
+  token?: string,
+  signal?: AbortSignal
 ): Promise<SearchResultItem[]> {
   const filter = query.subjectType ?? 'all'
   const rawList: any[] = []
   if (filter === 'all') {
     // 「全部」一次拉全量：searchBangumiByType 默认用 v0 的 filter.type=[1,2,4]（漫画/动画/游戏/小说）
     // 在服务端过滤，既提速又排除音乐(3)/三次元(6)；再由下方按 raw.type 细分栏目。
-    const list = await searchBangumiByType(query.keyword, undefined, token).catch(() => [] as any[])
+    const list = await searchBangumiByType(query.keyword, undefined, token, signal).catch((e) => {
+      if (signal?.aborted || (e as Error)?.name === 'AbortError') throw e
+      return [] as any[]
+    })
     rawList.push(...list)
   } else {
     const type = subjectFilterToType(filter)
-    const l = await searchBangumiByType(query.keyword, type, token)
+    const l = await searchBangumiByType(query.keyword, type, token, signal)
     rawList.push(...l)
   }
   // 并行归一化：书籍需细分（匿名时拉详情取 platform，限并发 4 避免打爆）。
@@ -91,15 +95,16 @@ async function searchSubjectDomain(
 
 async function searchPersonDomain(
   query: SearchQuery,
-  token: string
+  token: string,
+  signal?: AbortSignal
 ): Promise<SearchResultItem[]> {
   const kind = query.personType ?? 'all'
   const specs: { pk: 'character' | 'person'; fn: () => Promise<any[]> }[] = []
   if (kind === 'all' || kind === 'virtual') {
-    specs.push({ pk: 'character', fn: () => searchCharacters(query.keyword, token) })
+    specs.push({ pk: 'character', fn: () => searchCharacters(query.keyword, token, signal) })
   }
   if (kind === 'all' || kind === 'real') {
-    specs.push({ pk: 'person', fn: () => searchPersons(query.keyword, token) })
+    specs.push({ pk: 'person', fn: () => searchPersons(query.keyword, token, signal) })
   }
   // 逐个执行并保留真实错误：某类失败不牵连另一类；两类都失败时抛出首个真实错误
   // （避免把错误吞成 undefined，导致 UI 显示「检索失败：undefined」）。

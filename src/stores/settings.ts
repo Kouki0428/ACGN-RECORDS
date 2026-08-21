@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { dbClient } from '@/services/dbClient'
-import { applyTheme, type ThemePref } from '@/theme'
+import { applyTheme, setDarkPreset, setSchedule, type ThemePref } from '@/theme'
+import { applyAccent } from '@/utils/accent'
 
 export const useSettingsStore = defineStore('settings', () => {
   const autoSync = ref(false)
@@ -32,6 +33,13 @@ export const useSettingsStore = defineStore('settings', () => {
   const vndbToken = ref('')
   // 手动代理（用于 api.bgm.tv 直连超时的网络环境，如 Clash/v2ray 地址）
   const proxy = ref('')
+  // 自定义强调色（'' = 默认粉）。写入 :root 的 --accent / --accent-grad，全局派生换色
+  const accentColor = ref('')
+  // 深色预设皮肤：classic 经典 / oled 纯黑 / bangumi 粉夜 / ink 墨绿夜（仅深色模式生效）
+  const darkPreset = ref('classic')
+  // 定时切换时段：浅色起 ~ 深色起（'HH:mm'，支持跨午夜），theme='scheduled' 时生效
+  const scheduleLight = ref('07:00')
+  const scheduleDark = ref('19:00')
 
   async function load() {
     if (initialized) return
@@ -63,7 +71,21 @@ export const useSettingsStore = defineStore('settings', () => {
       if (r.key === 'tmdb_api_key') tmdbKey.value = r.value
       if (r.key === 'vndb_token') vndbToken.value = r.value
       if (r.key === 'proxy') proxy.value = r.value
+      if (r.key === 'accentColor') {
+        accentColor.value = r.value
+        applyAccent(r.value || null)
+      }
+      if (r.key === 'darkPreset') {
+        darkPreset.value = r.value || 'classic'
+        setDarkPreset(darkPreset.value)
+      }
+      if (r.key === 'scheduleLight') scheduleLight.value = r.value || '07:00'
+      if (r.key === 'scheduleDark') scheduleDark.value = r.value || '19:00'
     }
+    setSchedule(scheduleLight.value, scheduleDark.value)
+    // 若持久化的偏好是「定时」，需在时段载入后重新解析一次（循环内的首次 applyTheme
+    // 发生在 setSchedule 之前，用的是默认时段）
+    if (theme.value === 'scheduled') void applyTheme('scheduled')
   }
 
   async function set(key: string, value: string) {
@@ -90,6 +112,22 @@ export const useSettingsStore = defineStore('settings', () => {
       if (key === 'tmdb_api_key') tmdbKey.value = value
     if (key === 'vndb_token') vndbToken.value = value
     if (key === 'proxy') proxy.value = value
+    if (key === 'accentColor') {
+      accentColor.value = value
+      applyAccent(value || null)
+    }
+    if (key === 'darkPreset') {
+      darkPreset.value = value || 'classic'
+      setDarkPreset(darkPreset.value)
+      // 预设变化需刷新 data-preset 属性与原生底色（同主题早退分支也会同步，这里显式触发一次）
+      void applyTheme(theme.value)
+    }
+    if (key === 'scheduleLight' || key === 'scheduleDark') {
+      if (key === 'scheduleLight') scheduleLight.value = value || '07:00'
+      else scheduleDark.value = value || '19:00'
+      setSchedule(scheduleLight.value, scheduleDark.value)
+      if (theme.value === 'scheduled') void applyTheme('scheduled')
+    }
   }
 
   // 仅在遮罩已盖住屏幕时调用：更新按钮高亮（不写库、不触发 applyTheme），
@@ -98,5 +136,5 @@ export const useSettingsStore = defineStore('settings', () => {
     theme.value = v
   }
 
-  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, load, set, commitTheme }
+  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, darkPreset, scheduleLight, scheduleDark, load, set, commitTheme }
 })

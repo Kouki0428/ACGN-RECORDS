@@ -192,6 +192,13 @@ const api: AcgnApi = {
         canceled?: boolean
         path?: string
         error?: string
+      }>,
+    exportCollections: (format: 'csv' | 'json') =>
+      ipcRenderer.invoke('backup:exportCollections', format) as Promise<{
+        ok: boolean
+        canceled?: boolean
+        path?: string
+        error?: string
       }>
   },
   statsSnapshotHistory: (limit = 12) =>

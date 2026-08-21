@@ -231,6 +231,8 @@ type FetchInit = {
   method?: string
   headers?: Record<string, string> | [string, string][] | { [k: string]: string } | undefined
   body?: string | URLSearchParams | null | undefined
+  /** AbortSignal：取消在途请求（搜索被新请求取代时掐掉旧分页拉取，省配额） */
+  signal?: AbortSignal | null | undefined
 }
 
 const MAX_REDIRECTS = 10
@@ -303,7 +305,8 @@ async function doRequest(
       u,
       // family:4 强制 IPv4：Node 默认双栈会先尝试 IPv6，许多网络下 IPv6 不通却卡到超时
       // （curl/浏览器 happy-eyeballs 更聪明，故「浏览器能通、主进程超时」）。Bangumi 有 IPv4。
-      { method, headers, agent: useAgent ?? undefined, family: 4 } as never,
+      // signal：AbortController 取消在途请求（搜索被新请求取代时掐掉旧分页拉取）
+      { method, headers, agent: useAgent ?? undefined, family: 4, signal: init.signal } as never,
       (res) => {
         const status = res.statusCode || 0
         const location = res.headers['location']

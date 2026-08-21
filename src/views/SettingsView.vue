@@ -171,7 +171,26 @@ async function toggleAutoCacheClean() {
 const themeOptions: { value: ThemePref; label: string }[] = [
   { value: 'dark', label: '深色' },
   { value: 'light', label: '浅色' },
-  { value: 'system', label: '跟随系统' }
+  { value: 'system', label: '跟随系统' },
+  { value: 'scheduled', label: '定时' }
+]
+
+// 深色风格预设（仅深色模式生效）
+const darkPresets = [
+  { value: 'classic', label: '经典' },
+  { value: 'oled', label: 'OLED 纯黑' },
+  { value: 'bangumi', label: '粉夜' },
+  { value: 'ink', label: '墨绿夜' }
+]
+
+// 强调色预设（'' = 默认粉，由「默认」按钮处理）
+const accentPresets = [
+  { hex: '#ff5c8a', label: '樱粉' },
+  { hex: '#f0623d', label: '暖橙' },
+  { hex: '#a06bff', label: '紫罗兰' },
+  { hex: '#34c98e', label: '青绿' },
+  { hex: '#4aa8ff', label: '天蓝' },
+  { hex: '#f7b500', label: '琥珀金' }
 ]
 async function setTheme(v: ThemePref, e?: MouseEvent) {
   await settings.set('theme', v) // 先持久化到库
@@ -341,6 +360,20 @@ async function doImportBackup() {
     backupOk.value = t.ok
     backupMsg.value = t.msg
     confirmingRestore.value = false
+  } finally {
+    backupBusy.value = false
+  }
+}
+
+async function doExportCollections(format: 'csv' | 'json') {
+  if (backupBusy.value) return
+  backupBusy.value = true
+  backupMsg.value = ''
+  try {
+    const r = await window.acgn.backup.exportCollections(format)
+    const t = backupResultText(r, format === 'csv' ? '收藏 CSV 已导出' : '收藏 JSON 已导出')
+    backupOk.value = t.ok
+    backupMsg.value = t.msg
   } finally {
     backupBusy.value = false
   }
@@ -589,7 +622,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
     <!-- 外观 -->
     <section class="panel">
       <h2>外观</h2>
-      <p class="hint">选择界面主题。选择“跟随系统”时，会随操作系统的浅色 / 深色模式自动切换。</p>
+      <p class="hint">选择界面主题。“跟随系统”随操作系统自动切换；“定时”按下方时段自动切换。</p>
       <div class="seg">
         <button
           v-for="opt in themeOptions"
@@ -600,6 +633,57 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         >
           {{ opt.label }}
         </button>
+      </div>
+
+      <!-- 定时切换时段（仅 theme=scheduled 时显示） -->
+      <div v-if="settings.theme === 'scheduled'" class="sched-row">
+        <label class="sched-field">
+          <span>浅色起</span>
+          <input type="time" class="input" :value="settings.scheduleLight" @change="settings.set('scheduleLight', ($event.target as HTMLInputElement).value)" />
+        </label>
+        <span class="sched-arrow">→</span>
+        <label class="sched-field">
+          <span>深色起</span>
+          <input type="time" class="input" :value="settings.scheduleDark" @change="settings.set('scheduleDark', ($event.target as HTMLInputElement).value)" />
+        </label>
+      </div>
+
+      <!-- 深色风格预设（仅深色模式生效） -->
+      <hr class="divider" />
+      <p class="hint">深色风格（仅深色模式下生效，浅色模式忽略）。</p>
+      <div class="seg">
+        <button
+          v-for="p in darkPresets"
+          :key="p.value"
+          type="button"
+          class="seg-item"
+          :class="{ active: settings.darkPreset === p.value }"
+          @click="settings.set('darkPreset', p.value)"
+        >
+          {{ p.label }}
+        </button>
+      </div>
+
+      <!-- 自定义强调色 -->
+      <hr class="divider" />
+      <p class="hint">强调色：按钮渐变、激活态、边框高亮等全局强调元素随之换色。</p>
+      <div class="accent-row">
+        <button
+          v-for="c in accentPresets"
+          :key="c.hex"
+          type="button"
+          class="accent-swatch"
+          :class="{ active: settings.accentColor === c.hex }"
+          :style="{ background: c.hex }"
+          :title="c.label"
+          @click="settings.set('accentColor', c.hex)"
+        ></button>
+        <button
+          type="button"
+          class="accent-reset"
+          :class="{ active: !settings.accentColor }"
+          @click="settings.set('accentColor', '')"
+        >默认</button>
       </div>
 
       <hr class="divider" />
@@ -808,6 +892,17 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
       <p class="hint">
         「恢复」会<strong>整体替换</strong>当前所有数据（恢复后自动重启数据连接）；请确认备份来源可信。
       </p>
+
+      <!-- 收藏数据轻量导出（CSV/JSON） -->
+      <hr class="divider" />
+      <p class="hint">
+        导出收藏为表格文件（标题 / 分类 / 状态 / 评分 / 进度 / 吐槽 / 标记时间 / 链接）。
+        CSV 可直接用 Excel 打开；JSON 为结构化格式。<strong>单向导出，不能导回应用。</strong>
+      </p>
+      <div class="row" style="margin-top: 10px">
+        <button class="btn btn--ghost" :disabled="backupBusy" @click="doExportCollections('csv')">导出收藏 CSV</button>
+        <button class="btn btn--ghost" :disabled="backupBusy" @click="doExportCollections('json')">导出收藏 JSON</button>
+      </div>
       <p v-if="backupMsg" :class="backupOk ? 'ok' : 'err'" style="margin-top: 8px">{{ backupMsg }}</p>
     </section>
       </template>
@@ -1161,8 +1256,69 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
   gap: 10px;
 }
 
-/* ===== 母级分类卡片（/settings 导航页）===== */
-.settings-groups {
+/* ===== 外观区：定时时段 / 强调色板 ===== */
+.sched-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.sched-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.sched-field .input {
+  width: 120px;
+  padding: 6px 10px;
+}
+.sched-arrow {
+  color: var(--text-dim);
+}
+.accent-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.accent-swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s var(--ease-out), box-shadow var(--dur-fast);
+}
+.accent-swatch:hover {
+  transform: scale(1.12);
+}
+.accent-swatch.active {
+  box-shadow: 0 0 0 2px var(--bg-panel), 0 0 0 4px var(--text);
+}
+.accent-reset {
+  padding: 6px 14px;
+  font-size: 13px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color var(--dur-fast), border-color var(--dur-fast);
+}
+.accent-reset:hover {
+  color: var(--text);
+  border-color: var(--border-hover);
+}
+.accent-reset.active {
+  color: var(--text);
+  border-color: var(--accent-2);
+}
+
+/* ===== 母级分类卡片（/settings 导航页）===== */.settings-groups {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 14px;

@@ -15,6 +15,7 @@ import { useSearchOverlay } from './composables/searchOverlay'
 import { useEntityCard } from './composables/useEntityCard'
 import { useCollectionModal } from './composables/useCollectionModal'
 import { useAppHotkeys } from './composables/useAppHotkeys'
+import { installGridNav } from './utils/gridNav'
 
 // 窗口缩放时作品卡片的 FLIP 补间（列数跨阈值时平滑滑动）
 useGridResizeFlip()
@@ -87,6 +88,8 @@ onMounted(() => {
   window.addEventListener('mousedown', onSideDown)
   window.addEventListener('mouseup', blockSide)
   window.addEventListener('auxclick', blockSide)
+  // 方向键在网格卡片间移动焦点（键盘可达下半场）
+  installGridNav()
 })
 onUnmounted(() => {
   window.removeEventListener('mousedown', onSideDown)

@@ -14,6 +14,7 @@ const { collapsed, toggleSidebar } = useSidebar()
 // 订阅主进程 syncEngine 状态（后台定时同步/手动同步共用一条链路）：
 // running=旋转、ok=绿点(8s 后自动隐去)、error=红点常驻(悬停看原因，点击去设置页)
 const syncState = ref<SyncEngineState | null>(null)
+const syncMenuOpen = ref(false)
 let okHideTimer: number | undefined
 function onSync(s: SyncEngineState) {
   syncState.value = s
@@ -47,6 +48,15 @@ function syncTitle(): string {
 }
 function goSettings() {
   void router.push('/settings')
+}
+function openSettings() {
+  syncMenuOpen.value = false
+  goSettings()
+}
+// 快捷重试：直接复用同步 IPC（状态经 onSync 订阅自动刷新）；失败保留 error 态可再次重试
+function retrySync(kind: 'push' | 'pull') {
+  const fn = kind === 'push' ? window.acgn.sync.pushAll : window.acgn.sync.pullAll
+  void fn().catch(() => {})
 }
 
 const items = [
@@ -130,19 +140,39 @@ function onSpinEnd() {
       </router-link>
     </nav>
     <div class="nav-spacer"></div>
-    <!-- 同步状态指示灯：后台同步不再静默（running 旋转 / ok 绿点暂现 / error 红点常驻） -->
-    <button
-      v-if="syncState && syncState.phase !== 'idle'"
-      type="button"
-      class="nav-sync"
-      :class="`nav-sync--${syncState.phase}`"
-      :title="syncTitle()"
-      aria-label="同步状态"
-      @click="goSettings"
-    >
-      <span v-if="syncState.phase === 'running'" class="ns-spinner"></span>
-      <span v-else class="ns-dot"></span>
-    </button>
+    <!-- 同步状态指示灯：后台同步不再静默（running 旋转 / ok 绿点暂现 / error 红点常驻）。
+         点击弹出快捷面板：状态摘要 + 一键重试上传/拉取 + 前往设置页 -->
+    <div class="nav-sync-wrap">
+      <div v-if="syncMenuOpen" class="sync-pop-backdrop" @click="syncMenuOpen = false"></div>
+      <button
+        v-if="syncState && syncState.phase !== 'idle'"
+        type="button"
+        class="nav-sync"
+        :class="`nav-sync--${syncState.phase}`"
+        :title="syncTitle()"
+        aria-label="同步状态"
+        @click.stop="syncMenuOpen = !syncMenuOpen"
+      >
+        <span v-if="syncState.phase === 'running'" class="ns-spinner"></span>
+        <span v-else class="ns-dot"></span>
+      </button>
+      <div v-if="syncMenuOpen && syncState" class="sync-pop" @click.stop>
+        <p class="sp-status" :class="{ err: syncState.phase === 'error' }">{{ syncTitle() }}</p>
+        <button
+          type="button"
+          class="sp-btn"
+          :disabled="syncState.phase === 'running'"
+          @click="retrySync('push')"
+        >重试上传</button>
+        <button
+          type="button"
+          class="sp-btn"
+          :disabled="syncState.phase === 'running'"
+          @click="retrySync('pull')"
+        >重试拉取</button>
+        <button type="button" class="sp-btn sp-settings" @click="openSettings">打开设置页</button>
+      </div>
+    </div>
     <router-link
       to="/settings"
       class="nav-gear"
@@ -161,3 +191,63 @@ function onSpinEnd() {
     </router-link>
   </aside>
 </template>
+
+<style scoped>
+/* 同步快捷面板：锚定指示灯上方，背板拦截外部点击 */
+.nav-sync-wrap {
+  position: relative;
+}
+.sync-pop-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 29990;
+}
+.sync-pop {
+  position: absolute;
+  left: 14px;
+  bottom: calc(100% + 8px);
+  z-index: 29999;
+  min-width: 168px;
+  padding: 10px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sp-status {
+  margin: 0 0 2px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  word-break: break-word;
+}
+.sp-status.err {
+  color: var(--err);
+}
+.sp-btn {
+  text-align: left;
+  padding: 7px 10px;
+  font-size: 13px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: background var(--dur-fast) ease;
+}
+.sp-btn:hover:not(:disabled) {
+  background: var(--bg-elev);
+}
+.sp-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.sp-settings {
+  color: var(--text-dim);
+  border-top: 1px solid var(--border-soft);
+  border-radius: 0 0 8px 8px;
+}
+</style>

@@ -131,9 +131,11 @@ async function tryRefreshFromHeaders(
  *  遇 401 且持有 refresh_token 时静默刷新并重试一次（与同步引擎 authedFetch 行为一致）。 */
 async function fetchSearchPage(
   buildReq: (offset: number) => { url: string; init: RequestInit },
-  offset: number
+  offset: number,
+  signal?: AbortSignal
 ): Promise<{ data: any[]; total: number }> {
   let { url, init } = buildReq(offset)
+  if (signal) init = { ...init, signal }
   const isPerson = url.includes('/search/persons') || url.includes('/search/characters')
   for (let attempt = 0; attempt <= 1; attempt++) {
     try {
@@ -162,6 +164,8 @@ async function fetchSearchPage(
       const json = (await res.json()) as { data?: any[]; total?: number }
       return { data: json.data ?? [], total: typeof json.total === 'number' ? json.total : 0 }
     } catch (e) {
+      // 已被新搜索取消：立即上抛，不重试（上层按 aborted 静默丢弃）
+      if (signal?.aborted || (e as Error)?.name === 'AbortError') throw e
       if (attempt === 1) throw e
       await new Promise((r) => setTimeout(r, 200))
     }
@@ -172,21 +176,23 @@ async function fetchSearchPage(
 export async function searchBangumiByType(
   keyword: string,
   type?: number,
-  token?: string
+  token?: string,
+  signal?: AbortSignal
 ): Promise<any[]> {
   // 条目搜索仅覆盖 漫画/动画/游戏/小说（Bangumi type 1/2/4）；音乐(3)/三次元(6) 不在需求内，
   // 通过 v0 的 filter.type 在服务端过滤，既提速又避免拉取无关类型。
   // v0 条目搜索为 POST 且 OptionalHTTPBearer（匿名亦可）。
   const types = type !== undefined ? [type] : [1, 2, 4]
   try {
-    const all = await searchBangumiV0ByType(keyword, token, types)
+    const all = await searchBangumiV0ByType(keyword, token, types, signal)
     return all.filter((x) => types.includes(x.type)) // 客户端兜底（防极端情况下服务端未过滤）
   } catch (e) {
+    if (signal?.aborted || (e as Error)?.name === 'AbortError') throw e
     // 仅在「无令牌」时回退 legacy（匿名可用，但每类仅 8 条、不支持翻页）；
     // 有令牌却失败（典型 401 令牌失效）→ 抛出明确错误，绝不再静默降级为少量结果。
     if (!token) {
       console.warn('[bgm] v0 检索失败，回退旧版匿名检索：', e)
-      const legacy = await searchBangumiLegacyByType(keyword, type)
+      const legacy = await searchBangumiLegacyByType(keyword, type, signal)
       return type !== undefined ? legacy.filter((x) => x.type === type) : legacy
     }
     throw e
@@ -202,7 +208,8 @@ export async function searchBangumiByType(
  */
 async function paginateSearch(
   buildReq: (offset: number) => { url: string; init: RequestInit },
-  opts?: { dedupById?: boolean; concurrency?: number; maxPages?: number }
+  opts?: { dedupById?: boolean; concurrency?: number; maxPages?: number },
+  signal?: AbortSignal
 ): Promise<any[]> {
   const concurrency = Math.max(1, opts?.concurrency ?? SEARCH_CONCURRENCY)
   const dedupById = opts?.dedupById ?? false
@@ -221,7 +228,7 @@ async function paginateSearch(
     return out
   }
 
-  const first = await fetchSearchPage(buildReq, 0)
+  const first = await fetchSearchPage(buildReq, 0, signal)
   const pageSize = first.data.length || 1 // 端点忽略 limit、固定每页条数；||1 防 0 除
   const all: any[] = accept(first.data)
   if (first.data.length === 0 || all.length >= SEARCH_HARD_CAP) return all
@@ -233,9 +240,10 @@ async function paginateSearch(
   // 对 total 准确与否都稳健；SEARCH_HARD_CAP 兜底防极端词无限请求。
   let off = pageSize
   while (all.length < SEARCH_HARD_CAP) {
+    if (signal?.aborted) break // 已被新搜索取代，停止继续翻页
     const batchOffsets: number[] = []
     for (let i = 0; i < concurrency; i++) batchOffsets.push(off + i * pageSize)
-    const pages = await Promise.all(batchOffsets.map((o) => fetchSearchPage(buildReq, o)))
+    const pages = await Promise.all(batchOffsets.map((o) => fetchSearchPage(buildReq, o, signal)))
     let anyNonEmpty = false
     let added = 0
     for (const p of pages) {
@@ -259,7 +267,7 @@ async function paginateSearch(
  * v0 条目搜索：POST /v0/search/subjects，请求体 { keyword, filter:{type} }，limit/offset 走 query。
  * filter.type 必须为**数组**（Bangumi 要求数组；单值会 400）。OptionalHTTPBearer → 有/无令牌均可调用。
  */
-async function searchBangumiV0ByType(keyword: string, token?: string, types?: number[]): Promise<any[]> {
+async function searchBangumiV0ByType(keyword: string, token?: string, types?: number[], signal?: AbortSignal): Promise<any[]> {
   // 作品搜索封顶 3 页（≈60 条）：UI 只展示前几十条，热门词（total 上千）无需翻全。
   return paginateSearch((offset) => ({
     url: `${API_BASE}/search/subjects?${new URLSearchParams({
@@ -271,7 +279,7 @@ async function searchBangumiV0ByType(keyword: string, token?: string, types?: nu
       headers: { ...authHeaders(token), 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(types && types.length ? { keyword, filter: { type: types } } : { keyword })
     }
-  }), { maxPages: 3 })
+  }), { maxPages: 3 }, signal)
 }
 
 /**
@@ -281,10 +289,10 @@ async function searchBangumiV0ByType(keyword: string, token?: string, types?: nu
  * 必须先登录 Bangumi，由上层 searchBangumiByType 走 v0 翻页接口。这里直接单页返回，
  * 不使用循环翻页（否则会因 page 无效而重复同一页直至触达 HARD_CAP，产生大量重复数据）。
  */
-async function searchBangumiLegacyByType(keyword: string, type?: number): Promise<any[]> {
+async function searchBangumiLegacyByType(keyword: string, type?: number, signal?: AbortSignal): Promise<any[]> {
   let url = `${LEGACY_BASE}/search/subject/${encodeURIComponent(keyword)}?responseGroup=Medium`
   if (type !== undefined) url += `&type=${type}`
-  const res = await fetch(url, { headers: { Accept: 'application/json', 'User-Agent': UA } })
+  const res = await fetch(url, { headers: { Accept: 'application/json', 'User-Agent': UA }, signal })
   if (!res.ok) throw new Error(`Bangumi 旧版检索失败 (HTTP ${res.status})`)
   const json = (await res.json()) as { list?: any[] }
   return json.list ?? []
@@ -298,7 +306,7 @@ async function searchBangumiLegacyByType(keyword: string, type?: number): Promis
  * - 响应结构：{ total, data:[{id,name,type,images,...}] }；data 项**无 name_cn**
  *   （中文名在 infobox，需另取详情），故 toPersonItem 用 raw.name。
  */
-export async function searchCharacters(keyword: string, token: string): Promise<any[]> {
+export async function searchCharacters(keyword: string, token: string, signal?: AbortSignal): Promise<any[]> {
   dbg('searchCharacters ENTER keyword=', keyword, 'tokenLen=', token?.length)
   try {
     const r = await paginateSearch(
@@ -313,7 +321,8 @@ export async function searchCharacters(keyword: string, token: string): Promise<
           body: JSON.stringify({ keyword })
         }
       }),
-      { dedupById: true }
+      { dedupById: true },
+      signal
     )
     dbg('searchCharacters OK len=', r.length)
     return r
@@ -323,7 +332,7 @@ export async function searchCharacters(keyword: string, token: string): Promise<
   }
 }
 
-export async function searchPersons(keyword: string, token: string): Promise<any[]> {
+export async function searchPersons(keyword: string, token: string, signal?: AbortSignal): Promise<any[]> {
   dbg('searchPersons ENTER keyword=', keyword, 'tokenLen=', token?.length)
   try {
     const r = await paginateSearch(
@@ -338,7 +347,8 @@ export async function searchPersons(keyword: string, token: string): Promise<any
           body: JSON.stringify({ keyword })
         }
       }),
-      { dedupById: true }
+      { dedupById: true },
+      signal
     )
     dbg('searchPersons OK len=', r.length)
     return r

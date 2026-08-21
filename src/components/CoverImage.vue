@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAttrs } from 'vue'
+import { ref, onMounted, useAttrs } from 'vue'
 import { proxyImg } from '@/utils/imgProxy'
 
 // 单根（运行时只会渲染 img 或 div 之一），关闭自动继承 class 便于手动合并尺寸类
@@ -12,16 +12,25 @@ const props = defineProps<{
 }>()
 
 const attrs = useAttrs()
+
+// blur-up：图片未就绪时半透明 + 底色微光，onload 后淡入（缓存命中时 complete 直接就绪，无闪烁）
+const loaded = ref(false)
+const imgEl = ref<HTMLImageElement | null>(null)
+onMounted(() => {
+  if (imgEl.value?.complete && imgEl.value.naturalWidth > 0) loaded.value = true
+})
 </script>
 
 <template>
   <img
     v-if="props.src"
+    ref="imgEl"
     :src="proxyImg(props.src)"
     :alt="props.alt"
     loading="lazy"
     decoding="async"
-    :class="[attrs.class, 'cover-media']"
+    :class="[attrs.class, 'cover-media', { 'is-loaded': loaded }]"
+    @load="loaded = true"
   />
   <div
     v-else
@@ -38,6 +47,29 @@ const attrs = useAttrs()
 .cover-media {
   display: block;
   object-fit: cover;
+}
+/* blur-up：加载中半透明 + 底色微光脉动；就绪后淡入。背景透出占位观感，
+   不改布局、不影响外部尺寸类。加载失败保持隐藏（等同灰块占位）。 */
+img.cover-media {
+  opacity: 0;
+  background-color: var(--bg-elev);
+  animation: cover-pulse 1.6s ease-in-out infinite;
+  transition: opacity 0.28s ease;
+}
+img.cover-media.is-loaded {
+  opacity: 1;
+  animation: none;
+}
+@keyframes cover-pulse {
+  0%, 100% { background-color: var(--bg-elev); }
+  50% { background-color: var(--bg-deep); }
+}
+@media (prefers-reduced-motion: reduce) {
+  img.cover-media {
+    animation: none;
+    transition: none;
+    opacity: 1;
+  }
 }
 /* 占位：复用外部尺寸类获得宽高，这里只负责居中文字与虚线边框 */
 .cover-placeholder {

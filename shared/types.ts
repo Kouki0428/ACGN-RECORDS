@@ -973,6 +973,8 @@ export interface AcgnApi {
   backup: {
     exportBackup: () => Promise<{ ok: boolean; canceled?: boolean; path?: string; error?: string }>
     importBackup: () => Promise<{ ok: boolean; canceled?: boolean; path?: string; error?: string }>
+    /** 收藏数据轻量导出（CSV/JSON，单向，不可导回应用） */
+    exportCollections: (format: 'csv' | 'json') => Promise<{ ok: boolean; canceled?: boolean; path?: string; error?: string }>
   }
   /** 统计历史趋势：当月快照（缺失则补记）+ 近 N 月历史（月升序） */
   statsSnapshotHistory: (limit?: number) => Promise<StatsSnapshot[]>

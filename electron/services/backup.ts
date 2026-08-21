@@ -6,7 +6,7 @@ import electron from 'electron'
 const { app, dialog } = electron
 import { join } from 'node:path'
 import { createRequire } from 'node:module'
-import { copyFileSync, existsSync, readFileSync, mkdirSync, rmSync } from 'node:fs'
+import { copyFileSync, existsSync, readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'
 import { getDb, closeDb } from './db/connection'
 
 const require = createRequire(import.meta.url)
@@ -108,6 +108,127 @@ export async function importBackup(): Promise<BackupResult> {
     } catch {
       /* ignore */
     }
+    return { ok: false, error: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+// ===== 收藏数据导出（CSV / JSON，单向轻量导出，不可导回）=====
+
+const CATEGORY_CN: Record<string, string> = {
+  anime: '动画',
+  light_novel: '小说',
+  manga: '漫画',
+  galgame: '游戏',
+  game: '游戏'
+}
+const STATUS_CN = ['想看', '看过', '在看', '搁置', '抛弃']
+
+function fmtDateTime(unixSec: number | null | undefined): string {
+  if (!unixSec) return ''
+  const d = new Date(unixSec * 1000)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
+async function queryCollectionsForExport(): Promise<
+  Array<{
+    titleCn: string
+    title: string
+    category: string
+    status: number
+    rating: number | null
+    epStatus: number
+    volStatus: number
+    comment: string
+    privateFlag: number
+    markedAt: number | null
+    url: string
+  }>
+> {
+  const db = await getDb()
+  return db
+    .prepare(
+      `SELECT s.title_cn AS titleCn, s.title AS title, s.category AS category,
+              c.status AS status, c.rating AS rating, c.ep_status AS epStatus,
+              c.vol_status AS volStatus, COALESCE(c.comment,'') AS comment,
+              c.private AS privateFlag, c.local_updated_at AS markedAt,
+              s.provider_subject_id AS pid
+       FROM collections c JOIN subjects s ON s.id = c.subject_id
+       ORDER BY s.category, c.local_updated_at DESC`
+    )
+    .all()
+    .map((r: any) => ({
+      ...r,
+      url: r.pid && /^\d+$/.test(String(r.pid)) ? `https://bgm.tv/subject/${r.pid}` : ''
+    }))
+}
+
+function csvEscape(v: string): string {
+  if (/[",\n\r]/.test(v)) return `"${v.replace(/"/g, '""')}"`
+  return v
+}
+
+export async function exportCollections(format: 'csv' | 'json'): Promise<BackupResult> {
+  try {
+    const rows = await queryCollectionsForExport()
+    const stampStr = stamp()
+    const ext = format === 'csv' ? 'csv' : 'json'
+    const res = await dialog.showSaveDialog({
+      title: '导出收藏数据',
+      defaultPath: `acgn-collections-${stampStr}.${ext}`,
+      filters:
+        format === 'csv'
+          ? [{ name: 'CSV 表格', extensions: ['csv'] }]
+          : [{ name: 'JSON 文件', extensions: ['json'] }]
+    })
+    if (res.canceled || !res.filePath) return { ok: false, canceled: true }
+
+    let content: string
+    if (format === 'json') {
+      content = JSON.stringify(
+        rows.map((r) => ({
+          title: r.titleCn || r.title,
+          titleOriginal: r.title,
+          category: CATEGORY_CN[r.category] ?? r.category,
+          status: STATUS_CN[r.status - 1] ?? String(r.status),
+          rating: r.rating ?? null,
+          progressEpisodes: r.epStatus,
+          progressVolumes: r.volStatus,
+          comment: r.comment,
+          private: !!r.privateFlag,
+          markedAt: fmtDateTime(r.markedAt),
+          url: r.url
+        })),
+        null,
+        2
+      )
+    } else {
+      const headers = ['标题', '原名', '分类', '状态', '我的评分', '话/章进度', '卷进度', '吐槽', '仅自己可见', '标记时间', '链接']
+      const lines = [headers.join(',')]
+      for (const r of rows) {
+        const cells = [
+          r.titleCn || r.title,
+          r.title,
+          CATEGORY_CN[r.category] ?? r.category,
+          STATUS_CN[r.status - 1] ?? String(r.status),
+          r.rating != null && r.rating > 0 ? String(r.rating) : '',
+          String(r.epStatus ?? ''),
+          String(r.volStatus ?? ''),
+          // 吐槽里的换行替换为空格，避免 Excel 内换行错位
+          r.comment.replace(/[\r\n]+/g, ' '),
+          r.privateFlag ? '是' : '否',
+          fmtDateTime(r.markedAt),
+          r.url
+        ]
+        lines.push(cells.map(csvEscape).join(','))
+      }
+      // BOM：让 Excel 正确识别 UTF-8 中文
+      content = '\uFEFF' + lines.join('\r\n')
+    }
+
+    writeFileSync(res.filePath, content, 'utf-8')
+    return { ok: true, path: res.filePath }
+  } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) }
   }
 }

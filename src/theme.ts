@@ -9,13 +9,42 @@
 // （Material You 风格）；未传点击坐标（如跟随系统触发）时以视口中心为圆心。
 // 不支持 VT 或系统开启“减少动态效果”时直接瞬时切换（无害降级）。
 
-export type ThemePref = 'light' | 'dark' | 'system'
+export type ThemePref = 'light' | 'dark' | 'system' | 'scheduled'
 
 const DARK_QUERY = '(prefers-color-scheme: dark)'
 
 let mql: MediaQueryList | null = null
 let currentPref: ThemePref = 'dark'
 let firstApply = true
+
+// —— 深色预设皮肤（仅深色模式生效；classic=经典不写属性）——
+let darkPreset = 'classic'
+export function setDarkPreset(p: string) {
+  darkPreset = p || 'classic'
+}
+
+// —— 定时切换时段（'HH:mm'，浅色起 ~ 深色起；支持跨午夜）——
+let schedLight = '07:00'
+let schedDark = '19:00'
+export function setSchedule(light: string, dark: string) {
+  if (/^\d{2}:\d{2}$/.test(light)) schedLight = light
+  if (/^\d{2}:\d{2}$/.test(dark)) schedDark = dark
+}
+
+function nowHM(): string {
+  const d = new Date()
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
+// 定时模式的滚动 ticker：每 30s 重解析一次（同值时 applyTheme 早退，无副作用）
+let schedTimer: number | null = null
+function ensureScheduleTicker() {
+  if (schedTimer !== null) return
+  schedTimer = window.setInterval(() => {
+    if (currentPref === 'scheduled') void applyTheme('scheduled')
+  }, 30000)
+}
 
 function getMql(): MediaQueryList {
   if (!mql) {
@@ -35,6 +64,15 @@ function onSystemChange() {
 // 把偏好解析为实际生效的主题
 export function resolve(pref: ThemePref): 'light' | 'dark' {
   if (pref === 'system') return getMql().matches ? 'dark' : 'light'
+  if (pref === 'scheduled') {
+    // 浅色时段 [schedLight, schedDark)，支持跨午夜（如 22:00~07:00 的反向区间）
+    const now = nowHM()
+    const inLight =
+      schedLight <= schedDark
+        ? now >= schedLight && now < schedDark
+        : now >= schedLight || now < schedDark
+    return inLight ? 'light' : 'dark'
+  }
   return pref
 }
 
@@ -52,7 +90,19 @@ export async function applyTheme(
   currentPref = pref
   const isFirst = firstApply
   firstApply = false
+  if (pref === 'scheduled') ensureScheduleTicker()
   const target = resolve(pref)
+
+  // 深色预设皮肤：仅深色模式写 data-preset（classic 不写，走样式表默认）
+  // 注意写在同值早退之前——切换预设但主题未变时也要刷新皮肤属性
+  const presetAttr = target === 'dark' && darkPreset !== 'classic' ? darkPreset : ''
+  if (presetAttr) root.dataset.preset = presetAttr
+  else delete root.dataset.preset
+  try {
+    localStorage.setItem('acgn-preset-resolved', presetAttr)
+  } catch {
+    /* ignore */
+  }
 
   // 持久化“已解析”主题到 localStorage，使刷新时 index.html 内联脚本能在首屏绘制前
   // 同步设好 data-theme，消除浅色主题 Ctrl+R 闪黑。
@@ -62,23 +112,29 @@ export async function applyTheme(
     /* 忽略：隐私模式 / 存储不可用 */
   }
 
-  // 同步原生窗口背景色，使缩放窗口时露出的“窗口底色”与内容背景一致（消除黑边/色差层）。
-  try {
-    void window.acgn?.theme?.setNativeBg?.(target === 'light' ? '#f3f5f9' : '#14171c')
-  } catch {
-    /* 忽略：非 Electron / 桥未就绪 */
+  // 同步原生窗口背景色：从已生效的 --bg 计算取值（预设皮肤下自动跟随）。
+  const syncNativeBg = () => {
+    try {
+      const bg = getComputedStyle(root).getPropertyValue('--bg').trim()
+      void window.acgn?.theme?.setNativeBg?.(bg || (target === 'light' ? '#f3f5f9' : '#14171c'))
+    } catch {
+      /* 忽略 */
+    }
   }
 
   // 首次加载：直接应用，不播过渡（避免启动闪一下）
   if (isFirst) {
     root.dataset.theme = target
     getMql()
+    syncNativeBg()
     return
   }
 
   // 目标与当前一致（再次点击同一按钮 / 跟随系统解析结果未变）：无需动画
+  // （预设属性已在上方刷新；原生底色也同步一次以跟随预设变化）
   if (target === root.dataset.theme) {
     onCovered?.()
+    syncNativeBg()
     return
   }
 
@@ -86,6 +142,7 @@ export async function applyTheme(
     onCovered?.()
     root.dataset.theme = target
     getMql()
+    syncNativeBg()
   }
 
   // 降级条件：浏览器不支持 View Transitions，或系统要求减少动态效果 → 瞬时切换
