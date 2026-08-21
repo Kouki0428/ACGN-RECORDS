@@ -1,5 +1,5 @@
-<script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref, computed } from 'vue'
+﻿<script setup lang="ts">
+import { onMounted, onBeforeUnmount, onUnmounted, ref, computed, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useSettingsStore } from '@/stores/settings'
 import { useSyncStore } from '@/stores/sync'
@@ -300,14 +300,147 @@ async function doClearCache() {
     confirmingClear.value = false
   }
 }
+
+// ---------- 备份与恢复 ----------
+const backupBusy = ref(false)
+const backupMsg = ref('')
+const backupOk = ref(false)
+// 恢复是高危操作：先点「我要恢复备份」解锁，再点「从备份恢复」
+const confirmingRestore = ref(false)
+
+function backupResultText(r: { ok: boolean; canceled?: boolean; path?: string; error?: string }, okText: string): { msg: string; ok: boolean } {
+  if (r.canceled) return { msg: '', ok: true }
+  if (r.ok) return { msg: `✓ ${okText}${r.path ? '：' + r.path : ''}`, ok: true }
+  return { msg: r.error ?? '操作失败', ok: false }
+}
+
+async function doExportBackup() {
+  if (backupBusy.value) return
+  backupBusy.value = true
+  backupMsg.value = ''
+  try {
+    const r = await window.acgn.backup.exportBackup()
+    const t = backupResultText(r, '备份已导出')
+    backupOk.value = t.ok
+    backupMsg.value = t.msg
+  } finally {
+    backupBusy.value = false
+  }
+}
+
+async function doImportBackup() {
+  if (backupBusy.value || !confirmingRestore.value) return
+  backupBusy.value = true
+  backupMsg.value = ''
+  try {
+    const r = await window.acgn.backup.importBackup()
+    const t = backupResultText(r, '已从备份恢复')
+    backupOk.value = t.ok
+    backupMsg.value = t.msg
+    confirmingRestore.value = false
+  } finally {
+    backupBusy.value = false
+  }
+}
+
+// ---------- 分区导航（左侧锚点目录 + 关键词过滤） ----------
+interface SectionDef {
+  key: string
+  label: string
+  kw: string
+}
+const sectionDefs: SectionDef[] = [
+  { key: 'account', label: 'Bangumi 账号', kw: '登录 令牌 token 授权 oauth 账号 access' },
+  { key: 'sync', label: '进度同步', kw: '同步 上传 拉取 全量 自动 push pull' },
+  { key: 'proxy', label: '网络代理', kw: '代理 proxy 网络 clash 端口 socks http' },
+  { key: 'appearance', label: '外观', kw: '主题 深色 浅色 缩放 外观 跟随系统' },
+  { key: 'animation', label: '动画', kw: '卡片 重排 动画 速度 开关 网格' },
+  { key: 'offline', label: '离线数据库', kw: '离线 数据库 下载 更新 删除 archive 镜像' },
+  { key: 'cache', label: '缓存管理', kw: '缓存 清理 图片 字节 过期' },
+  { key: 'backup', label: '备份与恢复', kw: '备份 恢复 导出 导入 应急' },
+  { key: 'usage', label: '网络使用量', kw: '流量 使用量 网络 统计 上传 下载' }
+]
+const activeSection = ref('account')
+const filterKw = ref('')
+const sectionEls: Record<string, HTMLElement | null> = {}
+function setSectionRef(key: string) {
+  return (el: unknown) => {
+    sectionEls[key] = (el as HTMLElement) ?? null
+  }
+}
+/** 关键词过滤：匹配分区名或关键词串；空关键词全显示 */
+function sectionVisible(key: string): boolean {
+  const q = filterKw.value.trim().toLowerCase()
+  if (!q) return true
+  const def = sectionDefs.find((d) => d.key === key)
+  if (!def) return true
+  return `${def.label} ${def.kw}`.toLowerCase().includes(q)
+}
+const tocItems = computed(() => sectionDefs.filter((d) => sectionVisible(d.key)))
+let secRaf = 0
+function updateActiveSection() {
+  let cur = sectionDefs[0]?.key ?? ''
+  for (const d of sectionDefs) {
+    const el = sectionEls[d.key]
+    // 被过滤隐藏的分区跳过（display:none 时 offsetParent 为 null / 高度 0）
+    if (!el || el.offsetHeight === 0) continue
+    if (el.getBoundingClientRect().top <= 140) cur = d.key
+  }
+  activeSection.value = cur
+}
+function onSettingsScroll() {
+  if (secRaf) return
+  secRaf = requestAnimationFrame(() => {
+    secRaf = 0
+    updateActiveSection()
+  })
+}
+function jumpToSection(key: string) {
+  const el = sectionEls[key]
+  if (!el) return
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+onMounted(() => {
+  document.querySelector('.content')?.addEventListener('scroll', onSettingsScroll, { passive: true })
+})
+onUnmounted(() => {
+  document.querySelector('.content')?.removeEventListener('scroll', onSettingsScroll)
+  if (secRaf) cancelAnimationFrame(secRaf)
+})
+watch(filterKw, () => {
+  // 过滤后布局变化，下一帧重算高亮
+  requestAnimationFrame(updateActiveSection)
+})
 </script>
 
 <template>
-  <div>
+  <div class="settings-layout">
+    <!-- 左侧锚点目录 + 过滤（sticky 跟随滚动） -->
+    <aside class="settings-toc">
+      <input
+        v-model="filterKw"
+        type="text"
+        class="input toc-filter"
+        placeholder="筛选设置…"
+        aria-label="筛选设置项"
+      />
+      <button
+        v-for="d in tocItems"
+        :key="d.key"
+        type="button"
+        class="toc-item"
+        :class="{ active: activeSection === d.key }"
+        @click="jumpToSection(d.key)"
+      >
+        {{ d.label }}
+      </button>
+    </aside>
+
+    <div class="settings-main">
     <h1>设置</h1>
 
     <!-- Bangumi 账号 -->
-    <section class="panel">
+    <section v-show="sectionVisible('account')" :ref="setSectionRef('account')" class="panel">
       <h2>Bangumi 账号</h2>
 
       <!-- 登录状态 -->
@@ -375,7 +508,7 @@ async function doClearCache() {
     </section>
 
     <!-- 同步 -->
-    <section class="panel">
+    <section v-show="sectionVisible('sync')" :ref="setSectionRef('sync')" class="panel">
       <h2>进度同步</h2>
       <p class="hint">仅在你主动操作时与 Bangumi 通信；本地进度永不自动上传第三方。</p>
       <div class="row">
@@ -407,7 +540,7 @@ async function doClearCache() {
     </section>
 
     <!-- 网络代理 -->
-    <section class="panel">
+    <section v-show="sectionVisible('proxy')" :ref="setSectionRef('proxy')" class="panel">
       <h2>网络代理</h2>
       <p class="hint">
         若同步时出现「请求超时（&gt;15000ms）（已尝试：直连）」或「失败 N 部」，通常是主进程无法直连
@@ -434,7 +567,7 @@ async function doClearCache() {
     </section>
 
     <!-- 外观 -->
-    <section class="panel">
+    <section v-show="sectionVisible('appearance')" :ref="setSectionRef('appearance')" class="panel">
       <h2>外观</h2>
       <p class="hint">选择界面主题。选择“跟随系统”时，会随操作系统的浅色 / 深色模式自动切换。</p>
       <div class="seg">
@@ -495,7 +628,7 @@ async function doClearCache() {
     </section>
 
     <!-- 动画 -->
-    <section class="panel">
+    <section v-show="sectionVisible('animation')" :ref="setSectionRef('animation')" class="panel">
       <h2>动画</h2>
       <p class="hint">控制主页 / 长列表卡片在窗口缩放、侧栏收起导致列数变化时的重排过渡。</p>
       <div class="anim-control">
@@ -528,7 +661,7 @@ async function doClearCache() {
     </section>
 
     <!-- Bangumi 离线数据库 -->
-    <section class="panel">
+    <section v-show="sectionVisible('offline')" :ref="setSectionRef('offline')" class="panel">
       <h2>Bangumi 离线数据库</h2>
       <p class="hint">
         内置 Bangumi 官方每周导出的全量 wiki 数据（<a class="link" href="#" @click.prevent="openExternal('https://github.com/bangumi/Archive')">bangumi/Archive</a>）。
@@ -594,7 +727,7 @@ async function doClearCache() {
     </section>
 
     <!-- 缓存管理 -->
-    <section class="panel">
+    <section v-show="sectionVisible('cache')" :ref="setSectionRef('cache')" class="panel">
       <h2>缓存管理</h2>
       <p class="hint">
         以下为<strong>可重新抓取</strong>的本地辅助缓存（剧集元数据 / 角色声优 / 关联作品 / 画廊截图链接）。
@@ -629,8 +762,34 @@ async function doClearCache() {
       </div>
     </section>
 
+    <!-- 备份与恢复 -->
+    <section v-show="sectionVisible('backup')" :ref="setSectionRef('backup')" class="panel">
+      <h2>备份与恢复</h2>
+      <p class="hint">
+        将<strong>全部个人数据</strong>（收藏 / 进度 / 评分 / 吐槽 / 购买记录 / 设置）导出为一个数据库文件；
+        恢复时会<strong>自动先把当前库留存应急副本</strong>（userData/backups）再覆盖。
+        不含 Bangumi 离线库与图片字节缓存。
+      </p>
+      <div class="row" style="margin-top: 12px">
+        <button class="btn btn--primary" :disabled="backupBusy" @click="doExportBackup">
+          {{ backupBusy ? '处理中…' : '导出备份' }}
+        </button>
+        <button class="btn btn--ghost" :disabled="backupBusy || !confirmingRestore" @click="doImportBackup">
+          从备份恢复…
+        </button>
+        <button v-if="!confirmingRestore" class="btn btn--ghost danger" :disabled="backupBusy" @click="confirmingRestore = true">
+          我要恢复备份
+        </button>
+        <button v-else class="btn btn--ghost" :disabled="backupBusy" @click="confirmingRestore = false">取消恢复意图</button>
+      </div>
+      <p class="hint">
+        「恢复」会<strong>整体替换</strong>当前所有数据（恢复后自动重启数据连接）；请确认备份来源可信。
+      </p>
+      <p v-if="backupMsg" :class="backupOk ? 'ok' : 'err'" style="margin-top: 8px">{{ backupMsg }}</p>
+    </section>
+
     <!-- 网络使用量 -->
-    <section class="panel">
+    <section v-show="sectionVisible('usage')" :ref="setSectionRef('usage')" class="panel">
       <h2>网络使用量</h2>
       <p class="hint">
         统计本应用通过 Bangumi 同步、离线库更新、检索增强（TMDB/VNDB）等发起的网络请求的上行 / 下行流量与次数。
@@ -699,7 +858,8 @@ async function doClearCache() {
         </div>
       </div>
     </div>
-  </div>
+    </div><!-- /settings-main -->
+  </div><!-- /settings-layout -->
 </template>
 
 <style scoped>
@@ -1005,5 +1165,75 @@ async function doClearCache() {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+/* ===== 分区导航（左侧锚点目录 + 过滤）===== */
+.settings-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+.settings-toc {
+  position: sticky;
+  top: 0;
+  flex: 0 0 148px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-top: 2px;
+}
+.toc-filter {
+  margin-bottom: 8px;
+  padding: 7px 10px;
+  font-size: 13px;
+}
+.toc-item {
+  text-align: left;
+  padding: 7px 11px;
+  font-size: 13px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition:
+    color var(--dur-fast) ease,
+    background var(--dur-fast) ease,
+    transform 0.12s var(--ease-out);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.toc-item:hover {
+  color: var(--text);
+  background: var(--bg-elev);
+}
+.toc-item:active {
+  transform: scale(0.97);
+}
+.toc-item.active {
+  color: var(--nav-active-text);
+  background: var(--bg-elev);
+  box-shadow: inset 3px 0 0 var(--accent);
+  font-weight: 600;
+}
+.settings-main {
+  flex: 1;
+  min-width: 0;
+}
+@media (max-width: 900px) {
+  .settings-layout {
+    flex-direction: column;
+  }
+  .settings-toc {
+    position: static;
+    flex: none;
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  .toc-filter {
+    width: 100%;
+  }
 }
 </style>

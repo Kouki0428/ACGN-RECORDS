@@ -118,6 +118,7 @@ import { registerDbIpc } from './ipc/db.ipc'
 import { registerApiIpc } from './ipc/api.ipc'
 import { registerAuthIpc } from './ipc/auth.ipc'
 import { registerSyncIpc } from './ipc/sync.ipc'
+import { registerBackupIpc } from './ipc/backup.ipc'
 import { registerAnimeIpc } from './ipc/anime.ipc'
 import { registerSubjectIpc } from './ipc/subject.ipc'
 import { registerEpisodeIpc } from './ipc/episode.ipc'
@@ -240,6 +241,7 @@ app.whenReady().then(() => {
   registerPurchasesIpc()
   registerArchiveIpc()
   registerCacheIpc()
+  registerBackupIpc()
   // 图片代理协议：渲染端 acgn-img:// 由主进程（走代理）下载 Bangumi 图片 CDN
   registerImageProxy()
 

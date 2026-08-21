@@ -959,6 +959,25 @@ export interface AcgnApi {
     /** 手动裁剪「半年前」缓存，返回清理后统计 */
     prune: () => Promise<CacheStats>
   }
+  /** 备份与恢复：导出为在线一致性 SQLite 备份；恢复前自动留存当前库应急副本（userData/backups） */
+  backup: {
+    exportBackup: () => Promise<{ ok: boolean; canceled?: boolean; path?: string; error?: string }>
+    importBackup: () => Promise<{ ok: boolean; canceled?: boolean; path?: string; error?: string }>
+  }
+  /** 统计历史趋势：当月快照（缺失则补记）+ 近 N 月历史（月升序） */
+  statsSnapshotHistory: (limit?: number) => Promise<StatsSnapshot[]>
+}
+
+/** 收藏月度快照（统计趋势用；分类归并 book=light_novel+manga、game=galgame+game） */
+export interface StatsSnapshot {
+  month: string
+  total: number
+  done: number
+  rated: number
+  avgRating: number
+  anime: number
+  book: number
+  game: number
 }
 
 /** 时间胶囊里涉及的作品引用（单条目 1 个，多条目如「想读 X、Y 2 本书」为多个） */

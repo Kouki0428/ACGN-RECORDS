@@ -175,7 +175,25 @@ const api: AcgnApi = {
     stats: () => ipcRenderer.invoke('cache:stats') as Promise<CacheStats>,
     clear: () => ipcRenderer.invoke('cache:clear') as Promise<CacheStats>,
     prune: () => ipcRenderer.invoke('cache:prune') as Promise<CacheStats>
-  }
+  },
+  backup: {
+    exportBackup: () =>
+      ipcRenderer.invoke('backup:export') as Promise<{
+        ok: boolean
+        canceled?: boolean
+        path?: string
+        error?: string
+      }>,
+    importBackup: () =>
+      ipcRenderer.invoke('backup:import') as Promise<{
+        ok: boolean
+        canceled?: boolean
+        path?: string
+        error?: string
+      }>
+  },
+  statsSnapshotHistory: (limit = 12) =>
+    ipcRenderer.invoke('collection:snapshotHistory', limit)
 }
 
 contextBridge.exposeInMainWorld('acgn', api)

@@ -376,4 +376,19 @@ export async function runMigrations(db: any): Promise<void> {
       requests INTEGER NOT NULL DEFAULT 0
     )`
   )
+
+  // 收藏月度快照：每月首次启动记录当期计数，供统计悬浮窗绘制历史趋势曲线。幂等建表。
+  db.exec(
+    `CREATE TABLE IF NOT EXISTS stats_snapshots (
+      month      TEXT PRIMARY KEY,
+      total      INTEGER NOT NULL DEFAULT 0,
+      done       INTEGER NOT NULL DEFAULT 0,
+      rated      INTEGER NOT NULL DEFAULT 0,
+      avg_rating REAL    NOT NULL DEFAULT 0,
+      anime      INTEGER NOT NULL DEFAULT 0,
+      book       INTEGER NOT NULL DEFAULT 0,
+      game       INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+    )`
+  )
 }
