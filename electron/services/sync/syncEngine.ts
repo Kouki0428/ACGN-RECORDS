@@ -57,11 +57,69 @@ function resolveMarkTime(item: any, order: number): number {
 
 const PULL_PAGE = 30
 
+// ===== 同步引擎状态（供侧栏指示灯等 UI 订阅）=====
+export type SyncPhase = 'idle' | 'running' | 'ok' | 'error'
+export type SyncKind = 'push' | 'pull' | 'full' | 'both'
+export interface SyncEngineState {
+  phase: SyncPhase
+  kind: SyncKind | null
+  finishedAt: number | null
+  /** 最近一次失败的摘要（phase==='error' 时有值） */
+  error: string | null
+}
+
+let syncState: SyncEngineState = { phase: 'idle', kind: null, finishedAt: null, error: null }
+const stateListeners = new Set<(s: SyncEngineState) => void>()
+const runningKinds = new Set<SyncKind>()
+
+function deriveKind(): SyncKind | null {
+  const has = (k: SyncKind) => runningKinds.has(k)
+  if (has('push') && (has('pull') || has('full'))) return 'both'
+  if (has('push')) return 'push'
+  if (has('full')) return 'full'
+  if (has('pull')) return 'pull'
+  return null
+}
+
+function emitState() {
+  for (const l of stateListeners) {
+    try {
+      l(syncState)
+    } catch {
+      /* 监听器异常不影响同步 */
+    }
+  }
+}
+
+/** 订阅同步状态变化；返回取消订阅函数（main.ts 桥接到渲染进程）。 */
+export function onSyncState(cb: (s: SyncEngineState) => void): () => void {
+  stateListeners.add(cb)
+  return () => {
+    stateListeners.delete(cb)
+  }
+}
+
+export function getSyncState(): SyncEngineState {
+  return syncState
+}
+
+function beginSync(kind: SyncKind) {
+  runningKinds.add(kind)
+  syncState = { ...syncState, phase: 'running', kind: deriveKind(), error: null }
+  emitState()
+}
+
+function endSync(err: string | null) {
+  runningKinds.clear()
+  syncState = { phase: err ? 'error' : 'ok', kind: null, finishedAt: Date.now(), error: err }
+  emitState()
+}
+
 /**
  * 上传本地脏收藏到 Bangumi。
  * 仅推送 provider='bangumi' 且 dirty=1 的本地收藏（离线优先：本地永远是源，Bangumi 是镜像）。
  */
-export async function pushAll(): Promise<SyncResult> {
+async function pushAllInner(): Promise<SyncResult> {
   const acct = await getBangumiAccount()
   if (!acct) return { pushed: 0, pulled: 0, failed: 0, error: '未登录 Bangumi' }
 
@@ -116,6 +174,25 @@ export async function pushAll(): Promise<SyncResult> {
   return { pushed, pulled: 0, failed }
 }
 
+/** 带状态跟踪的上传：begin/end 驱动侧栏指示灯；有失败或授权问题标记 error。 */
+export async function pushAll(): Promise<SyncResult> {
+  beginSync('push')
+  try {
+    const r = await pushAllInner()
+    const err =
+      r.failed > 0
+        ? `上传失败 ${r.failed} 部${r.error ? '：' + r.error : ''}`
+        : /授权|AUTH/.test(r.error ?? '')
+          ? r.error
+          : null
+    endSync(err)
+    return r
+  } catch (e) {
+    endSync(String(e))
+    throw e
+  }
+}
+
 /**
  * 从 Bangumi 拉取并导入本地，采用「早停对齐」策略：
  * 1. 先轻量拉取全部远端收藏（仅 list，收集比对数据与全量 ID 集合，后者用于 Q1 差集删除）。
@@ -127,7 +204,7 @@ export async function pushAll(): Promise<SyncResult> {
  * 冲突策略：本地 dirty=1 的收藏以本地为准（跳过拉取、交由本地上传覆盖云端）。
  * @param opts.full 为 true 时跳过锚点早停，逐条比对全部收藏（全量拉取）。
  */
-export async function pullAll(opts?: { full?: boolean }): Promise<SyncResult> {
+async function pullAllInner(opts?: { full?: boolean }): Promise<SyncResult> {
   const acct = await getBangumiAccount()
   if (!acct) return { pushed: 0, pulled: 0, failed: 0, error: '未登录 Bangumi' }
 
@@ -226,6 +303,25 @@ export async function pullAll(opts?: { full?: boolean }): Promise<SyncResult> {
   if (skipped > 0) console.warn(`[sync] 早停对齐：跳过 ${skipped} 条已同步尾部的重型拉取`)
   if (deleted > 0) console.warn(`[sync] 已同步取消收藏：删除本地 ${deleted} 条云端已移除的收藏`)
   return { pushed: 0, pulled, failed, deleted }
+}
+
+/** 带状态跟踪的拉取（kind 区分普通拉取/全量拉取）。 */
+export async function pullAll(opts?: { full?: boolean }): Promise<SyncResult> {
+  beginSync(opts?.full ? 'full' : 'pull')
+  try {
+    const r = await pullAllInner(opts)
+    const err =
+      r.failed > 0
+        ? `拉取失败 ${r.failed} 部${r.error ? '：' + r.error : ''}`
+        : /授权|AUTH/.test(r.error ?? '')
+          ? r.error
+          : null
+    endSync(err)
+    return r
+  } catch (e) {
+    endSync(String(e))
+    throw e
+  }
 }
 
 interface RemotePullItem {

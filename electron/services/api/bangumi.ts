@@ -2,6 +2,7 @@ import type { Category, Subject, SubjectTag, SubjectMeta, SubjectComment, Entity
 import { UA, getBangumiAccount, refreshAccessToken } from '../auth/oauth'
 import { getArchiveSubjectDates } from '../archive/archive.service'
 import { dbg } from '../debugLog'
+import { tagError, codeForStatus } from '../errors'
 
 const API_BASE = 'https://api.bgm.tv/v0'
 const LEGACY_BASE = 'https://api.bgm.tv'
@@ -84,7 +85,7 @@ async function authedFetch(
       } catch {
         /* 忽略读取失败 */
       }
-      throw new Error('Bangumi 授权已失效，请重新登录')
+      throw new Error(tagError('AUTH', 'Bangumi 授权已失效，请重新登录'))
     }
   }
   return res
@@ -550,7 +551,7 @@ export async function postEpisodeComment(
       body: JSON.stringify(body)
     }
   )
-  if (res.status === 401) throw new Error('Bangumi 授权已失效，请重新登录')
+  if (res.status === 401) throw new Error(tagError('AUTH', 'Bangumi 授权已失效，请重新登录'))
   if (!res.ok) {
     // 400 = turnstile 缺失/无效；其它 = 服务端错误
     let msg = `发布单集评论失败 (HTTP ${res.status})`
@@ -594,7 +595,7 @@ export async function postCommentReaction(
     options.body = JSON.stringify({ value: Number(value) })
   }
   const res = await fetch(url, options)
-  if (res.status === 401) throw new Error('Bangumi 授权已失效，请重新登录')
+  if (res.status === 401) throw new Error(tagError('AUTH', 'Bangumi 授权已失效，请重新登录'))
   if (!res.ok) {
     let msg = `发表表情回应失败 (HTTP ${res.status})`
     try {
@@ -715,7 +716,7 @@ export async function updateCollection(
     }
   }
 
-  throw new Error(`更新收藏失败 (HTTP ${res.status})${body ? ' - ' + body : ''}`)
+    throw new Error(tagError(codeForStatus(res.status) ?? 'SERVER', `更新收藏失败 (HTTP ${res.status})${body ? ' - ' + body : ''}`))
 }
 
 /**
@@ -732,7 +733,7 @@ export async function deleteCollectionOnBgm(
     { method: 'DELETE' }
   )
   if (!res.ok && res.status !== 204) {
-    throw new Error(`删除收藏失败 (HTTP ${res.status})`)
+    throw new Error(tagError(codeForStatus(res.status) ?? 'SERVER', `删除收藏失败 (HTTP ${res.status})`))
   }
 }
 
@@ -753,7 +754,7 @@ export async function setEpisodeStatusOnBgm(
     { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type }) }
   )
   if (!res.ok && res.status !== 204) {
-    throw new Error(`同步单集状态失败 (HTTP ${res.status})`)
+    throw new Error(tagError(codeForStatus(res.status) ?? 'SERVER', `同步单集状态失败 (HTTP ${res.status})`))
   }
 }
 
@@ -767,7 +768,7 @@ export async function getMyCollection(
     token
   )
   if (res.status === 404) return null
-  if (!res.ok) throw new Error(`获取收藏失败 (HTTP ${res.status})`)
+  if (!res.ok) throw new Error(tagError(codeForStatus(res.status) ?? 'SERVER', `获取收藏失败 (HTTP ${res.status})`))
   return await res.json()
 }
 
@@ -841,8 +842,8 @@ export async function getMyCollections(
   )
   // 404 通常意味着端点/用户名无效（v0 列表接口必须用真实用户名，不支持 "-")
   if (res.status === 404)
-    throw new Error('获取收藏列表失败：账号或收藏接口无效（请确认已登录且用户名有效）')
-  if (!res.ok) throw new Error(`获取收藏列表失败 (HTTP ${res.status})`)
+    throw new Error(tagError('NOT_FOUND', '获取收藏列表失败：账号或收藏接口无效（请确认已登录且用户名有效）'))
+  if (!res.ok) throw new Error(tagError(codeForStatus(res.status) ?? 'SERVER', `获取收藏列表失败 (HTTP ${res.status})`))
   const json = (await res.json()) as { data?: any[]; total?: number }
   return { data: json.data ?? [], total: json.total ?? 0 }
 }

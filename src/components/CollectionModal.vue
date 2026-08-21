@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useCollectionModal } from '@/composables/useCollectionModal'
 import { useModalZ } from '@/composables/useModalZ'
 import { useToast } from '@/composables/useToast'
+import { parseAppError } from '@/utils/appError'
 import { collectionClient } from '@/services/collectionClient'
 import { statusVerbs } from '@/utils/collectionVerbs'
 
@@ -138,7 +139,8 @@ async function onSave() {
     })
     toast.ok('收藏已保存')
   } catch (e) {
-    errorMsg.value = e instanceof Error ? e.message : String(e)
+    const info = parseAppError(e, '收藏保存失败')
+    errorMsg.value = info.hint ? `${info.message}（${info.hint}）` : info.message
     toast.err('收藏保存失败')
     console.warn('[CollectionModal] 保存收藏失败：', e)
     saving.value = false

@@ -29,6 +29,43 @@ import { getEpisodes, setEpisodeStatusOnBgm, mapWithConcurrency } from '../servi
 import { getValidToken } from '../services/auth/oauth'
 import type { Subject, SubjectFullEpisode, EpisodeMarkPayload } from '../../shared/types'
 
+/** 取作品本地详情核心逻辑（不联网）：供单条与批量通道复用。 */
+async function getAnimeDetailLocalById(subjectId: number) {
+  const db = await getDb()
+  const subject = db.prepare('SELECT * FROM subjects WHERE id = ?').get(subjectId)
+  if (!subject) return { subject: null, collection: null, episodes: [], progress: {}, characters: [], relations: [] }
+  const collection = db
+    .prepare('SELECT * FROM collections WHERE subject_id = ? ORDER BY id DESC LIMIT 1')
+    .get(subjectId)
+  const episodes = await listEpisodes(subjectId)
+  const progress = collection ? await listProgressFull(collection.id) : {}
+  const { tags, meta, rating, metaTags } = await loadSubjectMeta(subject)
+  subject.tags = tags
+  subject.meta = meta
+  subject.metaTags = metaTags
+  if (typeof rating === 'number') subject.rating = rating
+  // 评分分布：优先 Archive 离线库，fallback 主库缓存（不联网）
+  await resolveRatingDistribution(subject)
+  // 站点排名：优先 Archive 离线库（不联网）
+  await resolveRank(subject)
+  // 瞬时真实剧集：优先读本地缓存（subject_episodes），不联网即可显示真实集号/标题/首播/时长
+  const pidLocal = (subject as any).provider_subject_id as string | undefined
+  const bangumiEpisodes = pidLocal ? await getCachedEpisodes(pidLocal) : []
+  // 本地优先通道：角色/关联先用「本地缓存 + 离线 Archive 兜底」即时返回（online:false 不联网），
+  // 与书籍通道（getSubjectDetailLocal）一致，避免动画作品首屏因本地缓存为空而转圈等网络。
+  // Archive 角色覆盖不全（部分条目 arc_subject_characters 为空），这类仍由在线 anime:getDetail 补全。
+  const extraLocal = await loadSubjectExtra(subject, undefined, { online: false })
+  return {
+    subject,
+    collection: collection ?? null,
+    episodes,
+    bangumiEpisodes,
+    progress,
+    characters: extraLocal.characters,
+    relations: extraLocal.relations
+  }
+}
+
 export function registerAnimeIpc(): void {
   // 添加到「在看」：缓存作品 → 取/建本地收藏(status=3) → 确保剧集存在
   ipcMain.handle('anime:addToWatching', async (_event, subject: Subject) => {
@@ -44,39 +81,23 @@ export function registerAnimeIpc(): void {
 
   // 取作品本地详情（不联网）：直接返回已缓存的评分/标签/制作信息 + 剧集/进度 + 角色/关联作品，供「本地优先」即时展示
   ipcMain.handle('anime:getDetailLocal', async (_event, subjectId: number) => {
-    const db = await getDb()
-    const subject = db.prepare('SELECT * FROM subjects WHERE id = ?').get(subjectId)
-    if (!subject) return { subject: null, collection: null, episodes: [], progress: {}, characters: [], relations: [] }
-    const collection = db
-      .prepare('SELECT * FROM collections WHERE subject_id = ? ORDER BY id DESC LIMIT 1')
-      .get(subjectId)
-    const episodes = await listEpisodes(subjectId)
-    const progress = collection ? await listProgressFull(collection.id) : {}
-    const { tags, meta, rating, metaTags } = await loadSubjectMeta(subject)
-    subject.tags = tags
-    subject.meta = meta
-    subject.metaTags = metaTags
-    if (typeof rating === 'number') subject.rating = rating
-    // 评分分布：优先 Archive 离线库，fallback 主库缓存（不联网）
-    await resolveRatingDistribution(subject)
-    // 站点排名：优先 Archive 离线库（不联网）
-    await resolveRank(subject)
-    // 瞬时真实剧集：优先读本地缓存（subject_episodes），不联网即可显示真实集号/标题/首播/时长
-    const pidLocal = (subject as any).provider_subject_id as string | undefined
-    const bangumiEpisodes = pidLocal ? await getCachedEpisodes(pidLocal) : []
-    // 本地优先通道：角色/关联先用「本地缓存 + 离线 Archive 兜底」即时返回（online:false 不联网），
-    // 与书籍通道（getSubjectDetailLocal）一致，避免动画作品首屏因本地缓存为空而转圈等网络。
-    // Archive 角色覆盖不全（部分条目 arc_subject_characters 为空），这类仍由在线 anime:getDetail 补全。
-    const extraLocal = await loadSubjectExtra(subject, undefined, { online: false })
-    return {
-      subject,
-      collection: collection ?? null,
-      episodes,
-      bangumiEpisodes,
-      progress,
-      characters: extraLocal.characters,
-      relations: extraLocal.relations
-    }
+    return getAnimeDetailLocalById(subjectId)
+  })
+
+  // 批量取本地详情（主页动画卡片一次 IPC 拿全部，替代逐卡 N 次 invoke）：
+  // 单条失败返回空骨架（subject:null），不影响其余；顺序与入参 ids 一一对应。
+  ipcMain.handle('anime:getDetailsLocal', async (_event, ids: number[]) => {
+    const empty = { subject: null, collection: null, episodes: [], progress: {}, characters: [], relations: [] }
+    if (!Array.isArray(ids) || ids.length === 0) return []
+    const results = await Promise.all(
+      ids.map((id) =>
+        getAnimeDetailLocalById(Number(id)).catch((e) => {
+          console.warn('[anime:getDetailsLocal] 单条加载失败（已跳过）：', e)
+          return empty
+        })
+      )
+    )
+    return results
   })
 
   // 取作品详情：作品 + 收藏 + 剧集 + 逐集进度 + 标签/制作信息 + 角色/关联作品（按需在线补全并缓存）

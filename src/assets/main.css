@@ -454,6 +454,43 @@ body,
 .sidebar .nav-gear.spinning svg {
   animation: gearSpin 0.6s linear both;
 }
+
+/* ===== 同步状态指示灯（侧栏底部，齿轮上方）===== */
+.nav-sync {
+  display: flex;
+  align-items: center;
+  margin: 2px 22px 6px;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 999px;
+}
+.ns-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent);
+}
+.nav-sync--error .ns-dot {
+  background: var(--err);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--err) 22%, transparent);
+}
+/* 运行中：细环旋转 */
+.ns-spinner {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-2);
+  border-top-color: transparent;
+  animation: ns-spin 0.8s linear infinite;
+}
+@keyframes ns-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 @keyframes gearSpin {
   0% {
     transform: rotate(30deg) scale(1);
@@ -1083,6 +1120,11 @@ textarea.input {
 .page-enter-from,
 .page-leave-to {
   opacity: 0;
+}
+
+/* 详情页锚点目标：跳转时为吸顶锚点条预留空间 */
+[data-anchor] {
+  scroll-margin-top: 56px;
 }
 
 /* ===== 骨架屏（加载占位）===== */

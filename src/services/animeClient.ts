@@ -17,6 +17,31 @@ export const animeClient = {
       ? a.getDetailLocal(subjectId)
       : a.getDetail(subjectId)
   },
+  // 批量本地详情（主页动画卡片一次 IPC）；preload 未暴露时回退逐条拉取
+  getDetailsLocal: async (subjectIds: number[]): Promise<AnimeDetail[]> => {
+    const a = window.acgn.anime as unknown as Record<
+      string,
+      ((ids: number[]) => Promise<AnimeDetail[]>) | ((id: number) => Promise<AnimeDetail>)
+    >
+    if (typeof a.getDetailsLocal === 'function') {
+      return (a.getDetailsLocal as (ids: number[]) => Promise<AnimeDetail[]>)(subjectIds)
+    }
+    return Promise.all(
+      subjectIds.map((id) =>
+        (a.getDetailLocal as (id: number) => Promise<AnimeDetail>)(id).catch(
+          () =>
+            ({
+              subject: null,
+              collection: null,
+              episodes: [],
+              progress: {},
+              characters: [],
+              relations: []
+            }) as unknown as AnimeDetail
+        )
+      )
+    )
+  },
   getDetail: (subjectId: number) => window.acgn.anime.getDetail(subjectId),
   toggleEpisode: (collectionId: number, episodeId: number) =>
     window.acgn.anime.toggleEpisode(collectionId, episodeId),

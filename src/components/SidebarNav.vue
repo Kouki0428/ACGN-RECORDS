@@ -1,12 +1,53 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useSearchOverlay } from '@/composables/searchOverlay'
 import { useSidebar } from '@/composables/useSidebar'
+import type { SyncEngineState } from '@shared/types'
 
 const route = useRoute()
+const router = useRouter()
 const { open: openSearch } = useSearchOverlay()
 const { collapsed, toggleSidebar } = useSidebar()
+
+// ===== 同步状态指示灯 =====
+// 订阅主进程 syncEngine 状态（后台定时同步/手动同步共用一条链路）：
+// running=旋转、ok=绿点(8s 后自动隐去)、error=红点常驻(悬停看原因，点击去设置页)
+const syncState = ref<SyncEngineState | null>(null)
+let okHideTimer: number | undefined
+function onSync(s: SyncEngineState) {
+  syncState.value = s
+  if (okHideTimer) {
+    clearTimeout(okHideTimer)
+    okHideTimer = undefined
+  }
+  if (s.phase === 'ok') {
+    okHideTimer = window.setTimeout(() => {
+      if (syncState.value?.phase === 'ok') syncState.value = null
+    }, 8000)
+  }
+}
+onMounted(() => {
+  window.acgn?.sync?.onStateChanged(onSync)
+})
+onUnmounted(() => {
+  if (okHideTimer) clearTimeout(okHideTimer)
+})
+function syncTitle(): string {
+  const s = syncState.value
+  if (!s) return ''
+  if (s.phase === 'running') {
+    const label =
+      s.kind === 'push' ? '正在上传' : s.kind === 'full' ? '正在全量拉取' : s.kind === 'pull' ? '正在拉取' : '正在双向同步'
+    return `${label}…`
+  }
+  if (s.phase === 'error') return `同步失败：${s.error ?? ''}（点击前往设置）`
+  const t = s.finishedAt ? new Date(s.finishedAt).toLocaleTimeString() : ''
+  return `同步完成 ${t}`
+}
+function goSettings() {
+  void router.push('/settings')
+}
 
 const items = [
   { to: '/', label: '主页', icon: 'M3 11.5 12 4l9 7.5M5 10v9a1 1 0 0 0 1 1h3v-6h6v6h3a1 1 0 0 0 1-1v-9' },
@@ -89,6 +130,19 @@ function onSpinEnd() {
       </router-link>
     </nav>
     <div class="nav-spacer"></div>
+    <!-- 同步状态指示灯：后台同步不再静默（running 旋转 / ok 绿点暂现 / error 红点常驻） -->
+    <button
+      v-if="syncState && syncState.phase !== 'idle'"
+      type="button"
+      class="nav-sync"
+      :class="`nav-sync--${syncState.phase}`"
+      :title="syncTitle()"
+      aria-label="同步状态"
+      @click="goSettings"
+    >
+      <span v-if="syncState.phase === 'running'" class="ns-spinner"></span>
+      <span v-else class="ns-dot"></span>
+    </button>
     <router-link
       to="/settings"
       class="nav-gear"

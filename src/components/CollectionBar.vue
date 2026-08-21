@@ -4,6 +4,7 @@ import type { Category } from '@shared/types'
 import { collectionClient } from '@/services/collectionClient'
 import { useCollectionModal } from '@/composables/useCollectionModal'
 import { useToast } from '@/composables/useToast'
+import { parseAppError } from '@/utils/appError'
 import { statusVerbs, collectionPhrase } from '@/utils/collectionVerbs'
 
 const props = defineProps<{
@@ -73,7 +74,7 @@ async function onDelete() {
     await modal.remove()
     toast.ok('已取消收藏')
   } catch (e) {
-    toast.err('取消收藏失败')
+    toast.err(parseAppError(e, '取消收藏失败').message)
     console.warn('[CollectionBar] 删除收藏失败：', e)
   }
 }

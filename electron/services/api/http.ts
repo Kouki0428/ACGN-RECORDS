@@ -428,7 +428,7 @@ export async function safeFetch(url: string, init?: FetchInit): Promise<MinimalR
   }
   const tried = strategies.map((s) => s.label).join(' / ')
   const base = lastErr instanceof Error ? lastErr.message : String(lastErr)
-  throw new Error(`${base}（已尝试：${tried}）`)
+  throw new Error(`[NETWORK] ${base}（已尝试：${tried}）`)
 }
 
 /**

@@ -153,12 +153,19 @@ async function loadTab(cat: CatKey) {
     }))
 
     if (cat === 'anime') {
-      // 动画：逐部拉取本地详情（含真实剧集骨架 + 逐集进度），构建集数格子
-      const detailed = await mapLimit(base, 8, async (card) => {
-        const d = await animeClient.getDetailLocal(card.subjectId)
-        return { ...card, epCells: buildEpCells(d) }
-      })
-      cards.value = detailed
+      // 动画：一次批量 IPC 拉取全部本地详情（含真实剧集骨架 + 逐集进度），构建集数格子。
+      // 相比逐卡 invoke（N 次 IPC 往返），首屏显著提速；批量失败时回退逐条拉取兜底。
+      try {
+        const details = await animeClient.getDetailsLocal(base.map((b) => b.subjectId))
+        cards.value = base.map((b, i) => ({ ...b, epCells: buildEpCells(details[i]) }))
+      } catch (e) {
+        console.warn('[HomeView] 批量详情加载失败，回退逐条拉取', e)
+        const detailed = await mapLimit(base, 8, async (card) => {
+          const d = await animeClient.getDetailLocal(card.subjectId)
+          return { ...card, epCells: buildEpCells(d) }
+        })
+        cards.value = detailed
+      }
     } else {
       cards.value = base
     }

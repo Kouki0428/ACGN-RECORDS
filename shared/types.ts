@@ -493,6 +493,17 @@ export interface SyncResult {
   error?: string
 }
 
+/** 同步引擎实时状态（侧栏同步指示灯订阅） */
+export type SyncPhase = 'idle' | 'running' | 'ok' | 'error'
+export type SyncKind = 'push' | 'pull' | 'full' | 'both'
+export interface SyncEngineState {
+  phase: SyncPhase
+  kind: SyncKind | null
+  finishedAt: number | null
+  /** phase==='error' 时的失败摘要 */
+  error: string | null
+}
+
 /** 动画详情（getDetail 返回）：作品 + 收藏 + 剧集 + 逐集进度 */
 export interface AnimeDetail {
   subject: {
@@ -725,6 +736,8 @@ export interface AcgnApi {
   anime: {
     addToWatching: (subject: Subject) => Promise<{ collectionId: number; subjectId: number }>
     getDetailLocal: (subjectId: number) => Promise<AnimeDetail>
+    /** 批量取本地详情（主页卡片一次 IPC 拿全部）；返回顺序与入参一一对应，失败项 subject 为 null */
+    getDetailsLocal: (subjectIds: number[]) => Promise<AnimeDetail[]>
     getDetail: (subjectId: number) => Promise<AnimeDetail>
     toggleEpisode: (collectionId: number, episodeId: number) => Promise<{ watched: boolean; epStatus: number }>
     /** 标记单集状态（看过/看到/想看/抛弃）。返回更新后的完整进度映射与已看集数。 */
@@ -821,6 +834,8 @@ export interface AcgnApi {
     pullAll: () => Promise<SyncResult>
     pullAllFull: () => Promise<SyncResult>
     syncAll: () => Promise<SyncResult>
+    /** 订阅同步引擎状态变化（侧栏同步指示灯）；返回取消订阅函数 */
+    onStateChanged: (cb: (s: SyncEngineState) => void) => () => void
   }
   subject: {
     /** 取 Bangumi 条目吐槽区中其它用户的吐槽（next p1 /subjects/{id}/comments，匿名可访问） */

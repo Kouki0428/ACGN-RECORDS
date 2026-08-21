@@ -24,6 +24,7 @@ const api: AcgnApi = {
   anime: {
     addToWatching: (subject) => ipcRenderer.invoke('anime:addToWatching', subject),
     getDetailLocal: (subjectId) => ipcRenderer.invoke('anime:getDetailLocal', subjectId),
+    getDetailsLocal: (subjectIds) => ipcRenderer.invoke('anime:getDetailsLocal', subjectIds),
     getDetail: (subjectId) => ipcRenderer.invoke('anime:getDetail', subjectId),
     toggleEpisode: (collectionId, episodeId) =>
       ipcRenderer.invoke('anime:toggleEpisode', collectionId, episodeId),
@@ -96,7 +97,12 @@ const api: AcgnApi = {
     pushAll: () => ipcRenderer.invoke('sync:pushAll'),
     pullAll: () => ipcRenderer.invoke('sync:pullAll'),
     pullAllFull: () => ipcRenderer.invoke('sync:pullAllFull'),
-    syncAll: () => ipcRenderer.invoke('sync:syncAll')
+    syncAll: () => ipcRenderer.invoke('sync:syncAll'),
+    onStateChanged: (cb: (s: unknown) => void) => {
+      const h = (_e: unknown, s: unknown) => cb(s)
+      ipcRenderer.on('sync:stateChanged', h)
+      return () => ipcRenderer.removeListener('sync:stateChanged' as never, h as never)
+    }
   },
   subject: {
     getComments: (subjectId: string, offset = 0) => ipcRenderer.invoke('subject:comments', subjectId, offset),

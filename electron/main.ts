@@ -128,7 +128,7 @@ import { registerCacheIpc, maybeAutoCleanCache } from './ipc/cache.ipc'
 import { maybeAutoUpdateArchive, warmArchiveDb } from './services/archive/archive.service'
 import { buildMenu } from './menu'
 import { getSetting, setSetting } from './services/db/repositories/settings.repository'
-import { pushAll, pullAll } from './services/sync/syncEngine'
+import { pushAll, pullAll, onSyncState } from './services/sync/syncEngine'
 import { reclassifyBooks } from './services/db/repositories/subjects.repository'
 
 let win: BrowserWindow | null = null
@@ -246,6 +246,11 @@ app.whenReady().then(() => {
   createWindow()
   buildMenu()
   setupAutoSync()
+  // 同步引擎状态 → 渲染进程（侧栏同步指示灯订阅 sync:stateChanged）
+  onSyncState((s) => {
+    const w = BrowserWindow.getAllWindows()[0]
+    w?.webContents.send('sync:stateChanged', s)
+  })
   // 每月自动更新 Bangumi 离线数据库（若距上次成功超过 30 天）
   maybeAutoUpdateArchive().catch(() => {})
   // 每月自动清理过期缓存（删除半年前未刷新的辅助缓存，若距上次清理超过 30 天）

@@ -10,6 +10,7 @@ import StatusTabs from '@/components/StatusTabs.vue'
 import CoverImage from '@/components/CoverImage.vue'
 import SynopsisBox from '@/components/SynopsisBox.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import DetailAnchors, { type AnchorItem } from '@/components/DetailAnchors.vue'
 import { useSearchOverlay } from '@/composables/searchOverlay'
 import { collectionClient } from '@/services/collectionClient'
 import type { Subject, CollectionDetail, CollectionItem } from '@shared/types'
@@ -23,6 +24,15 @@ import { useCollectionModal } from '@/composables/useCollectionModal'
 // 关联作品 / 单行本点击：打开作品悬浮窗（而非跳网页）
 const { open: openSubjectCard } = useEntityCard()
 const { open: openSearch } = useSearchOverlay()
+
+// 详情页吸顶锚点
+const anchors: AnchorItem[] = [
+  { key: 'overview', label: '概览' },
+  { key: 'characters', label: '角色' },
+  { key: 'single', label: '单行本' },
+  { key: 'relations', label: '关联条目' },
+  { key: 'tucao', label: '吐槽' }
+]
 function onSubjectSelect(id: number) {
   openSubjectCard('subject', id)
 }
@@ -190,8 +200,10 @@ onUnmounted(() => {
     </header>
 
     <!-- 详情视图 -->
-    <div v-if="selected" class="detail">
-      <div class="detail__main">
+    <template v-if="selected">
+      <DetailAnchors :items="anchors" />
+      <div class="detail">
+      <div class="detail__main" data-anchor="overview">
         <CoverImage
           :src="selected.subject.image_url"
           :alt="selected.subject.title"
@@ -221,11 +233,12 @@ onUnmounted(() => {
         </div>
       </div>
       <SubjectMetaPanel :subject="selected.subject" :collection="selected.collection" :loading="enriching" />
-      <SubjectCharacters :subject-id="selected.subject?.id" :characters="selected.characters || []" />
-      <SubjectRelations :subject-id="selected.subject.id" :relations="selected.relations || []" filter="single" @select="onSubjectSelect" />
-      <SubjectRelations :subject-id="selected.subject.id" :relations="selected.relations || []" filter="other" @select="onSubjectSelect" />
-      <TucaoBox :subject-id="selected.subject?.provider_subject_id ?? null" media-type="book" />
-    </div>
+      <SubjectCharacters :subject-id="selected.subject?.id" :characters="selected.characters || []" data-anchor="characters" />
+      <SubjectRelations :subject-id="selected.subject.id" :relations="selected.relations || []" filter="single" data-anchor="single" @select="onSubjectSelect" />
+      <SubjectRelations :subject-id="selected.subject.id" :relations="selected.relations || []" filter="other" data-anchor="relations" @select="onSubjectSelect" />
+      <TucaoBox :subject-id="selected.subject?.provider_subject_id ?? null" media-type="book" data-anchor="tucao" />
+      </div>
+    </template>
 
     <!-- 列表视图 -->
     <div v-else>

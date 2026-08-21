@@ -12,6 +12,7 @@ import StatusTabs from '@/components/StatusTabs.vue'
 import CoverImage from '@/components/CoverImage.vue'
 import SynopsisBox from '@/components/SynopsisBox.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import DetailAnchors, { type AnchorItem } from '@/components/DetailAnchors.vue'
 import { useSearchOverlay } from '@/composables/searchOverlay'
 import { apiClient } from '@/services/apiClient'
 import { collectionClient } from '@/services/collectionClient'
@@ -26,6 +27,17 @@ import { useCollectionModal } from '@/composables/useCollectionModal'
 // 关联作品 / 单行本点击：打开作品悬浮窗（而非跳网页）
 const { open: openSubjectCard } = useEntityCard()
 const { open: openSearch } = useSearchOverlay()
+
+// 详情页吸顶锚点（游戏多画廊/购买两个区块）
+const anchors: AnchorItem[] = [
+  { key: 'overview', label: '概览' },
+  { key: 'gallery', label: '画廊' },
+  { key: 'characters', label: '角色' },
+  { key: 'single', label: '单行本' },
+  { key: 'relations', label: '关联条目' },
+  { key: 'purchase', label: '购买' },
+  { key: 'tucao', label: '吐槽' }
+]
 function onSubjectSelect(id: number) {
   openSubjectCard('subject', id)
 }
@@ -264,8 +276,10 @@ onUnmounted(() => {
     </header>
 
     <!-- 详情视图 -->
-    <div v-if="selected" class="detail">
-      <div class="detail__main">
+    <template v-if="selected">
+      <DetailAnchors :items="anchors" />
+      <div class="detail">
+      <div class="detail__main" data-anchor="overview">
         <CoverImage
           :src="selected.subject.image_url"
           :alt="selected.subject.title"
@@ -292,25 +306,27 @@ onUnmounted(() => {
 
       <!-- 游戏画廊（复刻 Bangumi「游戏画廊」组件：VNDB 截图 / DLsite 样例 / Steam 截图） -->
       <GameGallery
+        data-anchor="gallery"
         :gallery="gallery"
         :loading="galleryLoading"
         :note="galleryNote"
         @refresh="loadGallery(true)"
       />
 
-      <SubjectCharacters :subject-id="selected.subject?.id" :characters="selected.characters || []" />
-      <SubjectRelations :subject-id="selected.subject.id" :relations="selected.relations || []" filter="single" @select="onSubjectSelect" />
-      <SubjectRelations :subject-id="selected.subject.id" :relations="selected.relations || []" filter="other" @select="onSubjectSelect" />
+      <SubjectCharacters :subject-id="selected.subject?.id" :characters="selected.characters || []" data-anchor="characters" />
+      <SubjectRelations :subject-id="selected.subject.id" :relations="selected.relations || []" filter="single" data-anchor="single" @select="onSubjectSelect" />
+      <SubjectRelations :subject-id="selected.subject.id" :relations="selected.relations || []" filter="other" data-anchor="relations" @select="onSubjectSelect" />
 
-      <PurchaseInfo v-model="purchase">
+      <PurchaseInfo v-model="purchase" data-anchor="purchase">
         <template #actions>
           <button class="btn btn--accent btn--sm" @click="savePurchase">保存购买信息</button>
         </template>
       </PurchaseInfo>
       <p v-if="saveMsg" class="ok">{{ saveMsg }}</p>
 
-      <TucaoBox :subject-id="selected.subject?.provider_subject_id ?? null" media-type="game" />
-    </div>
+      <TucaoBox :subject-id="selected.subject?.provider_subject_id ?? null" media-type="game" data-anchor="tucao" />
+      </div>
+    </template>
 
     <!-- 列表视图 -->
     <div v-else>
