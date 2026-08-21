@@ -8,6 +8,7 @@ import CollectionModal from './components/CollectionModal.vue'
 import ImageLightbox from './components/ImageLightbox.vue'
 import ToastHost from './components/ToastHost.vue'
 import ContextMenu from './components/ContextMenu.vue'
+import RouteErrorBoundary from './components/RouteErrorBoundary.vue'
 import { useGridResizeFlip } from './composables/useGridResizeFlip'
 import { useNavHistory } from './composables/useNavHistory'
 import { useSearchOverlay } from './composables/searchOverlay'
@@ -101,11 +102,14 @@ onUnmounted(() => {
       <div class="content-inner">
         <!-- 路由切换淡入淡出（仅 opacity，零布局影响，不干扰 FLIP/滚动位置）。
              :duration 强制用定时器判定过渡结束，不依赖 transitionend 事件——
-             规避「leave 过渡事件偶发丢失导致 mode=out-in 不挂载新视图（页面空白）」。 -->
+             规避「leave 过渡事件偶发丢失导致 mode=out-in 不挂载新视图（页面空白）」。
+             RouteErrorBoundary：视图 setup/渲染抛错时显示可见错误卡，替代静默白屏。 -->
         <router-view v-slot="{ Component }">
-          <Transition name="page" mode="out-in" :duration="{ enter: 180, leave: 140 }">
-            <component :is="Component" />
-          </Transition>
+          <RouteErrorBoundary>
+            <Transition name="page" mode="out-in" :duration="{ enter: 180, leave: 140 }">
+              <component :is="Component" />
+            </Transition>
+          </RouteErrorBoundary>
         </router-view>
       </div>
     </main>
