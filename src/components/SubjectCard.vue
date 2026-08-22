@@ -257,7 +257,7 @@ async function loadGallery(force: boolean) {
   galleryLoading.value = true
   galleryNote.value = ''
   try {
-    gallery.value = await apiClient.gallery(detail.value.subject.providerSubjectId, force)
+    gallery.value = await apiClient.gallery(providerId.value, force)
     const total =
       (gallery.value?.vndb.length ?? 0) +
       (gallery.value?.dlsite.length ?? 0) +
@@ -631,7 +631,7 @@ watch(
             :episodes="epCells"
             :total="detail.subject.total_episodes"
             :air-date="detail.subject.air_date"
-            :subject-id="detail.subject.providerSubjectId"
+            :subject-id="providerId"
             @mark="onMark"
           />
           <SynopsisBox v-if="detail.subject.summary" :text="detail.subject.summary" />
@@ -664,7 +664,7 @@ watch(
       </PurchaseInfo>
       <p v-if="detail.subject.category === 'galgame' && saveMsg" class="ok">{{ saveMsg }}</p>
       <!-- 吐槽区 -->
-      <TucaoBox :subject-id="detail.subject.providerSubjectId" :media-type="mediaType" />
+      <TucaoBox :subject-id="providerId" :media-type="mediaType" />
     </div>
   </div>
 </template>
