@@ -9,6 +9,8 @@ import { dbClient } from '@/services/dbClient'
 import { animeClient } from '@/services/animeClient'
 import { collectionClient } from '@/services/collectionClient'
 import { useEntityCard } from '@/composables/useEntityCard'
+import { useSearchOverlay } from '@/composables/searchOverlay'
+import { useCollectionModal } from '@/composables/useCollectionModal'
 import { useContextMenu } from '@/composables/useContextMenu'
 import { buildCardMenu } from '@/composables/useCardContextMenu'
 import { useToast } from '@/composables/useToast'
@@ -17,7 +19,7 @@ import { useGridResizeFlip } from '@/composables/useGridResizeFlip'
 import type { AnimeDetail, EpisodeMarkPayload } from '@shared/types'
 import type { EpisodeCell } from '@/components/EpisodeGrid.vue'
 
-const { open: openSubject } = useEntityCard()
+const { open: openSubject, isOpen: entityOpen } = useEntityCard()
 const { open: openMenu } = useContextMenu()
 const toast = useToast()
 
@@ -203,6 +205,20 @@ async function loadTab(cat: CatKey) {
 }
 
 watch(activeTab, (c) => loadTab(c), { immediate: false })
+
+// —— 数据新鲜度：主页常驻挂载期间，悬浮窗/弹窗里的标记不会触发路由重载 ——
+// 监听三类信号，任一发生即重拉当前分类数据：
+// ① 实体卡（作品悬浮窗）从开→关（里面可能标记了单集/改了收藏）
+// ② 搜索浮层从开→关（结果卡里可收藏）
+// ③ 收藏数据变更 tick（收藏悬浮窗保存/删除、右键菜单等会 bump）
+const entityOpenRef = entityOpen
+const searchOv = useSearchOverlay()
+const colModal = useCollectionModal()
+watch([entityOpenRef, searchOv.isOpen], ([a, b], [pa, pb]) => {
+  const closed = (pa && !a) || (pb && !b)
+  if (closed) void loadTab(activeTab.value)
+})
+watch(colModal.refreshTick, () => void loadTab(activeTab.value))
 
 const displayCards = computed(() => cards.value)
 // 打开作品悬浮窗：useEntityCard(subject) 与 SubjectCard 约定 id 为 Bangumi provider subject id
