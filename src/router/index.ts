@@ -5,7 +5,6 @@ import LightNovelView from '../views/LightNovelView.vue'
 import MangaView from '../views/MangaView.vue'
 import GalgameView from '../views/GalgameView.vue'
 import PersonalView from '../views/PersonalView.vue'
-import AnnualReportView from '../views/AnnualReportView.vue'
 import SettingsView from '../views/SettingsView.vue'
 import SearchView from '../views/SearchView.vue'
 
@@ -16,7 +15,6 @@ const routes = [
   { path: '/manga', name: 'manga', component: MangaView, meta: { title: '漫画' } },
   { path: '/galgame', name: 'galgame', component: GalgameView, meta: { title: 'Galgame' } },
   { path: '/personal', name: 'personal', component: PersonalView, meta: { title: '个T��' } },
-  { path: '/annual', name: 'annual', component: AnnualReportView, meta: { title: '年度报告' } },
   { path: '/search', name: 'search', component: SearchView, meta: { title: '搜索' } },
   { path: '/settings', name: 'settings', component: SettingsView, meta: { title: '设置' } },
   // 设置子页：/settings/:group（account/storage/network/appearance），同一组件按 group 渲染对应分区

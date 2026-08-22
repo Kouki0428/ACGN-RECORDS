@@ -26,10 +26,7 @@ export const apiClient = {
   /** 时间胶囊（操作历史）：拉取指定用户的时间线动态（支持分页） */
   /** 时间胶囊（操作历史）：拉取指定用户的时间线动态，支持分页 */
   timeline: (username: string, page = 1): Promise<TimelinePage> =>
-    acgn().personal.timeline(username, page),
-  /** 观看活动热力图：近 N 天按天标记次数 */
-  heatmap: (days = 365): Promise<{ day: string; count: number }[]> =>
-    acgn().personal.heatmap(days)
+    acgn().personal.timeline(username, page)
 }
 
 export interface AppCredentials {

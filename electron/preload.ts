@@ -172,9 +172,7 @@ const api: AcgnApi = {
   },
   personal: {
     timeline: (username: string, limit?: number) =>
-      ipcRenderer.invoke('personal:timeline', username, limit),
-    heatmap: (days = 365) =>
-      ipcRenderer.invoke('personal:heatmap', days) as Promise<{ day: string; count: number }[]>
+      ipcRenderer.invoke('personal:timeline', username, limit)
   },
   cache: {
     stats: () => ipcRenderer.invoke('cache:stats') as Promise<CacheStats>,
@@ -205,8 +203,7 @@ const api: AcgnApi = {
       }>
   },
   statsSnapshotHistory: (limit = 12) =>
-    ipcRenderer.invoke('collection:snapshotHistory', limit),
-  annualReport: (year?: number) => ipcRenderer.invoke('collection:annualReport', year)
+    ipcRenderer.invoke('collection:snapshotHistory', limit)
 }
 
 contextBridge.exposeInMainWorld('acgn', api)

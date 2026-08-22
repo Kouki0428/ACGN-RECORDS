@@ -960,8 +960,6 @@ export interface AcgnApi {
   personal: {
     /** 拉取指定用户的时间胶囊动态（动作/封面/标题/时间/评论），支持分页 */
     timeline: (username: string, page?: number) => Promise<TimelinePage>
-    /** 观看活动热力图：近 N 天按天聚合的标记次数（单集看过 + 收藏变更） */
-    heatmap: (days?: number) => Promise<{ day: string; count: number }[]>
   }
   /** 缓存管理：统计并清理可重新抓取的本地辅助缓存（剧集/角色/关联作品/画廊）。
    *  不触碰用户数据（收藏/进度/评论）与离线数据库。 */
@@ -982,23 +980,6 @@ export interface AcgnApi {
   }
   /** 统计历史趋势：当月快照（缺失则补记）+ 近 N 月历史（月升序） */
   statsSnapshotHistory: (limit?: number) => Promise<StatsSnapshot[]>
-  /** 年度报告：某年（默认当年）的标记集数 / 活跃收藏 / 月度活跃 / 分类分布 / 高分佳作 */
-  annualReport: (year?: number) => Promise<AnnualReport>
-}
-
-/** 年度报告聚合数据（collection:annualReport） */
-export interface AnnualReport {
-  year: number
-  /** 本年标记「看过」的单集次数 */
-  episodesMarked: number
-  /** 本年有过任一变更的收藏部数 */
-  activeCollections: number
-  /** 12 个月活跃次数（单集标记 + 收藏变更） */
-  monthly: number[]
-  categories: { key: string; label: string; count: number }[]
-  topRated: { title: string; rating: number; url?: string }[]
-  totalStart: number | null
-  totalNow: number | null
 }
 
 /** 收藏月度快照（统计趋势用；分类归并 book=light_novel+manga、game=galgame+game） */
