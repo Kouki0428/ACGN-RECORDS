@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import CoverImage from '@/components/CoverImage.vue'
 import EpisodeGrid from '@/components/EpisodeGrid.vue'
 import ProgressEditor from '@/components/ProgressEditor.vue'
@@ -9,6 +9,7 @@ import { dbClient } from '@/services/dbClient'
 import { animeClient } from '@/services/animeClient'
 import { collectionClient } from '@/services/collectionClient'
 import { subjectClient } from '@/services/subjectClient'
+import { useAuthStore } from '@/stores/auth'
 import { useEntityCard } from '@/composables/useEntityCard'
 import { useSearchOverlay } from '@/composables/searchOverlay'
 import { useCollectionModal } from '@/composables/useCollectionModal'
@@ -23,6 +24,7 @@ import type { EpisodeCell } from '@/components/EpisodeGrid.vue'
 const { open: openSubject, isOpen: entityOpen } = useEntityCard()
 const { open: openMenu } = useContextMenu()
 const toast = useToast()
+const auth = useAuthStore()
 
 // 主页卡片右键菜单：快速改状态 / 在 Bangumi 打开 / 删除收藏（状态变化后周历同步刷新）
 function onCardMenu(e: MouseEvent, c: HomeCard) {
@@ -210,6 +212,7 @@ async function loadTab(cat: CatKey) {
 
 // 逐卡强制拉取 Bangumi 单集标记并就地合并（并发 8；失败静默跳过，不影响本地数据）
 async function refreshRemoteProgress(list: HomeCard[]) {
+  if (!auth.status.loggedIn) return // 未登录：无远端可拉，避免匿名请求打限流
   const targets = list.filter(
     (c) => c.providerSubjectId && /^\d+$/.test(String(c.providerSubjectId))
   )
@@ -349,7 +352,34 @@ async function markNextEpisode(card: HomeCard) {
 }
 
 onMounted(() => {
-  loadTab(activeTab.value)
+  // 先确认登录态（决定远端拉取是否启用），再载入当前分类
+  void auth
+    .refresh()
+    .catch(() => {})
+    .then(() => loadTab(activeTab.value))
+  startLiveRefresh()
+})
+
+// —— 实时性：停留在主页期间，网页端新标记也能出现 ——
+// ① 每 60s 轮询一次远端单集标记（仅动画 tab、登录态、窗口可见时）
+// ② 从其它窗口/浏览器切回应用瞬间立即拉取一次
+let liveTimer: number | null = null
+function startLiveRefresh() {
+  if (liveTimer !== null) return
+  liveTimer = window.setInterval(() => {
+    if (document.hidden || activeTab.value !== 'anime' || loading.value) return
+    void refreshRemoteProgress(cards.value)
+  }, 60000)
+}
+function onVisChange() {
+  if (document.hidden || !auth.status.loggedIn || activeTab.value !== 'anime') return
+  void refreshRemoteProgress(cards.value)
+}
+document.addEventListener('visibilitychange', onVisChange)
+
+onUnmounted(() => {
+  if (liveTimer !== null) clearInterval(liveTimer)
+  document.removeEventListener('visibilitychange', onVisChange)
 })
 </script>
 
