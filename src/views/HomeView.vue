@@ -8,6 +8,7 @@ import EmptyState from '@/components/EmptyState.vue'
 import { dbClient } from '@/services/dbClient'
 import { animeClient } from '@/services/animeClient'
 import { collectionClient } from '@/services/collectionClient'
+import { subjectClient } from '@/services/subjectClient'
 import { useEntityCard } from '@/composables/useEntityCard'
 import { useSearchOverlay } from '@/composables/searchOverlay'
 import { useCollectionModal } from '@/composables/useCollectionModal'
@@ -199,9 +200,43 @@ async function loadTab(cat: CatKey) {
     } else {
       cards.value = base
     }
+    // 后台从 Bangumi 强制拉取最新单集标记（force+reconcile，与详情页打开时同口径），
+    // 拉到即就地更新格子着色——网页/其它端标的进度进主页也能看到
+    void refreshRemoteProgress(cards.value)
   } finally {
     loading.value = false
   }
+}
+
+// 逐卡强制拉取 Bangumi 单集标记并就地合并（并发 8；失败静默跳过，不影响本地数据）
+async function refreshRemoteProgress(list: HomeCard[]) {
+  const targets = list.filter(
+    (c) => c.providerSubjectId && /^\d+$/.test(String(c.providerSubjectId))
+  )
+  if (!targets.length) return
+  await mapLimit(targets, 8, async (c) => {
+    try {
+      const res = await subjectClient.pullEpisodeProgress(String(c.providerSubjectId), {
+        force: true,
+        reconcile: true
+      })
+      const prog = res.progress as Record<
+        number,
+        { watched?: boolean; want?: boolean; dropped?: boolean }
+      >
+      if (!c.epCells || !prog || Object.keys(prog).length === 0) return
+      for (const cell of c.epCells) {
+        const p = prog[cell.id]
+        if (p) {
+          cell.watched = !!p.watched
+          cell.want = !!p.want
+          cell.dropped = !!p.dropped
+        }
+      }
+    } catch {
+      /* 离线/未登录/限流：跳过该卡，保留本地状态 */
+    }
+  })
 }
 
 watch(activeTab, (c) => loadTab(c), { immediate: false })
@@ -216,9 +251,13 @@ const searchOv = useSearchOverlay()
 const colModal = useCollectionModal()
 watch([entityOpenRef, searchOv.isOpen], ([a, b], [pa, pb]) => {
   const closed = (pa && !a) || (pb && !b)
-  if (closed) void loadTab(activeTab.value)
+  if (closed) {
+    void loadTab(activeTab.value).then(() => refreshRemoteProgress(cards.value))
+  }
 })
-watch(colModal.refreshTick, () => void loadTab(activeTab.value))
+watch(colModal.refreshTick, () => {
+  void loadTab(activeTab.value).then(() => refreshRemoteProgress(cards.value))
+})
 
 const displayCards = computed(() => cards.value)
 // 打开作品悬浮窗：useEntityCard(subject) 与 SubjectCard 约定 id 为 Bangumi provider subject id
