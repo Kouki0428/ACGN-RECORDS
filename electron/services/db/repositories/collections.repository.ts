@@ -74,16 +74,21 @@ export async function updateVolStatus(collectionId: number, volStatus: number): 
   ).run(volStatus, collectionId)
 }
 
-/** 仅本地更新已看集数（不标记 dirty，不触发同步）。Galgame 路线数用，进度纯本地。 */
+/** 仅本地更新已看集数（不标记 dirty，不触发同步）。Galgame 路线数用，进度纯本地。
+ *  同样刷新 local_updated_at：路线数编辑也是一次「标记」，列表应随之置顶。 */
 export async function updateEpStatusLocal(collectionId: number, epStatus: number): Promise<void> {
   const db = await getDb()
-  db.prepare('UPDATE collections SET ep_status = ? WHERE id = ?').run(epStatus, collectionId)
+  db.prepare(
+    'UPDATE collections SET ep_status = ?, local_updated_at = strftime(\'%s\',\'now\') WHERE id = ?'
+  ).run(epStatus, collectionId)
 }
 
-/** 仅本地更新已读卷数（不标记 dirty，不触发同步）。 */
+/** 仅本地更新已读卷数（不标记 dirty，不触发同步）。同样刷新时间戳。 */
 export async function updateVolStatusLocal(collectionId: number, volStatus: number): Promise<void> {
   const db = await getDb()
-  db.prepare('UPDATE collections SET vol_status = ? WHERE id = ?').run(volStatus, collectionId)
+  db.prepare(
+    'UPDATE collections SET vol_status = ?, local_updated_at = strftime(\'%s\',\'now\') WHERE id = ?'
+  ).run(volStatus, collectionId)
 }
 
 /** 更改收藏状态（想玩/在玩/已通关等），标记 dirty。通用收藏模块使用。 */
@@ -354,7 +359,9 @@ export async function upsertCollectionFromBangumi(
   db.prepare(
     `UPDATE collections
      SET status = ?, ep_status = ?, vol_status = ?, rating = ?, comment = COALESCE(?, comment), dirty = 0, dirty_rate = 0, last_sync_at = strftime('%s','now'),
-         local_updated_at = COALESCE(?, local_updated_at)
+         /* 取「远端标记时间 / 本地标记时间」较新者：防止拉取把本地最近标记的时间戳
+            覆盖成远端旧值或零值回退（resolveMarkTime 的远古兜底），破坏「最后标记排最前」 */
+         local_updated_at = MAX(COALESCE(?, 0), local_updated_at)
      WHERE id = ?`
   ).run(
     remote.type ?? 3,
