@@ -491,6 +491,8 @@ async function onMark(payload: EpisodeMarkPayload) {
     }
     const res = await animeClient.setEpisodeStatus(collectionId.value, payload)
     progress.value = res.progress
+    // 即时上传：收藏级变更推到 Bangumi（单集标记已在 IPC 内直传）
+    void window.acgn.sync.pushAll().catch(() => {})
   } catch (e) {
     console.warn('[SubjectCard] 标记单集失败', e)
   }

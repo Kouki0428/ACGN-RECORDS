@@ -214,6 +214,8 @@ async function onMark(payload: EpisodeMarkPayload) {
   // 本地即时更新
   selected.value.progress = progress
   selected.value.collection.ep_status = epStatus
+  // 即时上传：收藏级变更（ep_status 等）推到 Bangumi（单集标记已在 IPC 内直传）
+  void window.acgn.sync.pushAll().catch(() => {})
 }
 
 function back() {

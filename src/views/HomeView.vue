@@ -11,12 +11,15 @@ import { collectionClient } from '@/services/collectionClient'
 import { useEntityCard } from '@/composables/useEntityCard'
 import { useContextMenu } from '@/composables/useContextMenu'
 import { buildCardMenu } from '@/composables/useCardContextMenu'
+import { useToast } from '@/composables/useToast'
+import { parseAppError } from '@/utils/appError'
 import { useGridResizeFlip } from '@/composables/useGridResizeFlip'
 import type { AnimeDetail, EpisodeMarkPayload } from '@shared/types'
 import type { EpisodeCell } from '@/components/EpisodeGrid.vue'
 
 const { open: openSubject } = useEntityCard()
 const { open: openMenu } = useContextMenu()
+const toast = useToast()
 
 // 主页卡片右键菜单：快速改状态 / 在 Bangumi 打开 / 删除收藏（状态变化后周历同步刷新）
 function onCardMenu(e: MouseEvent, c: HomeCard) {
@@ -210,10 +213,14 @@ function openCard(card: HomeCard) {
   if (!pid) return
   openSubject('subject', Number(pid))
 }
-// 主页就地标记单集进度（不只读）：与动画详情页 onMark 行为一致，仅更新本地 + 刷新格子着色，
-// 上传由定时同步负责（subject 收藏为 dirty，下次同步推送）。
+// 主页就地标记单集进度：更新本地 + 刷新格子着色，并**立即触发 pushAll**
+// （把 dirty 的收藏行 ep_status 等推到 Bangumi——单集标记本身已在 IPC 内直传，
+//  这里补齐收藏层；定时上传已改为每天一次，不能依赖）。
 async function onMark(card: HomeCard, payload: EpisodeMarkPayload) {
-  if (card.collectionId == null) return
+  if (card.collectionId == null) {
+    toast.err('该作品尚未加入收藏，无法标记')
+    return
+  }
   try {
     const { progress, epStatus } = await animeClient.setEpisodeStatus(card.collectionId, payload)
     const prog = progress as Record<number, { watched: boolean; want: boolean; dropped?: boolean }>
@@ -228,13 +235,14 @@ async function onMark(card: HomeCard, payload: EpisodeMarkPayload) {
       }
     }
     card.epStatus = epStatus
+    // 即时上传：把收藏级变更（ep_status 等）同步到 Bangumi（fire-and-forget）
+    void window.acgn.sync.pushAll().catch(() => {})
   } catch (e) {
+    toast.err(parseAppError(e, '标记失败').message)
     console.warn('[HomeView] 标记单集进度失败', e)
   }
 }
 
-// 主页小说/漫画卡片：编辑已读话(章)/已读卷，与详情页 ProgressEditor 行为一致。
-// setProgress 写本地收藏进度；pushAll 兜底把 dirty 推到 Bangumi（即时上传，不依赖定时同步）。
 function pushHomeProgress() {
   void window.acgn.sync.pushAll().catch(() => {})
 }
@@ -245,6 +253,7 @@ async function onHomeProgressEp(card: HomeCard, value: number) {
     card.epStatus = epStatus
     pushHomeProgress()
   } catch (e) {
+    toast.err(parseAppError(e, '进度保存失败').message)
     console.warn('[HomeView] 更新已读话失败', e)
   }
 }
@@ -255,6 +264,7 @@ async function onHomeProgressVol(card: HomeCard, value: number) {
     card.volStatus = volStatus
     pushHomeProgress()
   } catch (e) {
+    toast.err(parseAppError(e, '进度保存失败').message)
     console.warn('[HomeView] 更新已读卷失败', e)
   }
 }
