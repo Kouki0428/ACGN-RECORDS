@@ -103,7 +103,9 @@ watch(
 <style scoped>
 .anchor-bar {
   position: sticky;
-  top: -26px; /* 抵消 .content 顶部内边距，吸附在滚动口最上沿 */
+  /* Chromium 的 sticky 相对「滚动容器内边距盒」定位：.content 顶部有 26px 内边距，
+     故必须用 -26px 抵消才能贴住窗口最顶沿（top:0 会停在窗顶下方 26px 处）。 */
+  top: -26px;
   z-index: 5; /* 压过详情封面横幅（同为 positioned，否则按树序被横幅盖住/参与其渐隐） */
   display: flex;
   gap: 6px;
