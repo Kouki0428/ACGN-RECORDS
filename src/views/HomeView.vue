@@ -219,6 +219,7 @@ async function refreshRemoteProgress(list: HomeCard[]) {
     (c) => c.providerSubjectId && /^\d+$/.test(String(c.providerSubjectId))
   )
   if (!targets.length) return
+  const bumps: Promise<unknown>[] = []
   await mapLimit(targets, 8, async (c) => {
     try {
       const res = await subjectClient.pullEpisodeProgress(String(c.providerSubjectId), {
@@ -231,9 +232,11 @@ async function refreshRemoteProgress(list: HomeCard[]) {
       >
       if (!c.epCells || !prog || Object.keys(prog).length === 0) return
       let changed = false
+      let watchedCount = 0
       for (const cell of c.epCells) {
         const p = prog[cell.id]
         if (!p) continue
+        if (cell.id > 0 && cell.watched) watchedCount++
         if (
           cell.watched !== !!p.watched ||
           cell.want !== !!p.want ||
@@ -243,20 +246,29 @@ async function refreshRemoteProgress(list: HomeCard[]) {
           cell.want = !!p.want
           cell.dropped = !!p.dropped
           changed = true
+          if (cell.id > 0 && cell.watched) watchedCount++
         }
       }
       if (changed && c.collectionId != null) {
-        // 排序时间戳落库（不标 dirty：远端已权威，纯排序用途）
-        void dbClient
-          .run(`UPDATE collections SET local_updated_at = strftime('%s','now') WHERE id = ?`, [
-            c.collectionId
-          ])
-          .catch(() => {})
+        // 排序时间戳 + ep_status 自愈（MAX 防止把网页端更高进度覆盖回去）；
+        // 不标 dirty：这些字段远端已权威，纯本地镜像与排序用途
+        bumps.push(
+          dbClient
+            .run(
+              `UPDATE collections SET local_updated_at = strftime('%s','now'),
+                 ep_status = MAX(COALESCE(ep_status,0), ?)
+               WHERE id = ?`,
+              [watchedCount, c.collectionId]
+            )
+            .catch(() => {})
+        )
       }
     } catch {
       /* 离线/未登录/限流：跳过该卡，保留本地状态 */
     }
   })
+  // 等时间戳/ep_status 自愈写库完成，再做确定性重排（避免读到旧值）
+  await Promise.all(bumps)
   // —— 确定性兜底重排：直接按数据库真实时间戳对当前卡片降序排列，不依赖逐格变化检测 ——
   try {
     const ids = cards.value.map((x) => x.collectionId).filter((x): x is number => x != null)
