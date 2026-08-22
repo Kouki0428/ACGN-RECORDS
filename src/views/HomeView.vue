@@ -210,13 +210,16 @@ async function loadTab(cat: CatKey) {
   }
 }
 
-// 逐卡强制拉取 Bangumi 单集标记并就地合并（并发 8；失败静默跳过，不影响本地数据）
+// 逐卡强制拉取 Bangumi 单集标记并就地合并（并发 8；失败静默跳过，不影响本地数据）。
+// 合并发生实际变化的卡：① 置顶到列表最前（最后标记排最前）；② 回写 local_updated_at
+// 保持下次全量加载的排序一致。仅动排序时间戳，不标 dirty（远端已是权威，无需上传）。
 async function refreshRemoteProgress(list: HomeCard[]) {
   if (!auth.status.loggedIn) return // 未登录：无远端可拉，避免匿名请求打限流
   const targets = list.filter(
     (c) => c.providerSubjectId && /^\d+$/.test(String(c.providerSubjectId))
   )
   if (!targets.length) return
+  const touched: HomeCard[] = []
   await mapLimit(targets, 8, async (c) => {
     try {
       const res = await subjectClient.pullEpisodeProgress(String(c.providerSubjectId), {
@@ -228,18 +231,42 @@ async function refreshRemoteProgress(list: HomeCard[]) {
         { watched?: boolean; want?: boolean; dropped?: boolean }
       >
       if (!c.epCells || !prog || Object.keys(prog).length === 0) return
+      let changed = false
       for (const cell of c.epCells) {
         const p = prog[cell.id]
-        if (p) {
+        if (!p) continue
+        if (
+          cell.watched !== !!p.watched ||
+          cell.want !== !!p.want ||
+          cell.dropped !== !!p.dropped
+        ) {
           cell.watched = !!p.watched
           cell.want = !!p.want
           cell.dropped = !!p.dropped
+          changed = true
         }
+      }
+      if (changed && c.collectionId != null) {
+        touched.push(c)
+        // 排序时间戳落库（不标 dirty：远端已权威，纯排序用途）
+        void dbClient
+          .run(`UPDATE collections SET local_updated_at = strftime('%s','now') WHERE id = ?`, [
+            c.collectionId
+          ])
+          .catch(() => {})
       }
     } catch {
       /* 离线/未登录/限流：跳过该卡，保留本地状态 */
     }
   })
+  // 有变化的卡按「后处理者在前」依次置顶，保持彼此相对新旧
+  for (const c of [...touched].reverse()) {
+    const i = cards.value.indexOf(c)
+    if (i > 0) {
+      cards.value.splice(i, 1)
+      cards.value.unshift(c)
+    }
+  }
 }
 
 watch(activeTab, (c) => loadTab(c), { immediate: false })
