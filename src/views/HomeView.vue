@@ -219,7 +219,6 @@ async function refreshRemoteProgress(list: HomeCard[]) {
     (c) => c.providerSubjectId && /^\d+$/.test(String(c.providerSubjectId))
   )
   if (!targets.length) return
-  const touched: HomeCard[] = []
   await mapLimit(targets, 8, async (c) => {
     try {
       const res = await subjectClient.pullEpisodeProgress(String(c.providerSubjectId), {
@@ -247,7 +246,6 @@ async function refreshRemoteProgress(list: HomeCard[]) {
         }
       }
       if (changed && c.collectionId != null) {
-        touched.push(c)
         // 排序时间戳落库（不标 dirty：远端已权威，纯排序用途）
         void dbClient
           .run(`UPDATE collections SET local_updated_at = strftime('%s','now') WHERE id = ?`, [
@@ -259,13 +257,23 @@ async function refreshRemoteProgress(list: HomeCard[]) {
       /* 离线/未登录/限流：跳过该卡，保留本地状态 */
     }
   })
-  // 有变化的卡按「后处理者在前」依次置顶，保持彼此相对新旧
-  for (const c of [...touched].reverse()) {
-    const i = cards.value.indexOf(c)
-    if (i > 0) {
-      cards.value.splice(i, 1)
-      cards.value.unshift(c)
+  // —— 确定性兜底重排：直接按数据库真实时间戳对当前卡片降序排列，不依赖逐格变化检测 ——
+  try {
+    const ids = cards.value.map((x) => x.collectionId).filter((x): x is number => x != null)
+    if (ids.length) {
+      const rows = await dbClient.query<{ id: number; ts: number }>(
+        `SELECT id, local_updated_at AS ts FROM collections WHERE id IN (${ids
+          .map(() => '?')
+          .join(',')})`,
+        ids
+      )
+      const tsMap = new Map(rows.map((r) => [r.id, Number(r.ts) || 0]))
+      cards.value = [...cards.value].sort(
+        (a, b) => (tsMap.get(b.collectionId) ?? 0) - (tsMap.get(a.collectionId) ?? 0)
+      )
     }
+  } catch {
+    /* 重排失败不影响已更新的着色 */
   }
 }
 
