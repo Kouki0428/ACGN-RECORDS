@@ -108,7 +108,10 @@ watch(
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
-  padding: 8px 2px;
+  /* 左右顶满窗口：抵消 .content(左 30px) 与 .content-inner(右 30px) 的内边距 */
+  margin-inline: -30px;
+  /* 内容缩进保持与页面正文对齐（30px 外边距补偿 + 原 2px + 10px 呼吸位） */
+  padding: 8px 42px;
   margin-bottom: 4px;
   /* 磨砂玻璃：低不透明度底 + 强模糊，让模糊封面的光晕透出来、随横幅一起「渐隐」 */
   background: color-mix(in srgb, var(--bg) 62%, transparent);
