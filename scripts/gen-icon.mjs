@@ -33,6 +33,8 @@ function encodePNG(w, h, rgba) {
   ])
 }
 
+function lerp(a, b, t) { return Math.round(a + (b - a) * t) }
+
 // ── 白色心形判定（hx/hy 归一化 [-1,1]，y 向上为正）──
 function inHeart(hx, hy) {
   // 上方两个圆瓣（左、右）
