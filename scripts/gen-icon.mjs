@@ -1,4 +1,4 @@
-// 应用图标：深色底 + 品牌粉大圆 + 白色播放三角（三层构图）
+﻿// 应用图标：深色底 + 品牌粉大圆 + 白色播放三角（三层构图）
 // 深蓝黑底 + 品牌粉渐变大圆居中 + 白色播放三角 = 深度感 + 品牌辨识 + 功能指向
 import { deflateSync } from 'node:zlib'
 import { writeFileSync, mkdirSync } from 'node:fs'
@@ -108,6 +108,8 @@ function render(size){
     }
   return lo
 }
+
+function lerp(a,b,t){return Math.round(a+(b-a)*t)}
 
 // ── 输出 ──
 const SIZES=[16,24,32,48,64,128,256]
