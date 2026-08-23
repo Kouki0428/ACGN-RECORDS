@@ -249,7 +249,12 @@ async function refreshRemoteProgress(list: HomeCard[]) {
           if (cell.id > 0 && cell.watched) watchedCount++
         }
       }
-      if (changed && c.collectionId != null) {
+      // 自愈条件：格子有变化，或「本地收藏进度落后于已看格数」（上一版拉取只刷了
+      // 格子着色、没动排序时间戳与 ep_status——这类历史欠账在此处一次性补齐，
+      // 否则《花织》这类作品会永远埋在旧位置）
+      const staleProgress =
+        c.epStatus != null && watchedCount > (c.epStatus ?? 0)
+      if ((changed || staleProgress) && c.collectionId != null) {
         // 排序时间戳 + ep_status 自愈（MAX 防止把网页端更高进度覆盖回去）；
         // 不标 dirty：这些字段远端已权威，纯本地镜像与排序用途
         bumps.push(
@@ -262,6 +267,7 @@ async function refreshRemoteProgress(list: HomeCard[]) {
             )
             .catch(() => {})
         )
+        if (staleProgress) c.epStatus = Math.max(c.epStatus ?? 0, watchedCount)
       }
     } catch {
       /* 离线/未登录/限流：跳过该卡，保留本地状态 */
