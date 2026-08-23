@@ -1,5 +1,5 @@
-// 应用图标 v8：Chrome 式圆形构图 + 品牌渐变扇区 + 白色播放按钮中心
-// 参考：Chrome 三色圆环、Blender 橙色大圆、网易云深色底白标
+// 应用图标：品牌粉圆角方块 + 白色播放三角（极简设计）
+// 3× 超采样抗锯齿，输出多尺寸 .ico + .png
 import { deflateSync } from 'node:zlib'
 import { writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -33,115 +33,46 @@ function encodePNG(w, h, rgba) {
   ])
 }
 
-function lerp(a, b, t) { return Math.round(a + (b - a) * t) }
-function mix(c1, c2, t) {
-  return [
-    Math.round(lerp(c1[0], c2[0], t)),
-    Math.round(lerp(c1[1], c2[1], t)),
-    Math.round(lerp(c1[2], c2[2], t))
-  ]
-}
-
-// 调色板
-const NAVY   = [13, 17, 28]      // #0d111c 深蓝黑背景
-const PINK   = [255, 92, 138]     // 品牌粉
-const PURPLE = [140, 82, 255]     // 紫
-const ORANGE = [255, 138, 92]   // 暖橙
-const BLUE   = [91, 157, 255]    // 蓝
-const WHITE  = [255, 255, 255]
+// 品牌粉底色
+const R = 255, G = 92, B = 138
 
 function draw(size) {
   const px = Buffer.alloc(size * size * 4)
   const rad = size * 0.22
-  const cx = size / 2, cy = size / 2
-
-  // 大圆参数：占图标面积 ~78%
-  const bigR = size * 0.38
-  // 内白色圆：大圆的 ~55%
-  const innerR = size * 0.21
-
-  // 播放三角（在大圆内居中略偏右）
-  const triS = size * 0.10
-  const triOffX = size * 0.02
-
-  function inTri(x, y) {
-    const tx = cx + triOffX, ty = cy
-    const ax = tx - triS * 0.55, ay = ty - triS
-    const bx = tx - triS * 0.55, by = ty + triS
-    const cxp = tx + triS * 0.75, cyp = ty
-    const d1 = (x - bx) * (ay - by) - (ax - bx) * (y - by)
-    const d2 = (x - cxp) * (by - cyp) - (bx - cxp) * (y - cyp)
-    const d3 = (x - ax) * (cyp - ay) - (cxp - ax) * (y - ay)
-    return !(((d1 < 0) || (d2 < 0) || (d3 < 0)) && ((d1 > 0) || (d2 > 0) || (d3 > 0)))
-  }
 
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const o = (y * size + x) * 4
-      const rr = rad
-      const rx = Math.min(Math.max(x, rr), size - rr)
-      const ry = Math.min(Math.max(y, rr), size - rr)
-      if ((x - rx) ** 2 + (y - ry) ** 2 > rr ** 2) {
+
+      // 圆角方块裁剪
+      const rx = Math.min(Math.max(x, rad), size - rad)
+      const ry = Math.min(Math.max(y, rad), size - rad)
+      if ((x - rx) ** 2 + (y - ry) ** 2 > rad ** 2) {
         px[o] = 0; px[o+1] = 0; px[o+2] = 0; px[o+3] = 0
         continue
       }
 
-      const dist = Math.hypot(x - cx, y - cy)
+      // 粉色背景
+      px[o] = R; px[o+1] = G; px[o+2] = B; px[o+3] = 255
 
-      // ── 背景：深蓝黑对角微渐变 ──
-      const bt = (x / size + y / size) / 2
-      let r = lerp(NAVY[0], 22, bt)
-      let g = lerp(NAVY[1], 26, bt)
-      let b = lerp(NAVY[2], 40, bt)
+      // 白色播放三角（居中略偏右）
+      const cx = size / 2 + size * 0.03
+      const cy = size / 2
+      const w = size * 0.14
+      const h = size * 0.16
 
-      // ── 大圆：三色渐变分段（Chrome 式）──
-      if (dist <= bigR) {
-        // 计算角度（从顶部开始顺时针）
-        const angle = Math.atan2(x - cx, -(y - cy)) // 从12点方向顺时针
-        let normA = angle / (Math.PI * 2)
-        if (normA < 0) normA += 1
+      // 三角形顶点
+      const ax = cx - w / 2, ay = cy - h / 2
+      const bx = cx - w / 2, by = cy + h / 2
+      const cxx = cx + w / 2, cyy = cy
 
-        // 三段渐变扇区
-        if (normA < 0.33) {
-          // 扇区1：粉→紫
-          const t = normA / 0.33
-          const c = mix(PINK, PURPLE, t)
-          r = c[0]; g = c[1]; b = c[2]
-        } else if (normA < 0.66) {
-          // 扇区2：紫→橙
-          const t = (normA - 0.33) / 0.33
-          const c = mix(PURPLE, ORANGE, t)
-          r = c[0]; g = c[1]; b = c[2]
-        } else {
-          // 扇区3：橙→蓝
-          const t = (normA - 0.66) / 0.34
-          const c = mix(ORANGE, BLUE, t)
-          r = c[0]; g = c[1]; b = c[2]
-        }
-
-        // 边缘微暗（增加立体感）
-        if (dist > bigR * 0.85) {
-          const edgeT = (dist - bigR * 0.85) / (bigR * 0.15)
-          const dim = 1 - edgeT * 0.25
-          r = Math.round(r * dim); g = Math.round(g * dim); b = Math.round(b * dim)
-        }
+      // 点在三角形内判定（叉积法）
+      const d1 = (x - bx) * (ay - by) - (ax - bx) * (y - by)
+      const d2 = (x - cxx) * (by - cyy) - (bx - cxx) * (y - cyy)
+      const d3 = (x - ax) * (cyy - ay) - (cxx - ax) * (y - ay)
+      if (!(((d1 < 0) || (d2 < 0) || (d3 < 0)) && ((d1 > 0) || (d2 > 0) || (d3 > 0)))) {
+        px[o] = 255; px[o+1] = 255; px[o+2] = 255
       }
-
-      // ── 内白色圆 ──
-      if (dist <= innerR) {
-        // 白色圆带轻微径向渐变
-        const wt = dist / innerR
-        r = lerp(255, 235, wt)
-        g = lerp(255, 238, wt)
-        b = lerp(255, 242, wt)
-      }
-
-      // ── 白色播放三角（在白色圆内用品牌色）──
-      if (dist <= innerR * 0.72 && inTri(x, y)) {
-        r = PINK[0]; g = PINK[1]; b = PINK[2]
-      }
-
-      px[o] = r; px[o+1] = g; px[o+2] = b; px[o+3] = 255
     }
   }
   return px
@@ -171,15 +102,15 @@ function render(size) {
 // ── 输出 ──
 const SIZES = [16,24,32,48,64,128,256]
 for (const sz of SIZES) {
-  writeFileSync(join(process.cwd(),'build',`icon-${sz}.png`), encodePNG(sz,sz,render(sz)))
+  writeFileSync(join(outDir, `icon-${sz}.png`), encodePNG(sz,sz,render(sz)))
 }
-writeFileSync(join(process.cwd(),'build','icon.png'), encodePNG(256,256,render(256)))
+writeFileSync(join(outDir,'icon.png'), encodePNG(256,256,render(256)))
 
-const icoPngs = SIZES.map(sz => ({s:sz,d:encodePNG(sz,sz,render(sz))}))
+const pngsForIco = SIZES.map(sz => ({s:sz,d:encodePNG(sz,sz,render(sz))}))
 const hdr = Buffer.alloc(6)
 hdr.writeUInt16LE(0,0); hdr.writeUInt16LE(1,2); hdr.writeUInt16LE(SIZES.length,4)
 const entries=[]; let off=6+SIZES.length*16
-for(const p of icoPngs){
+for(const p of pngsForIco){
   const e=Buffer.alloc(16)
   e.writeUInt8(p.s>=256?0:p.s,0); e.writeUInt8(p.s>=256?0:p.s,1)
   e.writeUInt8(0,2); e.writeUInt8(0,3)
@@ -187,6 +118,5 @@ for(const p of icoPngs){
   e.writeUInt32BE(p.d.length,8); e.writeUInt32LE(off,12)
   entries.push(e); off+=p.d.length
 }
-writeFileSync(join(process.cwd(),'build','icon.ico'),Buffer.concat([hdr,...entries,...icoPngs.map(p=>p.d)]))
-console.log(`✓ icon.ico ${icoBufLen(icoPngs)}B`)
-function icoBufLen(p){return p.reduce((a,x)=>a+x.d.length,0)+6+p.length*16}
+writeFileSync(join(outDir,'icon.ico'),Buffer.concat([hdr,...entries,...pngsForIco.map(p=>p.d)]))
+console.log(`✓ done`)
