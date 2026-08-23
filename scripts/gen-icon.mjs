@@ -1,5 +1,5 @@
-// 应用图标：品牌粉纯色底 + 大型白色心形（喜爱 / 追踪 ACGN 作品）
-// 扁平极简设计，4× 超采样抗锯齿
+// 应用图标：深色底 + 品牌粉大圆 + 白色播放三角（三层构图）
+// 深蓝黑底 + 品牌粉渐变大圆居中 + 白色播放三角 = 深度感 + 品牌辨识 + 功能指向
 import { deflateSync } from 'node:zlib'
 import { writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -33,85 +33,100 @@ function encodePNG(w, h, rgba) {
   ])
 }
 
-function lerp(a, b, t) { return Math.round(a + (b - a) * t) }
+const WHITE  = [255,255,255]
+const PINK_A = [255,120,155]
+const PINK_B = [255,80,125]
 
-// ── 白色心形判定（hx/hy 归一化 [-1,1]，y 向上为正）──
-function inHeart(hx, hy) {
-  // 上方两个圆瓣（左、右）
-  const r = 0.48
-  const dl = Math.hypot(hx + 0.33, hy - 0.28)
-  const dr = Math.hypot(hx - 0.33, hy - 0.28)
-  if (dl <= r || dr <= r) return true
-
-  // 下方楔形连接到底尖
-  if (hy < 0.2 && hy > -1.0) {
-    const t = Math.max(0, Math.min(1, (hy + 1.0) / 1.2)) // 0=底尖 1=顶部
-    const halfW = 0.95 * t
-    if (Math.abs(hx) < halfW) return true
-  }
-  return false
-}
-
-/** 高分辨率绘制 */
+/** 绘制 size×size 图标 */
 function draw(size) {
-  const px = Buffer.alloc(size * size * 4)
+  const px = Buffer.alloc(size*size*4)
+  const rad = size*0.22
 
-  // 品牌粉底色（微渐变：左上亮粉 #ff6b95 → 右下深粉 #e63764）
-  const TL = [255, 107, 149]
-  const BR = [230, 55, 100]
+  // 大粉圆参数：占 ~72%
+  const bigR = size * 0.36
+  // 白色播放三角参数
+  const triW = size * 0.11
+  const triH = size * 0.14
 
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
-      const o = (y * size + x) * 4
+      const o = (y*size+x)*4
 
       // 圆角方块裁剪
-      const rr = size * 0.22
-      const rx = Math.min(Math.max(x, rr), size - rr)
-      const ry = Math.min(Math.max(y, rr), size - rr)
-      if ((x - rx) ** 2 + (y - ry) ** 2 > rr ** 2) {
-        px[o] = 0; px[o+1] = 0; px[o+2] = 0; px[o+3] = 0
+      const rr = rad
+      const rx = Math.min(Math.max(x,rr),size-rr)
+      const ry = Math.min(Math.max(y,rr),size-rr)
+      if ((x-rx)**2+(y-ry)**2 > rr**2) {
+        px[o]=0;px[o+1]=0;px[o+2]=0;px[o+3]=0
         continue
       }
 
-      // 微渐变品牌粉底
-      const gt = (x / size + y / size) / 2
-      px[o]   = Math.round(lerp(TL[0], BR[0], gt))
-      px[o+1] = Math.round(lerp(TL[1], BR[1], gt))
-      px[o+2] = Math.round(lerp(TL[2], BR[2], gt))
-      px[o+3] = 255
+      // 深蓝黑底色微渐变
+      const bt=(y/size+x/size)/4
+      px[o]=Math.round(10+bt*20)
+      px[o+1]=Math.round(12+bt*18)
+      px[o+2]=Math.round(22+bt*28)
 
-      // ── 白色心形 ──
-      // 归一化到 [-1,1]，y 翻转（屏幕坐标向下为正→数学坐标向上为正）
-      const hx = ((x / size) * 2 - 1) * 0.82
-      const hy = -(((y / size) * 2 - 1) * 0.82)
+      // 品牌粉渐变大圆
+      const dist=Math.hypot(x-size/2,y-size/2)
+      if(dist<=bigR){
+        const t=dist/bigR
+        px[o]=lerp(PINK_A[0],PINK_B[0],t)
+        px[o+1]=lerp(PINK_A[1],PINK_B[1],t)
+        px[o+2]=lerp(PINK_A[2],PINK_B[2],t)
+      }
 
-      if (inHeart(hx, hy)) {
-        px[o] = 255; px[o+1] = 255; px[o+2] = 255
+      // 白色播放三角（居中）
+      const tx=size/2+size*0.02, ty=size/2
+      const dx=x-tx, dy=y-ty
+      const halfH=(triH/2)*(1-Math.max(0,dx)/(triW*1.15))
+      if(dx>=-triW*0.08&&dx<=triW&&Math.abs(dy)<=halfH){
+        px[o]=255;px[o+1]=255;px[o+2]=255
       }
     }
   }
   return px
 }
 
-// ── 输出 ──
-const SIZES = [16,24,32,48,64,128,256]
-for (const sz of SIZES) {
-  writeFileSync(join(outDir, `icon-${sz}.png`), encodePNG(sz,sz,draw(sz)))
+// ── 超采样渲染 ──
+function render(size){
+  const SS=3
+  const S=size*SS
+  const hiPx=draw(S)
+  const lo=Buffer.alloc(size*size*4)
+  const ratio=S/size
+  for(let y=0;y<size;y++)
+    for(let x=0;x<size;x++){
+      let r=0,g=0,b=0,cnt=0
+      const sy0=Math.floor(y*ratio),sy1=Math.min(S,sy0+Math.ceil(ratio))
+      const sx0=Math.floor(x*ratio),sx1=Math.min(S,sx0+Math.ceil(ratio))
+      for(let sy=sy0;sy<sy1;sy++)for(let sx=sx0;sx<sx1;sx++){
+        const so=(sy*S+sx)*4;r+=hiPx[so];g+=hiPx[so+1];b+=hiPx[so+2];cnt++
+      }
+      const oo=(y*size+x)*4
+      lo[oo]=r/cnt;lo[oo+1]=g/cnt;lo[oo+2]=b/cnt;lo[oo+3]=255
+    }
+  return lo
 }
-writeFileSync(join(outDir,'icon.png'), encodePNG(256,256,draw(256)))
 
-const pngsForIco = SIZES.map(sz => ({s:sz,d:encodePNG(sz,sz,draw(sz))}))
-const hdr = Buffer.alloc(6)
-hdr.writeUInt16LE(0,0); hdr.writeUInt16LE(1,2); hdr.writeUInt16LE(SIZES.length,4)
-const entries=[]; let off=6+SIZES.length*16
+// ── 输出 ──
+const SIZES=[16,24,32,48,64,128,256]
+for(const sz of SIZES){
+  writeFileSync(join(process.cwd(),'build',`icon-${sz}.png`),encodePNG(sz,sz,render(sz)))
+}
+writeFileSync(join(process.cwd(),'build','icon.png'),encodePNG(256,256,render(256)))
+
+const pngsForIco=SIZES.map(sz=>({s:sz,d:encodePNG(sz,sz,render(sz))}))
+const hdr=Buffer.alloc(6)
+hdr.writeUInt16LE(0,0);hdr.writeUInt16LE(1,2);hdr.writeUInt16LE(SIZES.length,4)
+const entries=[];let off=6+SIZES.length*16
 for(const p of pngsForIco){
   const e=Buffer.alloc(16)
-  e.writeUInt8(p.s>=256?0:p.s,0); e.writeUInt8(p.s>=256?0:p.s,1)
-  e.writeUInt8(0,2); e.writeUInt8(0,3)
-  e.writeUInt16LE(1,4); e.writeUInt16LE(32,6)
-  e.writeUInt32BE(p.d.length,8); e.writeUInt32LE(off,12)
-  entries.push(e); off+=p.d.length
+  e.writeUInt8(p.s>=256?0:p.s,0);e.writeUInt8(p.s>=256?0:p.s,1)
+  e.writeUInt8(0,2);e.writeUInt8(0,3)
+  e.writeUInt16LE(1,4);e.writeUInt16LE(32,6)
+  e.writeUInt32BE(p.d.length,8);e.writeUInt32LE(off,12)
+  entries.push(e);off+=p.d.length
 }
-writeFileSync(join(outDir,'icon.ico'),Buffer.concat([hdr,...entries,...pngsForIco.map(p=>p.d)]))
-console.log(`✓ icon.ico ${icoBufLen(pngsForIco)}B | icon.png OK`)
-function icoBufLen(p){return p.reduce((a,x)=>a+x.d.length,0)+6+p.length*16}
+writeFileSync(join(process.cwd(),'build','icon.ico'),Buffer.concat([hdr,...entries,...pngsForIco.map(p=>p.d)]))
+console.log(`✓ done`)
