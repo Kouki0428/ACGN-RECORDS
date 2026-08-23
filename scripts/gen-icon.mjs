@@ -1,5 +1,5 @@
-﻿// 应用图标：深色底 + 品牌粉大圆 + 白色播放三角（三层构图）
-// 深蓝黑底 + 品牌粉渐变大圆居中 + 白色播放三角 = 深度感 + 品牌辨识 + 功能指向
+﻿// 应用图标：QQ 企鹅风格——纯色底 + 简洁白色轮廓图标
+// QQ 设计语言：品牌色大面积填充 + 白色简洁图形居中 + 无渐变无纹理
 import { deflateSync } from 'node:zlib'
 import { writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -33,80 +33,54 @@ function encodePNG(w, h, rgba) {
   ])
 }
 
-const WHITE  = [255,255,255]
-const PINK_A = [255,120,155]
-const PINK_B = [255,80,125]
+// ── 调色板 ──
+const BG      = [255, 92, 138]   // 品牌粉 #ff5c8a 纯色底（QQ 式大色块）
+const BG_DARK = [235, 70, 118]   // 底部微暗（增加深度但不做渐变）
+const WHITE   = [255, 255, 255]
 
-/** 绘制 size×size 图标 */
 function draw(size) {
   const px = Buffer.alloc(size*size*4)
   const rad = size*0.22
 
-  // 大粉圆参数：占 ~72%
-  const bigR = size * 0.36
-  // 白色播放三角参数
-  const triW = size * 0.11
-  const triH = size * 0.14
+  // 播放三角参数（白色，居中）
+  const triW = size*0.14
+  const triH = size*0.16
+  const tx = size/2 + size*0.02
+  const ty = size/2
 
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const o = (y*size+x)*4
+  for (let y=0;y<size;y++){
+    for(let x=0;x<size;x++){
+      const o=(y*size+x)*4
 
       // 圆角方块裁剪
-      const rr = rad
-      const rx = Math.min(Math.max(x,rr),size-rr)
-      const ry = Math.min(Math.max(y,rr),size-rr)
-      if ((x-rx)**2+(y-ry)**2 > rr**2) {
+      const rr=rad
+      const rx=Math.min(Math.max(x,rr),size-rr)
+      const ry=Math.min(Math.max(y,rr),size-rr)
+      if((x-rx)**2+(y-ry)**2>rr**2){
         px[o]=0;px[o+1]=0;px[o+2]=0;px[o+3]=0
         continue
       }
 
-      // 深蓝黑底色微渐变
-      const bt=(y/size+x/size)/4
-      px[o]=Math.round(10+bt*20)
-      px[o+1]=Math.round(12+bt*18)
-      px[o+2]=Math.round(22+bt*28)
-
-      // 品牌粉渐变大圆
-      const dist=Math.hypot(x-size/2,y-size/2)
-      if(dist<=bigR){
-        const t=dist/bigR
-        px[o]=lerp(PINK_A[0],PINK_B[0],t)
-        px[o+1]=lerp(PINK_A[1],PINK_B[1],t)
-        px[o+2]=lerp(PINK_A[2],PINK_B[2],t)
+      // 品牌粉纯色底（底部微暗增加深度，不做渐变）
+      if(y>size*0.6){
+        const t=(y-size*0.6)/(size*0.4)
+        px[o]=Math.round(lerp(BG[0],BG_DARK[0],t))
+        px[o+1]=Math.round(lerp(BG[1],BG_DARK[1],t))
+        px[o+2]=Math.round(lerp(BG[2],BG_DARK[2],t))
+      }else{
+        px[o]=BG[0];px[o+1]=BG[1];px[o+2]=BG[2]
       }
+      px[o+3]=255
 
-      // 白色播放三角（居中）
-      const tx=size/2+size*0.02, ty=size/2
+      // ── 白色播放三角（圆角感）──
       const dx=x-tx, dy=y-ty
       const halfH=(triH/2)*(1-Math.max(0,dx)/(triW*1.15))
       if(dx>=-triW*0.08&&dx<=triW&&Math.abs(dy)<=halfH){
-        px[o]=255;px[o+1]=255;px[o+2]=255
+        px[o]=WHITE[0];px[o+1]=WHITE[1];px[o+2]=WHITE[2]
       }
     }
   }
   return px
-}
-
-// ── 超采样渲染 ──
-function render(size){
-  const SS=3
-  const S=size*SS
-  const hiPx=draw(S)
-  const lo=Buffer.alloc(size*size*4)
-  const ratio=S/size
-  for(let y=0;y<size;y++)
-    for(let x=0;x<size;x++){
-      let r=0,g=0,b=0,cnt=0
-      const sy0=Math.floor(y*ratio),sy1=Math.min(S,sy0+Math.ceil(ratio))
-      const sx0=Math.floor(x*ratio),sx1=Math.min(S,sx0+Math.ceil(ratio))
-      for(let sy=sy0;sy<sy1;sy++)for(let sx=sx0;sx<sx1;sx++){
-        const so=(sy*S+sx)*4;r+=hiPx[so];g+=hiPx[so+1];b+=hiPx[so+2];cnt++
-      }
-      const oo=(y*size+x)*4
-      lo[oo]=r/cnt;lo[oo+1]=g/cnt;lo[oo+2]=b/cnt;lo[oo+3]=255
-    }
-  return lo
 }
 
 function lerp(a,b,t){return Math.round(a+(b-a)*t)}
@@ -114,11 +88,11 @@ function lerp(a,b,t){return Math.round(a+(b-a)*t)}
 // ── 输出 ──
 const SIZES=[16,24,32,48,64,128,256]
 for(const sz of SIZES){
-  writeFileSync(join(process.cwd(),'build',`icon-${sz}.png`),encodePNG(sz,sz,render(sz)))
+  writeFileSync(join(process.cwd(),'build',`icon-${sz}.png`),encodePNG(sz,sz,draw(sz)))
 }
-writeFileSync(join(process.cwd(),'build','icon.png'),encodePNG(256,256,render(256)))
+writeFileSync(join(process.cwd(),'build','icon.png'),encodePNG(256,256,draw(256)))
 
-const pngsForIco=SIZES.map(sz=>({s:sz,d:encodePNG(sz,sz,render(sz))}))
+const pngsForIco=SIZES.map(sz=>({s:sz,d:encodePNG(sz,sz,draw(sz))}))
 const hdr=Buffer.alloc(6)
 hdr.writeUInt16LE(0,0);hdr.writeUInt16LE(1,2);hdr.writeUInt16LE(SIZES.length,4)
 const entries=[];let off=6+SIZES.length*16
