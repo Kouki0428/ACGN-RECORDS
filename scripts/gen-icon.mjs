@@ -1,13 +1,10 @@
-// 重新设计应用图标 v2：
-// 深色圆角方块底 + 品牌渐变播放三角 + 环形进度弧线（追踪感）
-// 运行：node scripts/gen-icon.mjs → build/icon.ico + build/icon.png
+// 应用图标 v3：深色底 + 品牌渐变圆角菱形 + 白色中心圆 + 柔光晕
+// 极简几何、高辨识度、小尺寸清晰
 import { deflateSync } from 'node:zlib'
 import { writeFileSync, mkdirSync } from 'node:fs'
-import { join, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const outDir = join(root, 'build')
+const outDir = join(process.cwd(), 'build')
 mkdirSync(outDir, { recursive: true })
 
 function crc32(buf) {
@@ -41,104 +38,77 @@ function encodePNG(w, h, rgba) {
   ])
 }
 
-// ── 调色板 ──
-const BG_TOP   = [15, 18, 26]     // #0f121a 深色顶
-const BG_BOT   = [22, 27, 38]     // #161b26 深色底
-const PINK     = [255, 92, 138]   // #ff5c8a 品牌粉
-const ORANGE   = [255, 138, 92]   // #ff8a5c 暖橙
-const BLUE     = [91, 157, 255]   // #5b9dff 蓝
-const WHITE    = [235, 239, 245]  // #ebeff5 白
+const BG_A = [10, 13, 20]
+const BG_B = [16, 20, 30]
+const PINK  = [255, 92, 138]
+const PEACH = [255, 138, 92]
+const WHITE = [240, 244, 250]
 
 function lerp(a, b, t) { return a + (b - a) * t }
-function gradColor(t, from, to) {
+function mix(c1, c2, t) {
   return [
-    Math.round(lerp(from[0], to[0], t)),
-    Math.round(lerp(from[1], to[1], t)),
-    Math.round(lerp(from[2], to[2], t))
+    Math.round(lerp(c1[0], c2[0], t)),
+    Math.round(lerp(c1[1], c2[1], t)),
+    Math.round(lerp(c1[2], c2[2], t))
   ]
 }
 
 function drawIcon(size) {
   const px = Buffer.alloc(size * size * 4)
   const s = size
-  const radius = s * 0.225
+  const radius = s * 0.22
   const cx = s / 2, cy = s / 2
+  const diaR = s * 0.31
+  const diaRound = s * 0.04
 
-  function inRoundRect(x, y) {
-    if (x < 0 || x >= s || y < 0 || y >= s) return false
-    const rr = radius
-    const rx = Math.min(Math.max(x, rr), s - rr)
-    const ry = Math.min(Math.max(y, rr), s - rr)
-    return (x - rx) ** 2 + (y - ry) ** 2 <= rr ** 2
-  }
+  for (let y = 0; y < s; y++) {
+    for (let x = 0; x < s; x++) {
+      const o = (y * s + x) * 4
 
-  // 归一化坐标 [-1, 1]
-  const nx = (x) => (x - cx) / (s / 2)
-  const ny = (y) => (y - cy) / (s / 2)
-
-  // 渐变三角形的三个顶点（归一化）
-  const tri = [
-    { x: -0.18, y: -0.34 },  // 左上
-    { x: -0.18, y: 0.34 },   // 左下
-    { x: 0.42, y: 0.0 }      // 右中（尖端）
-  ]
-  function inTriangle(px_, py_) {
-    const ax = tri[0].x, ay = tri[0].y
-    const bx = tri[1].x, by = tri[1].y
-    const cx2 = tri[2].x, cy2 = tri[2].y
-    const d1 = (px_ - bx) * (ay - by) - (ax - bx) * (py_ - by)
-    const d2 = (px_ - cx2) * (by - cy2) - (bx - cx2) * (py_ - cy2)
-    const d3 = (px_ - ax) * (cy2 - ay) - (cx2 - ax) * (py_ - ay)
-    const hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0)
-    const hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0)
-    return !(hasNeg && hasPos)
-  }
-  // 三角形内渐变 t：从左到右 0→1
-  function triT(px_, py_) {
-    return (px_ - tri[0].x) / (tri[2].x - tri[0].x)
-  }
-
-  // 进度弧线参数：半径、粗细、起始角/结束角
-  const arcR = 0.72
-  const arcW = 0.075
-  const arcStart = -Math.PI * 0.5  // 从顶部开始
-  const arcEnd = Math.PI * 0.65    // 约 230°
-
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const o = (y * size + x) * 4
-      if (!inRoundRect(x, y)) {
+      // 圆角方形裁剪
+      const rr = radius
+      const rx = Math.min(Math.max(x, rr), s - rr)
+      const ry = Math.min(Math.max(y, rr), s - rr)
+      if ((x - rx) ** 2 + (y - ry) ** 2 > rr ** 2) {
         px[o] = 0; px[o+1] = 0; px[o+2] = 0; px[o+3] = 0
         continue
       }
-      const _x = nx(x), _y = ny(y)
-      const dist = Math.hypot(_x, _y)
 
-      // 背景：深色垂直微渐变
-      let bgT = (y / s)
-      let r = Math.round(lerp(BG_TOP[0], BG_BOT[0], bgT))
-      let g = Math.round(lerp(BG_TOP[1], BG_BOT[1], bgT))
-      let b = Math.round(lerp(BG_TOP[2], BG_BOT[2], bgT))
+      // 背景：深蓝黑垂直渐变
+      const bt = y / s
+      let r = Math.round(lerp(BG_A[0], BG_B[0], bt))
+      let g = Math.round(lerp(BG_A[1], BG_B[1], bt))
+      let b = Math.round(lerp(BG_A[2], BG_B[2], bt))
 
-      // 进度弧线（品牌粉→蓝渐变）
-      const angle = Math.atan2(_y, _x)
-      let normAngle = angle
-      if (normAngle < arcStart) normAngle += Math.PI * 2
-      const arcSpan = arcEnd - arcStart
-      if (normAngle >= arcStart && normAngle <= arcStart + arcSpan) {
-        const arcDist = Math.abs(dist - arcR)
-        if (arcDist < arcW / 2) {
-          const at = (normAngle - arcStart) / arcSpan
-          const c = gradColor(at, PINK, BLUE)
-          r = c[0]; g = c[1]; b = c[2]
+      // 菱形 SDF 距离
+      const dx = Math.abs(x - cx), dy = Math.abs(y - cy)
+      const sdD = (dx + dy) - diaR
+
+      // 外发光
+      if (sdD > -diaRound && sdD < diaRound + s * 0.08) {
+        const glowT = Math.max(0, 1 - Math.abs(sdD) / (s * 0.08))
+        if (glowT > 0 && sdD > -diaRound) {
+          const ga = glowT * glowT * 0.15
+          r = Math.round(lerp(r, PINK[0], ga))
+          g = Math.round(lerp(g, PINK[1], ga))
+          b = Math.round(lerp(b, PINK[2], ga))
         }
       }
 
-      // 播放三角形（品牌粉→暖橙渐变）
-      if (inTriangle(_x, _y)) {
-        const tt = triT(_x, _y)
-        const c = gradColor(tt, PINK, ORANGE)
+      // 菱形内部：对角粉→橙渐变
+      if (sdD < -diaRound) {
+        const t = ((x / s - 0.5) + (y / s - 0.5)) / 2 + 0.5
+        const c = mix(PINK, PEACH, Math.max(0, Math.min(1, t)))
         r = c[0]; g = c[1]; b = c[2]
+
+        // 内圆点（白色）
+        const innerDist = Math.hypot(x - cx, y - cy)
+        const innerR = s * 0.065
+        const aaW = s * 0.006
+        const alpha = Math.max(0, Math.min(1, (innerR - innerDist) / aaW + 0.5))
+        r = Math.round(lerp(r, WHITE[0], alpha))
+        g = Math.round(lerp(g, WHITE[1], alpha))
+        b = Math.round(lerp(b, WHITE[2], alpha))
       }
 
       px[o] = r; px[o+1] = g; px[o+2] = b; px[o+3] = 255
@@ -147,7 +117,6 @@ function drawIcon(size) {
   return px
 }
 
-// ── ICO 容器 ──
 const SIZES = [16, 24, 32, 48, 64, 128, 256]
 const pngs = SIZES.map(s => ({ s, data: encodePNG(s, s, drawIcon(s)) }))
 const count = SIZES.length
@@ -174,4 +143,4 @@ for (const p of pngs) {
 const icoBuf = Buffer.concat([header, ...dirEntries, ...pngs.map(p => p.data)])
 writeFileSync(join(outDir, 'icon.ico'), icoBuf)
 writeFileSync(join(outDir, 'icon.png'), pngs[pngs.length - 1].data)
-console.log(`✓ icon.ico ${icoBuf.length}B | icon.png ${pngs[pngs.length-1].data.length}B`)
+console.log(`✓ icon.ico ${icoBuf.length}B | icon.png ${pngs[pngs.length - 1].data.length}B`)
