@@ -34,6 +34,14 @@ const api: AcgnApi = {
         version?: string
         error?: string
       }>,
+    /** 首次关闭：主进程询问用户选择行为 */
+    onCloseBehaviorAsk: (cb: () => void) => {
+      const listener = () => cb()
+      ipcRenderer.on('closeBehavior:ask', listener)
+      return () => ipcRenderer.removeListener('closeBehavior:ask', listener)
+    },
+    answerCloseBehavior: (pick: 'minimize' | 'exit') =>
+      ipcRenderer.send('app:answerCloseBehavior', pick),
     getNetworkStats: () => ipcRenderer.invoke('app:getNetworkStats') as Promise<NetworkStatsResult>
   },
   db: {

@@ -9,6 +9,7 @@ import ImageLightbox from './components/ImageLightbox.vue'
 import ToastHost from './components/ToastHost.vue'
 import ContextMenu from './components/ContextMenu.vue'
 import RouteErrorBoundary from './components/RouteErrorBoundary.vue'
+import CloseBehaviorDialog from './components/CloseBehaviorDialog.vue'
 import { useGridResizeFlip } from './composables/useGridResizeFlip'
 import { useNavHistory } from './composables/useNavHistory'
 import { useSearchOverlay } from './composables/searchOverlay'
@@ -132,6 +133,8 @@ onUnmounted(() => {
     <ToastHost />
     <!-- 全局右键菜单（列表卡片快速改状态 / Bangumi 打开 / 删除收藏） -->
     <ContextMenu />
+    <!-- 首次关闭行为选择窗（主进程触发） -->
+    <CloseBehaviorDialog />
   </div>
 </template>
 

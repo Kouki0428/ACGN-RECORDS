@@ -227,35 +227,27 @@ function createWindow(): void {
       win?.hide()
       return
     }
-    // exit 模式：未做过选择时询问一次
+    // exit 模式：未做过选择时通过渲染层弹出自定义选择窗（非系统原生对话框）
     void (async () => {
       const chosen = await getSetting('closeBehaviorChosen')
       if (chosen === '1') {
         app.quit()
         return
       }
-      const r = await dialog.showMessageBox(win!, {
-        type: 'question',
-        title: '关闭 ACGN Records',
-        message: '点击关闭时要最小化到系统托盘吗？',
-        detail:
-          '缩到托盘后应用继续在后台运行，定时同步不中断；托盘图标右键菜单随时可真正退出。',
-        buttons: ['缩到托盘', '直接退出'],
-        defaultId: 1,
-        cancelId: 1,
-        checkboxLabel: '记住我的选择，不再询问',
-        checkboxChecked: true
+      e.preventDefault()
+      // 通过渲染层展示自定义选择窗，等待用户回复
+      const pick = await new Promise<'minimize' | 'exit'>(resolve => {
+        closeBehaviorResolver = resolve
+        win?.webContents.send('closeBehavior:ask')
+        // 超时兜底：15s 无回复按「缩到托盘」处理（安全默认）
+        setTimeout(() => {
+          if (closeBehaviorResolver) {
+            const r = closeBehaviorResolver
+            closeBehaviorResolver = null
+            r('minimize')
+          }
+        }, 15000)
       })
-      const pick: 'minimize' | 'exit' = r.response === 0 ? 'minimize' : 'exit'
-      if (r.checkboxChecked) {
-        try {
-          await setSetting('closeBehavior', pick)
-          await setSetting('closeBehaviorChosen', '1')
-        } catch {
-          /* 写库失败仅本次生效 */
-        }
-        closeBehavior = pick
-      }
       if (pick === 'minimize') {
         win?.hide()
         return
@@ -326,6 +318,8 @@ interface DataSetDirResult {
 let tray: import('electron').Tray | null = null
 // 默认 'exit'（托盘功能默认关闭）；用户首次关闭时弹窗选择后记忆
 let closeBehavior: 'minimize' | 'exit' = 'exit'
+// 渲染层关闭行为选择窗的回复回调（首次关闭时由 close handler 设置）
+let closeBehaviorResolver: ((pick: 'minimize' | 'exit') => void) | null = null
 function readCloseBehaviorSync(): 'minimize' | 'exit' {
   try {
     const require = createRequire(import.meta.url)
@@ -422,15 +416,28 @@ function setupAutoUpdater() {
   }
 }
 
-ipcMain.handle('app:checkUpdate', async () => {
-  try {
-    const r = await autoUpdater.checkForUpdates()
-    const v = (r as any)?.updateInfo?.version
-    return { ok: true, updateAvailable: !!v && v !== app.getVersion(), version: v }
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) }
-  }
-})
+  ipcMain.handle('app:checkUpdate', async () => {
+    try {
+      const r = await autoUpdater.checkForUpdates()
+      const v = (r as any)?.updateInfo?.version
+      return { ok: true, updateAvailable: !!v && v !== app.getVersion(), version: v }
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) }
+    }
+  })
+  // 渲染层回复「首次关闭行为选择」
+  ipcMain.on('app:answerCloseBehavior', (_e, pick: 'minimize' | 'exit') => {
+    if (closeBehaviorResolver) {
+      const r = closeBehaviorResolver
+      closeBehaviorResolver = null
+      if (pick === 'minimize' || pick === 'exit') {
+        void setSetting('closeBehavior', pick).catch(() => {})
+        void setSetting('closeBehaviorChosen', '1').catch(() => {})
+        closeBehavior = pick
+      }
+      r(pick)
+    }
+  })
 
 // 主题切换过渡：截取当前窗口完整画面（旧主题真实外观），返回 PNG dataURL。
 // 必须在渲染进程改 data-theme 之前调用，才能截到“旧画面”用于擦除式过渡。

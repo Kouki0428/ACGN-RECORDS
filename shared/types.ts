@@ -742,6 +742,10 @@ export interface AcgnApi {
     setDataDir: (dir: null) => Promise<{ ok: boolean; sameTarget?: boolean; error?: string; path?: string }>
     /** 手动检查更新：updateAvailable=有新版本；ok=false 时附 error */
     checkUpdate: () => Promise<{ ok: boolean; updateAvailable?: boolean; version?: string; error?: string }>
+    /** 首次关闭时主进程会触发此事件（渲染层应弹出选择窗） */
+    onCloseBehaviorAsk: (cb: () => void) => () => void
+    /** 渲染层回复用户的选择 */
+    answerCloseBehavior: (pick: 'minimize' | 'exit') => void
   }
   db: {
     query: (sql: string, params?: unknown[]) => Promise<unknown[]>
