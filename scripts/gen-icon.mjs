@@ -39,65 +39,53 @@ const GRAD_A = [255, 92, 138]   // #ff5c8a
 const GRAD_B = [255, 138, 92]   // #ff8a5c
 const WHITE  = [255, 255, 255]
 
-// ── 绘制 ──
-// size 为目标渲染尺寸（建议 ≥256 保证清晰度）
+function lerp(a, b, t) { return a + (b - a) * t }
+
+function distToSeg(px_, py_, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay
+  const lenSq = dx * dx + dy * dy
+  if (lenSq === 0) return Math.hypot(px_ - ax, py_ - ay)
+  let t = ((px_ - ax) * dx + (py_ - ay) * dy) / lenSq
+  t = Math.max(0, Math.min(1, t))
+  return Math.hypot(px_ - (ax + t * dx), py_ - (ay + t * dy))
+}
+
+/** 高分辨率绘制（size 为超采样后尺寸）*/
 function draw(size) {
   const px = Buffer.alloc(size * size * 4)
-  const rad = size * 0.22  // 圆角比例与 .logo 的 border-radius:7px/22px ≈ 32% 一致
+  const rad = size * 0.22
 
-  // "A" 字母几何参数（归一化 [0,1]，映射到 size）
-  // 左斜线：(0.28,0.82)→(0.46,0.16)，右斜线：(0.72,0.82)→(0.54,0.16)
-  // 横杠：(0.36,0.56)→(0.64,0.56)
-  const strokeW = size * 0.055  // 笔画宽度
-  const barH = size * 0.048     // 横杠厚度
-
-  // 线段距离函数：点到线段的最近距离
-  function distToSeg(px_, py_, ax, ay, bx, by) {
-    const dx = bx - ax, dy = by - ay
-    const lenSq = dx * dx + dy * dy
-    if (lenSq === 0) return Math.hypot(px_ - ax, py_ - ay)
-    let t = ((px_ - ax) * dx + (py_ - ay) * dy) / lenSq
-    t = Math.max(0, Math.min(1, t))
-    return Math.hypot(px_ - (ax + t * dx), py_ - (ay + t * dy))
-  }
-
-  // 归一化坐标转像素坐标
-  const N = (v) => v * size
+  // "A" 字母几何参数（归一化 [0,1]）
+  const strokeW = size * 0.062  // 笔画宽度（加粗）
 
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const o = (y * size + x) * 4
 
-      // 圆角方块裁剪
       const rr = rad
       const rx = Math.min(Math.max(x, rr), size - rr)
       const ry = Math.min(Math.max(y, rr), size - rr)
       if ((x - rx) ** 2 + (y - ry) ** 2 > rr ** 2) {
+        // 完全透明：RGBA 全零
         px[o] = 0; px[o+1] = 0; px[o+2] = 0; px[o+3] = 0
         continue
       }
 
-      // 品牌粉对角渐变（与 --accent-grad 一致）
-      const gt = (x / size + (size - y) / size) / 2  // 135deg 方向
+      // 品牌粉对角渐变（135deg，与 --accent-grad 一致）
+      const gt = (x / size + (size - y) / size) / 2
       px[o]   = Math.round(lerp(GRAD_A[0], GRAD_B[0], gt))
       px[o+1] = Math.round(lerp(GRAD_A[1], GRAD_B[1], gt))
       px[o+2] = Math.round(lerp(GRAD_A[2], GRAD_B[2], gt))
       px[o+3] = 255
 
-      // ── 白色 "A" 字母（三笔画）──
+      // ── 白色粗体 "A" ──
       const nx = x / size, ny = y / size
       let inA = false
+      if (distToSeg(x, y, size*0.30, size*0.84, size*0.46, size*0.14) < strokeW / 2) inA = true
+      if (!inA && distToSeg(x, y, size*0.70, size*0.84, size*0.54, size*0.14) < strokeW / 2) inA = true
+      if (!inA && ny > size*0.50 && ny < size*0.64 && nx > size*0.32 && nx < size*0.68) inA = true
 
-      // 左斜线：(0.30,0.84)→(0.46,0.14)
-      if (distToSeg(x, y, N(0.30), N(0.84), N(0.46), N(0.14)) < strokeW / 2) inA = true
-      // 右斜线：(0.70,0.84)→(0.54,0.14)
-      if (!inA && distToSeg(x, y, N(0.70), N(0.84), N(0.54), N(0.14)) < strokeW / 2) inA = true
-      // 横杠：(0.36,0.58)→(0.64,0.58)
-      if (!inA && ny > 0.52 && ny < 0.62 && nx > 0.34 && nx < 0.66) inA = true
-
-      if (inA) {
-        px[o] = WHITE[0]; px[o+1] = WHITE[1]; px[o+2] = WHITE[2]
-      }
+      if (inA) px[o] = WHITE[0], px[o+1] = WHITE[1], px[o+2] = WHITE[2]
     }
   }
   return px
