@@ -1,5 +1,5 @@
-// 应用图标 v3：深色底 + 品牌渐变圆角菱形 + 白色中心圆 + 柔光晕
-// 极简几何、高辨识度、小尺寸清晰
+// 应用图标 v4：全屏品牌渐变 + 白色播放按钮负空间
+// 设计参考 YouTube/Netflix 模式——全出血渐变底 + 白色几何元素，最简洁最有辨识度
 import { deflateSync } from 'node:zlib'
 import { writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -38,28 +38,33 @@ function encodePNG(w, h, rgba) {
   ])
 }
 
-const BG_A = [10, 13, 20]
-const BG_B = [16, 20, 30]
-const PINK  = [255, 92, 138]
-const PEACH = [255, 138, 92]
-const WHITE = [240, 244, 250]
+const PINK   = [255, 92, 138]
+const PURPLE = [140, 82, 255]
+const ORANGE = [255, 138, 92]
 
 function lerp(a, b, t) { return a + (b - a) * t }
-function mix(c1, c2, t) {
-  return [
-    Math.round(lerp(c1[0], c2[0], t)),
-    Math.round(lerp(c1[1], c2[1], t)),
-    Math.round(lerp(c1[2], c2[2], t))
-  ]
-}
 
 function drawIcon(size) {
   const px = Buffer.alloc(size * size * 4)
   const s = size
   const radius = s * 0.22
   const cx = s / 2, cy = s / 2
-  const diaR = s * 0.31
-  const diaRound = s * 0.04
+
+  // 播放三角形顶点（居中略偏右，视觉平衡）
+  const triCx = cx + s * 0.03
+  const triSize = s * 0.18
+  const tri = [
+    { x: triCx - triSize * 0.58, y: cy - triSize },
+    { x: triCx - triSize * 0.58, y: cy + triSize },
+    { x: triCx + triSize * 0.72, y: cy }
+  ]
+  function inTriangle(x, y) {
+    const [a, b, c] = tri
+    const d1 = (x - b.x) * (a.y - b.y) - (a.x - b.x) * (y - b.y)
+    const d2 = (x - c.x) * (b.y - c.y) - (b.x - c.x) * (y - c.y)
+    const d3 = (x - a.x) * (c.y - a.y) - (c.x - a.x) * (y - a.y)
+    return !(((d1 < 0) || (d2 < 0) || (d3 < 0)) && ((d1 > 0) || (d2 > 0) || (d3 > 0)))
+  }
 
   for (let y = 0; y < s; y++) {
     for (let x = 0; x < s; x++) {
@@ -74,41 +79,25 @@ function drawIcon(size) {
         continue
       }
 
-      // 背景：深蓝黑垂直渐变
-      const bt = y / s
-      let r = Math.round(lerp(BG_A[0], BG_B[0], bt))
-      let g = Math.round(lerp(BG_A[1], BG_B[1], bt))
-      let b = Math.round(lerp(BG_A[2], BG_B[2], bt))
-
-      // 菱形 SDF 距离
-      const dx = Math.abs(x - cx), dy = Math.abs(y - cy)
-      const sdD = (dx + dy) - diaR
-
-      // 外发光
-      if (sdD > -diaRound && sdD < diaRound + s * 0.08) {
-        const glowT = Math.max(0, 1 - Math.abs(sdD) / (s * 0.08))
-        if (glowT > 0 && sdD > -diaRound) {
-          const ga = glowT * glowT * 0.15
-          r = Math.round(lerp(r, PINK[0], ga))
-          g = Math.round(lerp(g, PINK[1], ga))
-          b = Math.round(lerp(b, PINK[2], ga))
-        }
+      // 全屏对角渐变：紫→粉→橙
+      const gx = x / s, gy = y / s
+      const diagT = Math.max(0, Math.min(1, (gx + gy) / 2))
+      let r, g, b
+      if (diagT < 0.5) {
+        const t = diagT / 0.5
+        r = Math.round(lerp(PURPLE[0], PINK[0], t))
+        g = Math.round(lerp(PURPLE[1], PINK[1], t))
+        b = Math.round(lerp(PURPLE[2], PINK[2], t))
+      } else {
+        const t = (diagT - 0.5) / 0.5
+        r = Math.round(lerp(PINK[0], ORANGE[0], t))
+        g = Math.round(lerp(PINK[1], ORANGE[1], t))
+        b = Math.round(lerp(PINK[2], ORANGE[2], t))
       }
 
-      // 菱形内部：对角粉→橙渐变
-      if (sdD < -diaRound) {
-        const t = ((x / s - 0.5) + (y / s - 0.5)) / 2 + 0.5
-        const c = mix(PINK, PEACH, Math.max(0, Math.min(1, t)))
-        r = c[0]; g = c[1]; b = c[2]
-
-        // 内圆点（白色）
-        const innerDist = Math.hypot(x - cx, y - cy)
-        const innerR = s * 0.065
-        const aaW = s * 0.006
-        const alpha = Math.max(0, Math.min(1, (innerR - innerDist) / aaW + 0.5))
-        r = Math.round(lerp(r, WHITE[0], alpha))
-        g = Math.round(lerp(g, WHITE[1], alpha))
-        b = Math.round(lerp(b, WHITE[2], alpha))
+      // 播放三角（白色）
+      if (inTriangle(x, y)) {
+        r = 255; g = 255; b = 255
       }
 
       px[o] = r; px[o+1] = g; px[o+2] = b; px[o+3] = 255
