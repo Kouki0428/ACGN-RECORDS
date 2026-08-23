@@ -10,7 +10,7 @@ directories:
 # 更新源：electron-updater 从 GitHub Releases 读取 latest.yml + setup.exe
 publish:
   provider: github
-  owner: yhq1845769
+  owner: Kouki0428
   repo: ACGN-RECORDS
 # 本地手动打包不带 --publish 参数时不会真正发布；CI 里用 --publish always
 releaseType: release
