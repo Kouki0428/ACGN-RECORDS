@@ -25,12 +25,27 @@ const TOKEN_URL = 'https://next.bgm.tv/demo/access-token'
 
 const methodLabel = computed(() => (auth.status.method === 'oauth' ? '应用授权登录' : '个人令牌'))
 
+// 数据目录（安装版默认 exe 同级 userData；可在 data-dir.txt / ACGN_DATA_DIR 覆盖）
+const dataDir = ref('')
+async function openDataFolder() {
+  try {
+    await apiClient.openDataDir()
+  } catch (e) {
+    console.warn('[settings] 打开数据目录失败：', e)
+  }
+}
+
 onMounted(async () => {
   await auth.refresh()
   await settings.load()
   gpuLocal.value = settings.gpuAcceleration
   uiScaleLocal.value = settings.uiScale
   gridAnimSpeedLocal.value = settings.gridAnimSpeed
+  try {
+    dataDir.value = await window.acgn.app.getDataDir()
+  } catch {
+    dataDir.value = ''
+  }
   await refreshArchiveMeta()
   await refreshCacheStats()
   await loadNetworkStats()
@@ -909,6 +924,11 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         恢复时会<strong>自动先把当前库留存应急副本</strong>（userData/backups）再覆盖。
         不含 Bangumi 离线库与图片字节缓存。
       </p>
+      <div class="row" style="margin-top: 12px; align-items: center">
+        <span class="hint" style="margin: 0">数据目录：</span>
+        <code class="datadir-path" :title="dataDir">{{ dataDir || '读取中…' }}</code>
+        <button class="btn btn--ghost btn--sm" :disabled="!dataDir" @click="openDataFolder">打开文件夹</button>
+      </div>
       <div class="row" style="margin-top: 12px">
         <button class="btn btn--primary" :disabled="backupBusy" @click="doExportBackup">
           {{ backupBusy ? '处理中…' : '导出备份' }}
@@ -1286,6 +1306,19 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+.datadir-path {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text);
+  background: var(--bg-elev);
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  padding: 5px 9px;
+  max-width: 520px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ===== 外观区：定时时段 / 强调色板 ===== */

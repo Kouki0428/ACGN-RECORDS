@@ -10,6 +10,8 @@ const api: AcgnApi = {
     relaunch: () => ipcRenderer.invoke('app:relaunch'),
     setProxy: (url: string | null) => ipcRenderer.invoke('app:setProxy', url),
     setCloseBehavior: (v: 'minimize' | 'exit') => ipcRenderer.invoke('app:setCloseBehavior', v),
+    getDataDir: () => ipcRenderer.invoke('app:getDataDir') as Promise<string>,
+    openDataDir: () => ipcRenderer.invoke('app:openDataDir') as Promise<void>,
     getNetworkStats: () => ipcRenderer.invoke('app:getNetworkStats') as Promise<NetworkStatsResult>
   },
   db: {

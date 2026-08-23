@@ -27,5 +27,7 @@ nsis:
   perMachine: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: always
+  # 卸载默认保留 userData（收藏/进度/离线库等），避免误删数据
+  deleteAppDataOnUninstall: false
 
 # native 模块需在打包前用 electron-rebuild 重编译（见 package.json 的 rebuild:sqlite）

@@ -21,6 +21,10 @@ export const apiClient = {
   relaunch: (): Promise<void> => acgn().app.relaunch(),
   /** 拉取应用当月及近 6 月网络使用量统计 */
   getNetworkStats: (): Promise<NetworkStatsResult> => acgn().app.getNetworkStats(),
+  /** 当前实际生效的数据目录（userData） */
+  getDataDir: (): Promise<string> => acgn().app.getDataDir(),
+  /** 在系统文件管理器中打开数据目录 */
+  openDataDir: (): Promise<void> => acgn().app.openDataDir(),
   gallery: (subjectId: number | string, force = false): Promise<GameGallery> =>
     acgn().api.gallery(subjectId, force),
   /** 时间胶囊（操作历史）：拉取指定用户的时间线动态（支持分页） */

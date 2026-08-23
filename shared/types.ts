@@ -732,6 +732,10 @@ export interface AcgnApi {
     getNetworkStats: () => Promise<NetworkStatsResult>
     /** 设置窗口关闭行为：minimize=点 X 缩到托盘（默认）；exit=点 X 直接退出。 */
     setCloseBehavior: (v: 'minimize' | 'exit') => Promise<void>
+    /** 当前实际生效的数据目录（userData） */
+    getDataDir: () => Promise<string>
+    /** 在系统文件管理器中打开数据目录 */
+    openDataDir: () => Promise<void>
   }
   db: {
     query: (sql: string, params?: unknown[]) => Promise<unknown[]>

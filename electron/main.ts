@@ -6,24 +6,55 @@ import electron from 'electron'
 const { app, BrowserWindow, ipcMain, shell, protocol, Tray, Menu, nativeImage, dialog } = electron
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { writeFileSync, existsSync, mkdirSync, copyFileSync, cpSync } from 'node:fs'
+import { writeFileSync, existsSync, mkdirSync, copyFileSync, cpSync, readFileSync, rmSync } from 'node:fs'
 import { createRequire } from 'node:module'
 
-// ── 绿色版 / 便携模式 ───────────────────────────────────────────────
-// 打包后（app.isPackaged）把「用户数据目录（userData）」重定向到 exe 同级，
-// 而非系统 %APPDATA%。这样整个程序文件夹可随意复制 / 放到 U 盘，数据随 exe 走。
-// 主库 (acgn-records.db)、离线库 (bangumi-archive/) 都基于 userData，会一并跟随。
-// 开发模式下保持默认 AppData，避免污染项目目录。
-// 如需在开发时验证便携路径，可临时设环境变量 ACGN_PORTABLE=1（会把数据写到
-// electron 二进制所在目录，仅用于自测，勿用于日常开发）。
-const PORTABLE = app.isPackaged || process.env.ACGN_PORTABLE === '1'
-if (PORTABLE) {
-  // 先拿到「默认位置」（系统 %APPDATA%/acgn-records），作为迁移来源
-  const oldUserData = app.getPath('userData')
+// ── 数据目录解析（安装版默认 exe 同级 userData，可自定义）──────────────────
+// 解析优先级（必须在打开任何数据库之前执行；全应用统一经 app.getPath('userData') 取值）：
+// ① 环境变量 ACGN_DATA_DIR = 自定义数据目录绝对路径
+// ② exe 同级 data-dir.txt：内容为目录路径；留空 = 明确使用 exe 同级 userData
+// ③ 默认：exe 同级的 userData 文件夹（数据与安装位置一致）
+// ④ 目标不可写（如被装进 Program Files）→ 自动回退 %APPDATA% 下的 acgn-records 并告警
+// 开发模式（未打包且未设 ①）保持系统默认 AppData，避免污染 node_modules。
+const EXE_ADJACENT = app.isPackaged || process.env.ACGN_PORTABLE === '1'
+
+function resolveDataDirSync(): string {
+  const envDir = process.env.ACGN_DATA_DIR?.trim()
+  if (envDir) {
+    try { mkdirSync(envDir, { recursive: true }) } catch {}
+    return envDir
+  }
+  if (!EXE_ADJACENT) return join(app.getPath('appData'), 'acgn-records')
   const exeDir = dirname(app.getPath('exe'))
-  const newUserData = join(exeDir, 'userData')
-  app.setPath('userData', newUserData)
-  migrateUserDataIfNeeded(oldUserData, newUserData)
+  try {
+    const confPath = join(exeDir, 'data-dir.txt')
+    if (existsSync(confPath)) {
+      const custom = readFileSync(confPath, 'utf8').trim()
+      if (custom) {
+        mkdirSync(custom, { recursive: true })
+        return custom
+      }
+      // 留空 = 明确使用 exe 同级 userData
+    }
+  } catch { /* 读失败按默认处理 */ }
+  const def = join(exeDir, 'userData')
+  try {
+    mkdirSync(def, { recursive: true })
+    const probe = join(def, `.write-test-${Date.now()}`)
+    writeFileSync(probe, '1')
+    rmSync(probe)
+    return def
+  } catch {
+    console.warn('[data-dir] 安装目录不可写，回退 %APPDATA% 下的 acgn-records')
+    return join(app.getPath('appData'), 'acgn-records')
+  }
+}
+
+const LEGACY_APP_DATA_DIR = join(app.getPath('appData'), 'acgn-records')
+const DATA_DIR = resolveDataDirSync()
+if (DATA_DIR !== app.getPath('userData')) {
+  app.setPath('userData', DATA_DIR)
+  migrateUserDataIfNeeded(LEGACY_APP_DATA_DIR, DATA_DIR)
 }
 
 // ── 首次启动迁移：把系统盘的旧数据搬进绿色版 userData ──────────────────
@@ -52,8 +83,7 @@ function migrateUserDataIfNeeded(oldDir: string, newDir: string) {
 }
 
 // 判断库里是否已存在用户收藏（用于决定是否需要迁移，避免覆盖真实数据）
-function dbHasUserData(dbPath: string): boolean {
-  try {
+function dbHasUserData(dbPath: string): boolean {  try {
     const require = createRequire(import.meta.url)
     const Database = require('better-sqlite3') as { new (p: string, o?: object): any }
     const db = new Database(dbPath, { readonly: true, fileMustExist: true })
@@ -339,7 +369,59 @@ ipcMain.handle('theme:setNativeBg', (_event, color: string) => {
   if (win) win.setBackgroundColor(color)
 })
 
+// ── 首次启动导入引导（仅安装版）─────────────────────────────────────
+// 目标 userData 尚无主库且从未询问过时，提示从旧版便携包文件夹导入
+// （复制主库族 / debug 日志 / bangumi-archive 离线库 / backups）。
+// 只询问一次：写入 .import-asked 标记，之后可随时用「备份导入」手动补。
+async function maybePromptLegacyImport() {
+  try {
+    if (!app.isPackaged) return
+    const dir = app.getPath('userData')
+    if (existsSync(join(dir, 'acgn-records.db'))) return
+    const marker = join(dir, '.import-asked')
+    if (existsSync(marker)) return
+    writeFileSync(marker, '1') // 只询问一次（无论用户选什么）
+    const r = await dialog.showMessageBox({
+      type: 'question',
+      title: '导入旧版数据',
+      message: '检测到全新安装。要把旧版便携包里的数据导入吗？',
+      detail:
+        '选择旧版程序所在文件夹（内含 acgn-records.db），将整体迁移收藏、进度、离线数据库与备份。',
+      buttons: ['选择文件夹导入', '跳过'],
+      defaultId: 0,
+      cancelId: 1
+    })
+    if (r.response !== 0) return
+    const sel = await dialog.showOpenDialog({
+      title: '选择旧版程序文件夹',
+      properties: ['openDirectory']
+    })
+    if (sel.canceled || !sel.filePaths?.length) return
+    const src = sel.filePaths[0]
+    if (!existsSync(join(src, 'acgn-records.db'))) {
+      await dialog.showMessageBox({
+        type: 'warning',
+        title: '导入失败',
+        message: '所选文件夹中没有找到 acgn-records.db，已取消导入。'
+      })
+      return
+    }
+    for (const f of ['acgn-records.db', 'acgn-records.db-wal', 'acgn-records.db-shm', 'debug.log']) {
+      const s = join(src, f)
+      if (existsSync(s)) copyFileSync(s, join(dir, f))
+    }
+    const arc = join(src, 'bangumi-archive')
+    if (existsSync(arc)) cpSync(arc, join(dir, 'bangumi-archive'), { recursive: true })
+    const bk = join(src, 'backups')
+    if (existsSync(bk)) cpSync(bk, join(dir, 'backups'), { recursive: true })
+    console.log('[data-dir] 已从旧版文件夹导入:', src)
+  } catch (e) {
+    console.warn('[data-dir] 导入引导失败（忽略）：', e)
+  }
+}
+
 app.whenReady().then(() => {
+  void maybePromptLegacyImport()
   registerDbIpc()
   registerApiIpc()
   registerAuthIpc()
@@ -363,6 +445,11 @@ app.whenReady().then(() => {
   createTray()
   ipcMain.handle('app:setCloseBehavior', (_e, v: unknown) => {
     if (v === 'exit' || v === 'minimize') closeBehavior = v
+  })
+  // 数据目录：供设置页展示实际路径 + 打开数据文件夹
+  ipcMain.handle('app:getDataDir', () => app.getPath('userData'))
+  ipcMain.handle('app:openDataDir', () => {
+    void shell.openPath(app.getPath('userData'))
   })
   // 同步引擎状态 → 渲染进程（侧栏同步指示灯订阅 sync:stateChanged）
   onSyncState((s) => {
