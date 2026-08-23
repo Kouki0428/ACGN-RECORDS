@@ -519,10 +519,10 @@ const GROUPS: GroupDef[] = [
     icon: 'M12 3a9 9 0 1 0 0 18h1.5a2.5 2.5 0 0 0 0-5H13a2 2 0 0 1 0-4h4.5A3.5 3.5 0 0 0 21 8.5C21 5.5 17 3 12 3Z M7.5 10.5h.01 M9.5 6.5h.01 M14 5.5h.01'
   },
   {
-    key: 'update',
-    label: '软件更新',
-    desc: '检查并安装应用新版本',
-    icon: 'M12 3v12 M7 10l5 5 5-5 M5 21h14'
+    key: 'about',
+    label: '应用信息',
+    desc: '版本号与检查更新',
+    icon: 'M12 16v-4 M12 8h.01 M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z'
   }
 ]
 
@@ -1069,10 +1069,10 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
     </section>
       </template>
 
-      <template v-if="group === 'update'">
-    <!-- 软件更新 -->
+      <template v-if="group === 'about'">
+    <!-- 应用信息 -->
     <section class="panel">
-      <h2>软件更新</h2>
+      <h2>应用信息</h2>
       <div class="row" style="align-items: center; margin: 0">
         <span class="hint" style="margin: 0">当前版本：</span>
         <b style="font-size: 13px">v{{ appVersion }}</b>
