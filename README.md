@@ -1,4 +1,4 @@
-# ACGN Records
+﻿# ACGN Records
 
 轻量级 ACGN（动画 / 轻小说 / 漫画 / Galgame）进度追踪与统计桌面应用。
 本地优先，进度可同步到 Bangumi。基于 **Electron + Vue 3 + TypeScript + Vite**。
@@ -8,7 +8,7 @@
 
 ## 安装（普通用户）
 
-到 [Releases](https://github.com/yhq1845769/ACGN-RECORDS/releases) 页面下载最新版本：
+到 [Releases](https://github.com/Kouki0428/ACGN-RECORDS/releases) 页面下载最新版本：
 
 | 附件 | 说明 |
 |---|---|

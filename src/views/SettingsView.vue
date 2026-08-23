@@ -108,7 +108,7 @@ async function doCheckUpdate() {
   }
 }
 
-const REPO_URL = 'https://github.com/yhq1845769/ACGN-RECORDS'
+const REPO_URL = 'https://github.com/Kouki0428/ACGN-RECORDS'
 function openRepo() {
   void window.acgn.app.openExternal(REPO_URL)
 }
@@ -1098,7 +1098,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
           <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.91-2.6 5.59-2.15 5.59-2.15zm0 0z"/>
         </svg>
         <span class="hint" style="margin: 0">GitHub 仓库：</span>
-        <button class="btn btn--ghost btn--sm" @click="openRepo">yhq1845769/ACGN-RECORDS</button>
+        <button class="btn btn--ghost btn--sm" @click="openRepo">Kouki0428/ACGN-RECORDS</button>
       </div>
     </section>
       </template>
