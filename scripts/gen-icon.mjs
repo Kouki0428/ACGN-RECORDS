@@ -53,10 +53,18 @@ function distToSeg(px_, py_, ax, ay, bx, by) {
 /** 高分辨率绘制（size 为超采样后尺寸）*/
 function draw(size) {
   const px = Buffer.alloc(size * size * 4)
-  const rad = size * 0.22
+  // border-radius:7px / width:22px = 31.8% → 与 .logo 完全一致
+  const rad = size * 0.318
 
-  // "A" 字母几何参数（归一化 [0,1]）
-  const strokeW = size * 0.062  // 笔画宽度（加粗）
+  // "A" 字母几何参数：模拟 Segoe UI Bold 13px 在 22px 容器中的占比
+  // 笔画粗细 ≈ 13px * 0.14 ≈ 1.82px → 归一化 ≈ 0.083
+  // 字高 ≈ 9px / 22px ≈ 0.41（从 y=0.30 到 y=0.71）
+  const strokeW = size * 0.085
+  const aTopY = 0.295
+  const aBotY = 0.705
+  const aHalfSpanX = 0.155
+  const crossbarY = 0.585
+  const crossbarH = size * 0.052
 
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
@@ -66,7 +74,7 @@ function draw(size) {
       const rx = Math.min(Math.max(x, rr), size - rr)
       const ry = Math.min(Math.max(y, rr), size - rr)
       if ((x - rx) ** 2 + (y - ry) ** 2 > rr ** 2) {
-        // 完全透明：RGBA 全零
+        // 圆角外完全透明（RGBA 全零）
         px[o] = 0; px[o+1] = 0; px[o+2] = 0; px[o+3] = 0
         continue
       }
@@ -81,11 +89,16 @@ function draw(size) {
       // ── 白色粗体 "A" ──
       const nx = x / size, ny = y / size
       let inA = false
-      if (distToSeg(x, y, size*0.30, size*0.84, size*0.46, size*0.14) < strokeW / 2) inA = true
-      if (!inA && distToSeg(x, y, size*0.70, size*0.84, size*0.54, size*0.14) < strokeW / 2) inA = true
-      if (!inA && ny > size*0.50 && ny < size*0.64 && nx > size*0.32 && nx < size*0.68) inA = true
+      // 左斜线：(0.34, aBotY) → (0.50 - aHalfSpanX*0.6, aTopY)
+      if (distToSeg(x, y, size*(0.5-aHalfSpanX), size*aBotY, size*(0.5-aHalfSpanX*0.35), size*aTopY) < strokeW/2) inA = true
+      // 右斜线：(0.66, aBotY) → (0.50 + aHalfSpanX*0.6, aTopY)
+      if (!inA && distToSeg(x, y, size*(0.5+aHalfSpanX), size*aBotY, size*(0.5+aHalfSpanX*0.35), size*aTopY) < strokeW/2) inA = true
+      // 横杠
+      if (!inA && ny > size*(crossbarY-crossbarH/(2*size)) && ny < size*(crossbarY+crossbarH/(2*size)) && nx > size*(0.5-aHalfSpanX*0.65) && nx < size*(0.5+aHalfSpanX*0.65)) inA = true
 
-      if (inA) px[o] = WHITE[0], px[o+1] = WHITE[1], px[o+2] = WHITE[2]
+      if (inA) {
+        px[o] = WHITE[0]; px[o+1] = WHITE[1]; px[o+2] = WHITE[2]
+      }
     }
   }
   return px
