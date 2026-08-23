@@ -4,7 +4,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 
 const visible = ref(false)
-const remember = ref(true)
+const remember = ref(false)
 
 let offAsk: (() => void) | null = null
 
