@@ -91,8 +91,6 @@ function draw(size) {
   return px
 }
 
-function lerp(a, b, t) { return a + (b - a) * t }
-
 // ── 超采样降质 ──
 function downsample(hiBuf, hiSize, loSize) {
   const out = Buffer.alloc(loSize * loSize * 4)
