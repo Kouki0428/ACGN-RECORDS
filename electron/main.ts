@@ -349,11 +349,59 @@ function createTray() {
   }
 }
 let isQuitting = false
+// 自动更新器触发 quitAndInstall 时置位：before-quit 直接放行（不 preventDefault），
+// 否则 flushNetworkNow().finally(app.exit(0)) 会让安装程序永远等不到退出。
+let installingUpdate = false
 app.on('before-quit', (event) => {
-  if (isQuitting) return
+  if (isQuitting || installingUpdate) return
   event.preventDefault()
   isQuitting = true
   void flushNetworkNow().finally(() => app.exit(0))
+})
+
+// ── 应用内自动更新（electron-updater + GitHub Releases）────────────────
+// 仅打包版启用；NSIS 静默升级需要安装目录可写（默认 per-user 路径可写 ✓）。
+import { autoUpdater } from 'electron-updater'
+function setupAutoUpdater() {
+  if (!app.isPackaged) return
+  try {
+    autoUpdater.autoDownload = true
+    autoUpdater.on('update-downloaded', async () => {
+      try {
+        const r = await dialog.showMessageBox({
+          type: 'info',
+          title: '更新就绪',
+          message: '新版本已下载完成，是否立即重启安装？',
+          buttons: ['立即重启安装', '稍后'],
+          defaultId: 0,
+          cancelId: 1
+        })
+        if (r.response === 0) {
+          installingUpdate = true
+          isQuitting = true
+          autoUpdater.quitAndInstall()
+        }
+      } catch (err) {
+        console.warn('[updater] 更新对话框失败：', err)
+      }
+    })
+    autoUpdater.on('error', (e) => console.warn('[updater] 检查/下载更新失败：', e))
+    // 启动 15s 后首查，此后每 24h 一次
+    setTimeout(() => void autoUpdater.checkForUpdates().catch(() => {}), 15000)
+    setInterval(() => void autoUpdater.checkForUpdates().catch(() => {}), 24 * 3600 * 1000)
+  } catch (e) {
+    console.warn('[updater] 初始化失败：', e)
+  }
+}
+
+ipcMain.handle('app:checkUpdate', async () => {
+  try {
+    const r = await autoUpdater.checkForUpdates()
+    const v = (r as any)?.updateInfo?.version
+    return { ok: true, updateAvailable: !!v && v !== app.getVersion(), version: v }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) }
+  }
 })
 
 // 主题切换过渡：截取当前窗口完整画面（旧主题真实外观），返回 PNG dataURL。
@@ -440,6 +488,7 @@ app.whenReady().then(() => {
   createWindow()
   buildMenu()
   setupAutoSync()
+  setupAutoUpdater()
   // 托盘常驻 + 关闭行为（启动期同步读 settings，运行期经 app:setCloseBehavior 更新）
   closeBehavior = readCloseBehaviorSync()
   createTray()

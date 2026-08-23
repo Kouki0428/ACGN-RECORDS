@@ -736,6 +736,8 @@ export interface AcgnApi {
     getDataDir: () => Promise<string>
     /** 在系统文件管理器中打开数据目录 */
     openDataDir: () => Promise<void>
+    /** 手动检查更新：updateAvailable=有新版本；ok=false 时附 error */
+    checkUpdate: () => Promise<{ ok: boolean; updateAvailable?: boolean; version?: string; error?: string }>
   }
   db: {
     query: (sql: string, params?: unknown[]) => Promise<unknown[]>

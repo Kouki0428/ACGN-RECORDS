@@ -12,6 +12,13 @@ const api: AcgnApi = {
     setCloseBehavior: (v: 'minimize' | 'exit') => ipcRenderer.invoke('app:setCloseBehavior', v),
     getDataDir: () => ipcRenderer.invoke('app:getDataDir') as Promise<string>,
     openDataDir: () => ipcRenderer.invoke('app:openDataDir') as Promise<void>,
+    checkUpdate: () =>
+      ipcRenderer.invoke('app:checkUpdate') as Promise<{
+        ok: boolean
+        updateAvailable?: boolean
+        version?: string
+        error?: string
+      }>,
     getNetworkStats: () => ipcRenderer.invoke('app:getNetworkStats') as Promise<NetworkStatsResult>
   },
   db: {

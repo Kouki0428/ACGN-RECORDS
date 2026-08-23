@@ -25,6 +25,8 @@ export const apiClient = {
   getDataDir: (): Promise<string> => acgn().app.getDataDir(),
   /** 在系统文件管理器中打开数据目录 */
   openDataDir: (): Promise<void> => acgn().app.openDataDir(),
+  /** 手动检查更新（electron-updater）*/
+  checkUpdate: () => acgn().app.checkUpdate(),
   gallery: (subjectId: number | string, force = false): Promise<GameGallery> =>
     acgn().api.gallery(subjectId, force),
   /** 时间胶囊（操作历史）：拉取指定用户的时间线动态（支持分页） */

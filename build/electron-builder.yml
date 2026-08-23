@@ -7,6 +7,14 @@ directories:
   output: release
   buildResources: resources
 
+# 更新源：electron-updater 从 GitHub Releases 读取 latest.yml + setup.exe
+publish:
+  provider: github
+  owner: yhq1845769
+  repo: ACGN-RECORDS
+# 本地手动打包不带 --publish 参数时不会真正发布；CI 里用 --publish always
+releaseType: release
+
 # 本地手动打包：复用 dev 环境已编译好的 better-sqlite3 原生模块，跳过 npm rebuild。
 # 避免原生模块重编译（需 node-gyp/MSVC 工具链）以及 dev 应用运行时的文件占用（EBUSY）。
 # 前提：打包前须关闭正在运行的开发版 ACGN Records（释放 node_modules/better-sqlite3 占用）。

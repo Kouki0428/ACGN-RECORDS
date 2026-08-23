@@ -29,7 +29,7 @@ export default defineConfig({
             rollupOptions: {
               // better-sqlite3 是原生模块，必须外置，不能打进 bundle；
               // https-proxy-agent 同样外置（运行时从 node_modules 加载，纯 JS、兼容 Node 20）
-              external: ['better-sqlite3', 'https-proxy-agent']
+              external: ['better-sqlite3', 'https-proxy-agent', 'socks-proxy-agent', 'electron-updater']
             }
           }
         },

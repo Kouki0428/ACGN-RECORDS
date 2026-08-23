@@ -1,0 +1,46 @@
+name: Release
+
+# 推送 v* 标签时自动构建并发布：
+#   git tag v0.1.4 && git push origin v0.1.4
+# 产出：NSIS setup.exe（winCodeSign 符号链接在 runner 管理员特权下可正常解压）
+#       + latest.yml（electron-updater 更新源）+ 便携 zip
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies (postinstall 会重编 better-sqlite3)
+        run: npm ci
+
+      - name: Build renderer & main & preload
+        run: npm run build
+
+      # 全新检出必须重编 native 模块（本地打包用 false 是因 dev 进程占用）
+      - name: Package Windows (NSIS, publish to GitHub Release)
+        run: npx electron-builder --config build/electron-builder.yml --win --publish always --config.npmRebuild=true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Make portable zip
+        shell: pwsh
+        run: Compress-Archive -Path 'release/win-unpacked/*' -DestinationPath "release/ACGN-Records-$($env:GITHUB_REF_NAME)-portable-win.zip" -Force
+
+      - name: Upload portable zip to the release
+        run: |
+          gh release upload ${{ github.ref_name }} "release/ACGN-Records-$($env:GITHUB_REF_NAME)-portable-win.zip" --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

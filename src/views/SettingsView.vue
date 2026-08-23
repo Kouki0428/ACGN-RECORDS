@@ -35,6 +35,35 @@ async function openDataFolder() {
   }
 }
 
+// ---------- 应用版本 / 检查更新 ----------
+const appVersion = ref('')
+const checkingUpdate = ref(false)
+const updateMsg = ref('')
+const updateOk = ref(true)
+
+async function doCheckUpdate() {
+  if (checkingUpdate.value) return
+  checkingUpdate.value = true
+  updateMsg.value = ''
+  try {
+    const r = await window.acgn.app.checkUpdate()
+    if (!r.ok) {
+      updateOk.value = false
+      updateMsg.value = '检查失败：' + (r.error ?? '')
+      return
+    }
+    if (r.updateAvailable) {
+      updateOk.value = true
+      updateMsg.value = `发现新版本 v${r.version}，后台下载完成后会提示重启安装`
+    } else {
+      updateOk.value = true
+      updateMsg.value = `已是最新版本（v${appVersion.value}）`
+    }
+  } finally {
+    checkingUpdate.value = false
+  }
+}
+
 onMounted(async () => {
   await auth.refresh()
   await settings.load()
@@ -45,6 +74,12 @@ onMounted(async () => {
     dataDir.value = await window.acgn.app.getDataDir()
   } catch {
     dataDir.value = ''
+  }
+  try {
+    const info = await window.acgn.app.getInfo()
+    appVersion.value = info.version
+  } catch {
+    /* ignore */
   }
   await refreshArchiveMeta()
   await refreshCacheStats()
@@ -929,6 +964,17 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         <code class="datadir-path" :title="dataDir">{{ dataDir || '读取中…' }}</code>
         <button class="btn btn--ghost btn--sm" :disabled="!dataDir" @click="openDataFolder">打开文件夹</button>
       </div>
+
+      <!-- 应用版本 / 检查更新 -->
+      <hr class="divider" />
+      <div class="row" style="margin-top: 12px; align-items: center">
+        <span class="hint" style="margin: 0">当前版本：</span>
+        <b style="font-size: 13px">{{ appVersion }}</b>
+        <button class="btn btn--ghost btn--sm" :disabled="checkingUpdate" @click="doCheckUpdate">
+          {{ checkingUpdate ? '检查中…' : '检查更新' }}
+        </button>
+      </div>
+      <p v-if="updateMsg" :class="updateOk ? 'ok' : 'hint'" style="margin-top: 8px">{{ updateMsg }}</p>
       <div class="row" style="margin-top: 12px">
         <button class="btn btn--primary" :disabled="backupBusy" @click="doExportBackup">
           {{ backupBusy ? '处理中…' : '导出备份' }}
