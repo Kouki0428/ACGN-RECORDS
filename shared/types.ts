@@ -744,8 +744,8 @@ export interface AcgnApi {
     checkUpdate: () => Promise<{ ok: boolean; updateAvailable?: boolean; version?: string; error?: string }>
     /** 首次关闭时主进程会触发此事件（渲染层应弹出选择窗） */
     onCloseBehaviorAsk: (cb: () => void) => () => void
-    /** 渲染层回复用户的选择 */
-    answerCloseBehavior: (pick: 'minimize' | 'exit') => void
+    /** 渲染层回复用户的选择；remember=true 时持久化（下次不再弹） */
+    answerCloseBehavior: (pick: 'minimize' | 'exit', remember: boolean) => void
   }
   db: {
     query: (sql: string, params?: unknown[]) => Promise<unknown[]>

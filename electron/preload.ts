@@ -40,8 +40,8 @@ const api: AcgnApi = {
       ipcRenderer.on('closeBehavior:ask', listener)
       return () => ipcRenderer.removeListener('closeBehavior:ask', listener)
     },
-    answerCloseBehavior: (pick: 'minimize' | 'exit') =>
-      ipcRenderer.send('app:answerCloseBehavior', pick),
+    answerCloseBehavior: (pick: 'minimize' | 'exit', remember: boolean) =>
+      ipcRenderer.send('app:answerCloseBehavior', pick, remember),
     getNetworkStats: () => ipcRenderer.invoke('app:getNetworkStats') as Promise<NetworkStatsResult>
   },
   db: {

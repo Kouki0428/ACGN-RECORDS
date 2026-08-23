@@ -425,14 +425,15 @@ function setupAutoUpdater() {
       return { ok: false, error: e instanceof Error ? e.message : String(e) }
     }
   })
-  // 渲染层回复「首次关闭行为选择」
-  ipcMain.on('app:answerCloseBehavior', (_e, pick: 'minimize' | 'exit') => {
+  // 渲染层回复「首次关闭行为选择」；仅勾选「记住」时才持久化 closeBehaviorChosen
+  ipcMain.on('app:answerCloseBehavior', (_e, pick: 'minimize' | 'exit', remember: boolean) => {
     if (closeBehaviorResolver) {
       const r = closeBehaviorResolver
       closeBehaviorResolver = null
       if (pick === 'minimize' || pick === 'exit') {
         void setSetting('closeBehavior', pick).catch(() => {})
-        void setSetting('closeBehaviorChosen', '1').catch(() => {})
+        // 只有勾选「记住选择」时才写 chosen 标记，否则下次关闭仍会弹出询问
+        if (remember) void setSetting('closeBehaviorChosen', '1').catch(() => {})
         closeBehavior = pick
       }
       r(pick)

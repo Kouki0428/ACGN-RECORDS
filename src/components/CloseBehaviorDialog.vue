@@ -2,9 +2,7 @@
 // 首次关闭行为选择窗：主进程通过 closeBehavior:ask 事件触发显示，
 // 用户选择后经 app:answerCloseBehavior 回传结果（并持久化到 settings 表）。
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useSettingsStore } from '@/stores/settings'
 
-const settings = useSettingsStore()
 const visible = ref(false)
 const remember = ref(true)
 
@@ -21,10 +19,7 @@ onUnmounted(() => {
 
 function choose(pick: 'minimize' | 'exit') {
   visible.value = false
-  if (remember.value) {
-    void settings.set('closeBehavior', pick)
-  }
-  window.acgn?.app?.answerCloseBehavior(pick)
+  window.acgn?.app?.answerCloseBehavior(pick, remember.value)
 }
 </script>
 
