@@ -732,10 +732,14 @@ export interface AcgnApi {
     getNetworkStats: () => Promise<NetworkStatsResult>
     /** 设置窗口关闭行为：minimize=点 X 缩到托盘（默认）；exit=点 X 直接退出。 */
     setCloseBehavior: (v: 'minimize' | 'exit') => Promise<void>
-    /** 当前实际生效的数据目录（userData） */
-    getDataDir: () => Promise<string>
+    /** 当前实际生效的数据目录；custom=true 表示用户自定义过（非默认解析链） */
+    getDataDir: () => Promise<{ dir: string; custom: boolean }>
     /** 在系统文件管理器中打开数据目录 */
     openDataDir: () => Promise<void>
+    /** 原生目录选择器选新位置 → 校验/迁移/重启（取消返回 canceled） */
+    pickDataDir: () => Promise<{ ok: boolean; canceled?: boolean; error?: string; path?: string }>
+    /** 恢复默认数据位置（null）：迁移后自动重启应用；sameTarget=已在默认位置无需迁移 */
+    setDataDir: (dir: null) => Promise<{ ok: boolean; sameTarget?: boolean; error?: string; path?: string }>
     /** 手动检查更新：updateAvailable=有新版本；ok=false 时附 error */
     checkUpdate: () => Promise<{ ok: boolean; updateAvailable?: boolean; version?: string; error?: string }>
   }

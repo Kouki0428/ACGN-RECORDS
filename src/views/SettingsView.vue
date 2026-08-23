@@ -27,11 +27,55 @@ const methodLabel = computed(() => (auth.status.method === 'oauth' ? '应用授�
 
 // 数据目录（安装版默认 exe 同级 userData；可在 data-dir.txt / ACGN_DATA_DIR 覆盖）
 const dataDir = ref('')
+const dataCustom = ref(false)
+const dataBusy = ref(false)
+const dataMsg = ref('')
+const dataOk = ref(true)
+
+async function refreshDataDir() {
+  try {
+    const r = await window.acgn.app.getDataDir()
+    dataDir.value = r.dir
+    dataCustom.value = !!r.custom
+  } catch {
+    dataDir.value = ''
+  }
+}
+
 async function openDataFolder() {
   try {
     await apiClient.openDataDir()
   } catch (e) {
     console.warn('[settings] 打开数据目录失败：', e)
+  }
+}
+
+/** 更改数据目录：主进程校验→迁移→写配置→重启应用 */
+async function doChangeDataDir() {
+  if (dataBusy.value) return
+  dataBusy.value = true
+  try {
+    const sel = await window.acgn.app.pickDataDir()
+    if (!sel.ok) return // 用户取消或失败（失败原因已由主进程对话框提示）
+    dataMsg.value = '✓ 数据已迁移，应用即将重启'
+    dataOk.value = true
+  } finally {
+    dataBusy.value = false
+  }
+}
+
+/** 恢复默认数据位置（清除自定义覆盖后迁移回默认并重启） */
+async function doResetDataDir() {
+  if (dataBusy.value) return
+  dataBusy.value = true
+  try {
+    const r = await window.acgn.app.setDataDir(null)
+    if (r.ok && !r.sameTarget) {
+      dataMsg.value = '✓ 已恢复默认数据位置，应用即将重启'
+      dataOk.value = true
+    }
+  } finally {
+    dataBusy.value = false
   }
 }
 
@@ -71,7 +115,9 @@ onMounted(async () => {
   uiScaleLocal.value = settings.uiScale
   gridAnimSpeedLocal.value = settings.gridAnimSpeed
   try {
-    dataDir.value = await window.acgn.app.getDataDir()
+    const r = await window.acgn.app.getDataDir()
+    dataDir.value = r.dir
+    dataCustom.value = !!r.custom
   } catch {
     dataDir.value = ''
   }
@@ -963,7 +1009,15 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         <span class="hint" style="margin: 0">数据目录：</span>
         <code class="datadir-path" :title="dataDir">{{ dataDir || '读取中…' }}</code>
         <button class="btn btn--ghost btn--sm" :disabled="!dataDir" @click="openDataFolder">打开文件夹</button>
+        <button class="btn btn--ghost btn--sm" :disabled="dataBusy" @click="doChangeDataDir">修改…</button>
+        <button
+          v-if="dataCustom"
+          class="btn btn--ghost btn--sm"
+          :disabled="dataBusy"
+          @click="doResetDataDir"
+        >恢复默认位置</button>
       </div>
+      <p v-if="dataMsg" :class="dataOk ? 'ok' : 'err'" style="margin-top: 8px">{{ dataMsg }}</p>
 
       <!-- 应用版本 / 检查更新 -->
       <hr class="divider" />
@@ -1001,7 +1055,30 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         <button class="btn btn--ghost" :disabled="backupBusy" @click="doExportCollections('csv')">导出收藏 CSV</button>
         <button class="btn btn--ghost" :disabled="backupBusy" @click="doExportCollections('json')">导出收藏 JSON</button>
       </div>
+      <div class="row" style="margin-top: 10px">
+        <button class="btn btn--ghost" :disabled="backupBusy" @click="doExportCollections('csv')">导出收藏 CSV</button>
+        <button class="btn btn--ghost" :disabled="backupBusy" @click="doExportCollections('json')">导出收藏 JSON</button>
+      </div>
       <p v-if="backupMsg" :class="backupOk ? 'ok' : 'err'" style="margin-top: 8px">{{ backupMsg }}</p>
+    </section>
+      </template>
+
+      <template v-if="group === 'update'">
+    <!-- 软件更新 -->
+    <section class="panel">
+      <h2>软件更新</h2>
+      <div class="row" style="align-items: center; margin: 0">
+        <span class="hint" style="margin: 0">当前版本：</span>
+        <b style="font-size: 13px">v{{ appVersion }}</b>
+        <button class="btn btn--primary btn--sm" :disabled="checkingUpdate" @click="doCheckUpdate">
+          {{ checkingUpdate ? '检查中…' : '检查更新' }}
+        </button>
+      </div>
+      <p v-if="updateMsg" :class="updateOk ? 'ok' : 'err'" style="margin-top: 10px">{{ updateMsg }}</p>
+      <p v-else class="hint">
+        应用启动时会自动检查一次更新；发现新版本后会在后台下载，完成后提示重启安装。
+        更新只替换程序文件，数据目录不受影响。
+      </p>
     </section>
       </template>
     </template><!-- /v-else 分类详情 -->

@@ -10,8 +10,23 @@ const api: AcgnApi = {
     relaunch: () => ipcRenderer.invoke('app:relaunch'),
     setProxy: (url: string | null) => ipcRenderer.invoke('app:setProxy', url),
     setCloseBehavior: (v: 'minimize' | 'exit') => ipcRenderer.invoke('app:setCloseBehavior', v),
-    getDataDir: () => ipcRenderer.invoke('app:getDataDir') as Promise<string>,
+    getDataDir: () =>
+      ipcRenderer.invoke('app:getDataDir') as Promise<{ dir: string; custom: boolean }>,
     openDataDir: () => ipcRenderer.invoke('app:openDataDir') as Promise<void>,
+    setDataDir: (dir: string | null) =>
+      ipcRenderer.invoke('app:setDataDirResult', dir) as Promise<{
+        ok: boolean
+        error?: string
+        path?: string
+        sameTarget?: boolean
+      }>,
+    pickDataDir: () =>
+      ipcRenderer.invoke('app:pickDataDir') as Promise<{
+        ok: boolean
+        canceled?: boolean
+        error?: string
+        path?: string
+      }>,
     checkUpdate: () =>
       ipcRenderer.invoke('app:checkUpdate') as Promise<{
         ok: boolean

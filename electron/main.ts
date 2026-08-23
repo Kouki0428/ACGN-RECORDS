@@ -2,6 +2,7 @@
 import './services/api/http'
 import { setManualProxy, flushNetworkNow } from './services/api/http'
 import { getNetworkStats, getNetworkHistory } from './services/db/repositories/networkStats.repository'
+import { closeDb } from './services/db/connection'
 import electron from 'electron'
 const { app, BrowserWindow, ipcMain, shell, protocol, Tray, Menu, nativeImage, dialog } = electron
 import { join, dirname } from 'node:path'
@@ -24,12 +25,21 @@ function resolveDataDirSync(): string {
     try { mkdirSync(envDir, { recursive: true }) } catch {}
     return envDir
   }
+  // ② 设置页写入的持久化覆盖（固定放在 %APPDATA% 根，永远可写）
+  const confPath = join(app.getPath('appData'), 'acgn-records', 'data-location.conf')
+  if (existsSync(confPath)) {
+    const custom = readFileSync(confPath, 'utf8').trim()
+    if (custom) {
+      try { mkdirSync(custom, { recursive: true }) } catch {}
+      return custom
+    }
+  }
   if (!EXE_ADJACENT) return join(app.getPath('appData'), 'acgn-records')
   const exeDir = dirname(app.getPath('exe'))
   try {
-    const confPath = join(exeDir, 'data-dir.txt')
-    if (existsSync(confPath)) {
-      const custom = readFileSync(confPath, 'utf8').trim()
+    const confPath2 = join(exeDir, 'data-dir.txt')
+    if (existsSync(confPath2)) {
+      const custom = readFileSync(confPath2, 'utf8').trim()
       if (custom) {
         mkdirSync(custom, { recursive: true })
         return custom
@@ -48,6 +58,15 @@ function resolveDataDirSync(): string {
     console.warn('[data-dir] 安装目录不可写，回退 %APPDATA% 下的 acgn-records')
     return join(app.getPath('appData'), 'acgn-records')
   }
+}
+
+/** 写入/清除「数据目录」覆盖配置（null = 恢复默认解析链）。 */
+function writeDataDirConf(dir: string | null) {
+  const confDir = join(app.getPath('appData'), 'acgn-records')
+  mkdirSync(confDir, { recursive: true })
+  const confPath = join(confDir, 'data-location.conf')
+  if (dir) writeFileSync(confPath, dir, 'utf8')
+  else if (existsSync(confPath)) rmSync(confPath)
 }
 
 const LEGACY_APP_DATA_DIR = join(app.getPath('appData'), 'acgn-records')
@@ -295,6 +314,15 @@ ipcMain.handle('app:getNetworkStats', async () => {
 // ===== 托盘常驻 + 关闭行为 =====
 // closeBehavior：'minimize'（默认，点 X 缩到托盘）/ 'exit'（点 X 直接退出）。
 // 启动期同步读一次 settings 表（同 gpuAcceleration 模式）；渲染端改动经 app:setCloseBehavior 更新缓存。
+// ── 数据目录解析结果 ──
+interface DataSetDirResult {
+  ok: boolean
+  canceled?: boolean
+  sameTarget?: boolean
+  path?: string
+  error?: string
+}
+
 let tray: import('electron').Tray | null = null
 // 默认 'exit'（托盘功能默认关闭）；用户首次关闭时弹窗选择后记忆
 let closeBehavior: 'minimize' | 'exit' = 'exit'
@@ -496,9 +524,67 @@ app.whenReady().then(() => {
     if (v === 'exit' || v === 'minimize') closeBehavior = v
   })
   // 数据目录：供设置页展示实际路径 + 打开数据文件夹
-  ipcMain.handle('app:getDataDir', () => app.getPath('userData'))
+  ipcMain.handle('app:getDataDir', () => {
+    const dir = app.getPath('userData')
+    // 是否为自定义覆盖（存在 conf 即视为已自定义）
+    const confPath = join(app.getPath('appData'), 'acgn-records', 'data-location.conf')
+    return { dir, custom: existsSync(confPath) }
+  })
   ipcMain.handle('app:openDataDir', () => {
     void shell.openPath(app.getPath('userData'))
+  })
+  /** 校验目标 → 关库 → 迁移全部数据文件 → 写/清配置 → 重启应用 */
+  async function applySetDataDir(target: string | null): Promise<DataSetDirResult> {
+    const cur = app.getPath('userData')
+    let newDir: string
+    if (target && target.trim()) {
+      newDir = join(target.trim())
+      if (!existsSync(newDir)) mkdirSync(newDir, { recursive: true })
+    } else {
+      writeDataDirConf(null) // 清除覆盖，走默认解析链
+      newDir = resolveDataDirSync()
+    }
+    const norm = (p: string) => p.replace(/[\\/]+$/, '').toLowerCase()
+    if (norm(newDir) === norm(cur)) return { ok: true, sameTarget: true }
+    // 可写校验
+    try {
+      const probe = join(newDir, `.write-test-${Date.now()}`)
+      writeFileSync(probe, '1')
+      rmSync(probe)
+    } catch {
+      return { ok: false, error: '目标目录不可写' }
+    }
+    if (existsSync(join(newDir, 'acgn-records.db'))) {
+      return { ok: false, error: '目标文件夹已包含应用数据库，请换一个空文件夹' }
+    }
+    // 先把网络统计刷进旧库，再关连接
+    await flushNetworkNow()
+    await closeDb()
+    for (const f of ['acgn-records.db', 'acgn-records.db-wal', 'acgn-records.db-shm', 'debug.log']) {
+      const s = join(cur, f)
+      if (existsSync(s)) copyFileSync(s, join(newDir, f))
+    }
+    for (const sub of ['bangumi-archive', 'backups']) {
+      const s = join(cur, sub)
+      if (existsSync(s)) cpSync(s, join(newDir, sub), { recursive: true })
+    }
+    writeDataDirConf(target && target.trim() ? newDir : null)
+    console.log('[data-dir] 数据已迁移:', cur, '->', newDir)
+    isQuitting = true
+    try { tray?.destroy() } catch { /* ignore */ }
+    app.relaunch()
+    app.exit(0)
+    return { ok: true, path: newDir }
+  }
+  ipcMain.handle('app:setDataDirResult', async (_e, target: string | null) => applySetDataDir(target))
+  // 原生目录选择器 + 迁移重启，一步完成（渲染端无需自己选路径）
+  ipcMain.handle('app:pickDataDir', async (): Promise<DataSetDirResult> => {
+    const sel = await dialog.showOpenDialog({
+      title: '选择新的数据文件夹',
+      properties: ['openDirectory', 'createDirectory']
+    })
+    if (sel.canceled || !sel.filePaths?.length) return { ok: false, canceled: true }
+    return applySetDataDir(sel.filePaths[0])
   })
   // 同步引擎状态 → 渲染进程（侧栏同步指示灯订阅 sync:stateChanged）
   onSyncState((s) => {
