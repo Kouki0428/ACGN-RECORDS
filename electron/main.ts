@@ -193,6 +193,9 @@ function createWindow(): void {
     // 但菜单仍保留 → Ctrl+R 重载 / Ctrl+Shift+I 开 DevTools / Ctrl+C·V·X 编辑快捷键均有效。
     autoHideMenuBar: true,
     title: 'ACGN Records',
+    icon: app.isPackaged
+      ? join(process.resourcesPath, 'icon.png')
+      : join(__dirname, '..', 'build', 'icon.png'),
     // 与暗色主题渐变底色（--bg 的 #14171c，即 --bg-grad 的 60% 停靠色，覆盖窗口绝大部分区域）一致，
     // 这样缩放窗口时 Chromium 重绘滞后一帧、露出的“窗口底色”与内容背景同色，肉眼不可见，消除“后面还有一层”的黑边/色差。
     backgroundColor: '#14171c',
@@ -346,10 +349,15 @@ function showMainWindow() {
 }
 function createTray() {
   try {
-    // 内嵌生成的 32×32 品牌粉圆角方块 PNG（仓库无图标资源）
-    const TRAY_PNG =
-      'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAWklEQVR4nO3XOw4AIAgEUQ7qibw01mqMxA9QjImt80pXxHC0VD29lvefBq9BP+NbhEd8ifCMT4iIeIcAEAqIjAMAAAAAAAAANMV/AEAKQPguSLGMUmxDD8TYar3jvZMwbVaxAAAAAElFTkSuQmCC'
-    const img = nativeImage.createFromDataURL(`data:image/png;base64,${TRAY_PNG}`)
+    // 图标路径：打包后从 resources/ 取（electron-builder extraResources），dev 从 build/
+    const iconPath = app.isPackaged
+      ? join(process.resourcesPath, 'icon.png')
+      : join(__dirname, '..', 'build', 'icon.png')
+    const img = existsSync(iconPath)
+      ? nativeImage.createFromPath(iconPath)
+      : nativeImage.createFromDataURL(
+          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAWklEQVR4nO3XOw4AIAgEUQ7qibw01mqMxA9QjImt80pXxHC0VD29lvefBq9BP+NbhEd8ifCMT4iIeIcAEAqIjAMAAAAAAAAANMV/AEAKQPguSLGMUmxDD8TYar3jvZMwbVaxAAAAAElFTkSuQmCC'
+        )
     tray = new Tray(img)
     tray.setToolTip('ACGN Records')
     const menu = Menu.buildFromTemplate([

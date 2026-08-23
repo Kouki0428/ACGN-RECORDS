@@ -7,6 +7,7 @@ directories:
   output: release
   buildResources: resources
 
+# 应用图标（Windows .ico / Linux .png）
 # 更新源：electron-updater 从 GitHub Releases 读取 latest.yml + setup.exe
 publish:
   provider: github
@@ -22,8 +23,15 @@ npmRebuild: false
 files:
   - dist
   - dist-electron
+  - build/icon.png
+
+# 复制图标到资源目录（供托盘在打包后读取）
+extraResources:
+  - from: build/icon.png
+    to: icon.png
 
 win:
+  icon: build/icon.ico
   target:
     - nsis
   artifactName: ${productName}-${version}-setup.${ext}
