@@ -66,6 +66,10 @@ app.whenReady().then(async () => {
   const win = new BrowserWindow({
     width: 1024, height: 1024,
     show: false,
+    // 关键：透明无边框窗口，圆角外的像素保持 alpha=0，
+    // 否则默认白底会混进圆角抗锯齿边缘形成白边
+    transparent: true,
+    frame: false,
     webPreferences: { offscreen: true }
   })
   await win.loadFile(join(here, 'icon.html'))
