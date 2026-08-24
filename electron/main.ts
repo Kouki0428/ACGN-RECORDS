@@ -193,10 +193,10 @@ function createWindow(): void {
     // 但菜单仍保留 → Ctrl+R 重载 / Ctrl+Shift+I 开 DevTools / Ctrl+C·V·X 编辑快捷键均有效。
     autoHideMenuBar: true,
     title: 'ACGN Records',
-    // Windows 用 .ico（内含多分辨率，标题栏/任务栏自动选最清晰尺寸）；其他平台 PNG
+    // 运行时窗口图标用 PNG（Electron 加载最可靠）；.ico 仅用于 exe 内嵌资源
     icon: app.isPackaged
-      ? join(process.resourcesPath, process.platform === 'win32' ? 'icon.ico' : 'icon.png')
-      : join(__dirname, '..', 'build', process.platform === 'win32' ? 'icon.ico' : 'icon.png'),
+      ? join(process.resourcesPath, 'icon.png')
+      : join(__dirname, '..', 'build', 'icon.png'),
     // 与暗色主题渐变底色（--bg 的 #14171c，即 --bg-grad 的 60% 停靠色，覆盖窗口绝大部分区域）一致，
     // 这样缩放窗口时 Chromium 重绘滞后一帧、露出的“窗口底色”与内容背景同色，肉眼不可见，消除“后面还有一层”的黑边/色差。
     backgroundColor: '#14171c',

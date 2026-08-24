@@ -99,19 +99,47 @@ app.whenReady().then(async () => {
   }
   writeFileSync(join(buildDir,'icon.png'),encodePNG(256,256,downscale(rgba,mw,mh,256,256)))
 
-  // 打包 ICO（PNG 格式条目）
-  const hdr=Buffer.alloc(6)
-  hdr.writeUInt16LE(0,0);hdr.writeUInt16LE(1,2);hdr.writeUInt16LE(SIZES.length,4)
-  const entries=[];let off=6+SIZES.length*16
-  for(const p of pngs){
-    const e=Buffer.alloc(16)
-    e.writeUInt8(p.s>=256?0:p.s,0);e.writeUInt8(p.s>=256?0:p.s,1)
-    e.writeUInt8(0,2);e.writeUInt8(0,3)
-    e.writeUInt16LE(1,4);e.writeUInt16LE(32,6)
-    e.writeUInt32BE(p.d.length,8);e.writeUInt32LE(off,12)
-    entries.push(e);off+=p.d.length
+  // ── ICO 条目编码：≤48px 必须用未压缩 BMP(DIB)，Windows 规范要求 ──
+// （全 PNG 条目会导致大量加载路径失败回退默认图标）
+function encodeIcoEntryBMP(size, rgba) {
+  const headerSize = 40
+  const pixelDataSize = size * size * 4
+  const maskRowBytes = Math.ceil(size / 32) * 4   // 1bpp AND mask，每行 4 字节对齐
+  const maskSize = maskRowBytes * size
+  const buf = Buffer.alloc(headerSize + pixelDataSize + maskSize)
+  // BITMAPINFOHEADER
+  buf.writeUInt32LE(40, 0)            // biSize
+  buf.writeInt32LE(size, 4)           // biWidth
+  buf.writeInt32LE(size * 2, 8)       // biHeight（XOR + AND 两倍高）
+  buf.writeUInt16LE(1, 12)            // biPlanes
+  buf.writeUInt16LE(32, 14)           // biBitCount
+  buf.writeUInt32LE(pixelDataSize + maskSize, 20)  // biSizeImage
+  // 像素 BGRA bottom-up
+  let off = headerSize
+  for (let y = size - 1; y >= 0; y--) {
+    for (let x = 0; x < size; x++) {
+      const so = (y * size + x) * 4
+      buf[off++] = rgba[so+2]; buf[off++] = rgba[so+1]; buf[off++] = rgba[so]; buf[off++] = rgba[so+3]
+    }
   }
-  writeFileSync(join(buildDir,'icon.ico'),Buffer.concat([hdr,...entries,...pngs.map(p=>p.d)]))
+  // AND mask 全 0（透明度由 32 位 alpha 通道表达）
+  return buf
+}
+
+// ── 打包 ICO：≤48px 用 BMP，≥64px 用 PNG ──
+const hdr=Buffer.alloc(6)
+hdr.writeUInt16LE(0,0);hdr.writeUInt16LE(1,2);hdr.writeUInt16LE(SIZES.length,4)
+const entries=[];const datas=[];let off=6+SIZES.length*16
+for(const p of pngs){
+  const d = p.s<=48 ? encodeIcoEntryBMP(p.s, downscale(rgba,mw,mh,p.s,p.s)) : p.d
+  const e=Buffer.alloc(16)
+  e.writeUInt8(p.s>=256?0:p.s,0);e.writeUInt8(p.s>=256?0:p.s,1)
+  e.writeUInt8(0,2);e.writeUInt8(0,3)
+  e.writeUInt16LE(1,4);e.writeUInt16LE(32,6)
+  e.writeUInt32BE(d.length,8);e.writeUInt32LE(off,12)
+  entries.push(e);datas.push(d);off+=d.length
+}
+writeFileSync(join(buildDir,'icon.ico'),Buffer.concat([hdr,...entries,...datas]))
 
   console.log(`✓ icon generated from ${mw}×${mh} master`)
   app.quit()
