@@ -25,10 +25,16 @@ files:
   - dist-electron
   - build/icon.png
 
-# 复制图标到资源目录（供托盘在打包后读取）
+# 复制图标到资源目录（供窗口标题栏 .ico 与托盘小尺寸 png 在打包后读取）
 extraResources:
   - from: build/icon.png
     to: icon.png
+  - from: build/icon.ico
+    to: icon.ico
+  - from: build/icon-16.png
+    to: icon-16.png
+  - from: build/icon-32.png
+    to: icon-32.png
 
 win:
   icon: build/icon.ico

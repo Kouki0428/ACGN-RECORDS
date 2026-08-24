@@ -193,9 +193,10 @@ function createWindow(): void {
     // 但菜单仍保留 → Ctrl+R 重载 / Ctrl+Shift+I 开 DevTools / Ctrl+C·V·X 编辑快捷键均有效。
     autoHideMenuBar: true,
     title: 'ACGN Records',
+    // Windows 用 .ico（内含多分辨率，标题栏/任务栏自动选最清晰尺寸）；其他平台 PNG
     icon: app.isPackaged
-      ? join(process.resourcesPath, 'icon.png')
-      : join(__dirname, '..', 'build', 'icon.png'),
+      ? join(process.resourcesPath, process.platform === 'win32' ? 'icon.ico' : 'icon.png')
+      : join(__dirname, '..', 'build', process.platform === 'win32' ? 'icon.ico' : 'icon.png'),
     // 与暗色主题渐变底色（--bg 的 #14171c，即 --bg-grad 的 60% 停靠色，覆盖窗口绝大部分区域）一致，
     // 这样缩放窗口时 Chromium 重绘滞后一帧、露出的“窗口底色”与内容背景同色，肉眼不可见，消除“后面还有一层”的黑边/色差。
     backgroundColor: '#14171c',
@@ -349,16 +350,16 @@ function showMainWindow() {
 }
 function createTray() {
   try {
-    // 图标路径：打包后从 resources/ 取（electron-builder extraResources），dev 从 build/
-    const iconPath = app.isPackaged
-      ? join(process.resourcesPath, 'icon.png')
-      : join(__dirname, '..', 'build', 'icon.png')
-    const img = existsSync(iconPath)
-      ? nativeImage.createFromPath(iconPath)
-      : nativeImage.createFromDataURL(
-          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAWklEQVR4nO3XOw4AIAgEUQ7qibw01mqMxA9QjImt80pXxHC0VD29lvefBq9BP+NbhEd8ifCMT4iIeIcAEAqIjAMAAAAAAAAANMV/AEAKQPguSLGMUmxDD8TYar3jvZMwbVaxAAAAAElFTkSuQmCC'
-        )
-    tray = new Tray(img)
+    // 托盘专用图标：16px(100% DPI) + 32px(200% DPI) 双分辨率表示。
+    // 若直接用 256px 大图，Windows 缩到 16px 会把小电视细节完全糊掉。
+    const base = app.isPackaged ? process.resourcesPath : join(__dirname, '..', 'build')
+    const img = nativeImage.createEmpty()
+    for (const [sf, file] of [[1, 'icon-16.png'], [2, 'icon-32.png']] as const) {
+      const p = join(base, file)
+      if (existsSync(p)) img.addRepresentation({ scaleFactor: sf, buffer: readFileSync(p) })
+    }
+    const finalImg = img.isEmpty() ? nativeImage.createFromPath(join(base, 'icon.png')) : img
+    tray = new Tray(finalImg)
     tray.setToolTip('ACGN Records')
     const menu = Menu.buildFromTemplate([
       { label: '显示主界面', click: () => showMainWindow() },
