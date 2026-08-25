@@ -72,11 +72,18 @@ async function load(withMe = false) {
 function closeAll() {
   emit('close')
 }
+// Esc 关闭讨论板并阻止事件继续传播：
+// EntitySubjectCard 也监听全局 Esc（关闭整个 overlay 含背后的作品卡），
+// 若不拦截会出现「按一次 Esc 把讨论板+作品卡全部关掉」。用 capture 阶段监听
+// 并 stopPropagation，保证只有讨论板响应、作品卡保留在背后。
 function onKey(e: KeyboardEvent) {
-  if (e.key === 'Escape' && props.topicId != null) closeAll()
+  if (e.key === 'Escape' && props.topicId != null) {
+    e.stopPropagation()
+    closeAll()
+  }
 }
-onMounted(() => window.addEventListener('keydown', onKey))
-onUnmounted(() => window.removeEventListener('keydown', onKey))
+onMounted(() => window.addEventListener('keydown', onKey, true))
+onUnmounted(() => window.removeEventListener('keydown', onKey, true))
 
 watch(() => props.topicId, () => { detail.value = null; load(true) })
 
@@ -247,6 +254,9 @@ function onTaKey(e: KeyboardEvent) {
     <div v-if="topicId != null" class="tb-backdrop" :style="{ zIndex: z }" @click.self="closeAll">
       <div class="tb-modal ec-modal-size" @click.stop>
         <header class="ec-head tb-head">
+          <button class="back-btn" type="button" title="返回" aria-label="返回" @click="closeAll">
+            <svg class="back-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="12" x2="4" y2="12" /><polyline points="10,5 4,12 10,19" /></svg>
+          </button>
           <div class="ec-title tb-title">
             <span class="tb-tag">讨论板</span>
             <span class="ec-name">{{ detail?.title || '加载中…' }}</span>
@@ -466,7 +476,9 @@ function onTaKey(e: KeyboardEvent) {
 </template>
 
 <style scoped>
-/* 遮罩：顶部对齐 8vh（与单集评论悬浮窗 swap-panel 的 top:8vh 一致，保证上下位置一致） */
+/* 遮罩：顶部对齐 8vh（与单集评论悬浮窗 swap-panel 的 top:8vh 一致，保证上下位置一致）。
+   暗化+高斯模糊与全局 .modal-backdrop / CollectionModal 同规格（讨论板叠在作品卡之上，
+   需自带模糊才能盖住下方内容）。 */
 .tb-backdrop {
   position: fixed;
   inset: 0;
@@ -474,7 +486,29 @@ function onTaKey(e: KeyboardEvent) {
   align-items: flex-start;
   justify-content: center;
   padding: 8vh 32px 6vh;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(8, 10, 14, 0.42);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+/* 返回按钮：样式同单集评论悬浮窗的 back-btn */
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border: none;
+  background: var(--bg-elev);
+  color: var(--text-dim);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.back-icon { width: 16px; height: 16px; display: block; }
+.back-btn:hover {
+  background: var(--accent-2);
+  color: #fff;
 }
 /* 宽高与单集评论悬浮窗一致：限宽 1000px、高度上限 80vh */
 .tb-modal.ec-modal-size {
