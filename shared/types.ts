@@ -915,6 +915,10 @@ export interface AcgnApi {
     getTopics: (subjectId: string) => Promise<{ topics: BgmTopic[]; total: number; notFound?: boolean }>
     /** 取讨论串详情（next p1 /subjects/-/topics/{id}，含全部楼层与楼中楼，匿名可访问） */
     getTopicDetail: (topicId: number) => Promise<BgmTopicDetail | null>
+    /** 在讨论串下发表回复（需登录；replyTo 指向楼层 id = 楼中楼回复），返回新楼层 id */
+    postTopicReply: (payload: { topicId: number; content: string; replyTo?: number | null }) => Promise<{ id: number }>
+    /** 讨论楼层表情回应 toggle（需登录；端点为 subjects/-/posts/{postId}/like） */
+    toggleTopicReaction: (payload: { postId: number; value: number; remove?: boolean }) => Promise<{ synced: boolean }>
     /** 取角色/人物详情（替代跳转 bgm 网页）：kind='character'|'person'，匿名亦可访问 */
     getEntity: (kind: 'character' | 'person', id: number) => Promise<EntityDetail>
     /**

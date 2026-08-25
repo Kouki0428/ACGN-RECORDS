@@ -24,6 +24,12 @@ export const subjectClient = {
   /** 讨论串详情（全部楼层+楼中楼，匿名可访问） */
   getTopicDetail: (topicId: number): Promise<BgmTopicDetail | null> =>
     window.acgn.subject.getTopicDetail(topicId),
+  /** 在讨论串下发表回复（需登录；replyTo=楼层 id 为楼中楼） */
+  postTopicReply: (payload: { topicId: number; content: string; replyTo?: number | null }) =>
+    window.acgn.subject.postTopicReply(payload) as Promise<{ id: number }>,
+  /** 讨论楼层表情回应 toggle（需登录） */
+  toggleTopicReaction: (payload: { postId: number; value: number; remove?: boolean }) =>
+    window.acgn.subject.toggleTopicReaction(payload) as Promise<{ synced: boolean }>,
   /** 取角色/人物详情（替代跳转 bgm 网页） */
   getEntity: (kind: 'character' | 'person', id: number): Promise<EntityDetail> =>
     window.acgn.subject.getEntity(kind, id),

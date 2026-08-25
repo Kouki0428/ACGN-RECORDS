@@ -773,6 +773,78 @@ export async function getTopicDetail(topicId: number, token?: string): Promise<B
   }
 }
 
+/**
+ * 在讨论串下发表回复（POST /p1/subjects/-/topics/{topicId}/replies，需 Bearer 令牌）。
+ * replyTo：0 或缺省 = 顶层回复；传某楼层 id = 楼中楼回复（Bangumi 两层模型）。
+ * 返回新楼层 id。
+ */
+export async function postTopicReply(
+  topicId: number,
+  content: string,
+  token: string,
+  replyTo?: number | null
+): Promise<number> {
+  const url = `${P1_BASE}/subjects/-/topics/${encodeURIComponent(String(topicId))}/replies`
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'User-Agent': UA
+    },
+    body: JSON.stringify({ content, replyTo: replyTo ?? 0 })
+  })
+  if (res.status === 401) throw new Error(tagError('AUTH', 'Bangumi 授权已失效，请重新登录'))
+  if (!res.ok) {
+    let msg = `回复失败 (HTTP ${res.status})`
+    try {
+      const err = (await res.json()) as any
+      if (err?.message) msg += `：${err.message}`
+    } catch {
+      /* 忽略解析失败 */
+    }
+    throw new Error(msg)
+  }
+  const json = (await res.json().catch(() => ({}))) as any
+  return typeof json?.id === 'number' ? json.id : 0
+}
+
+/**
+ * 讨论楼层表情回应 toggle（PUT/DELETE /p1/subjects/-/posts/{postId}/like，需 Bearer 令牌）。
+ * 注意与单集评论的 like 端点不同：讨论楼层走 subjects/-/posts/{postId}。
+ */
+export async function toggleTopicPostReaction(
+  postId: number | string,
+  value: number | string,
+  token: string,
+  remove = false
+): Promise<void> {
+  const url = `${P1_BASE}/subjects/-/posts/${encodeURIComponent(String(postId))}/like`
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    Accept: 'application/json',
+    'User-Agent': UA
+  }
+  const options: RequestInit = { method: remove ? 'DELETE' : 'PUT', headers }
+  if (!remove) {
+    headers['Content-Type'] = 'application/json'
+    options.body = JSON.stringify({ value: Number(value) })
+  }
+  const res = await fetch(url, options)
+  if (res.status === 401) throw new Error(tagError('AUTH', 'Bangumi 授权已失效，请重新登录'))
+  if (!res.ok) {
+    let msg = `发表表情回应失败 (HTTP ${res.status})`
+    try {
+      const err = (await res.json()) as any
+      if (err?.message) msg += `：${err.message}`
+    } catch {
+      /* 忽略解析失败 */
+    }
+    throw new Error(msg)
+  }
+}
+
 export interface CollectionUpdatePayload {
   type?: number
   /** 用户星级评分（Bangumi 字段名为 `rate`，整数 1-10；0 表示删除评分） */

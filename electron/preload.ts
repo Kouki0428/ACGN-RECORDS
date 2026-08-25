@@ -147,6 +147,10 @@ const api: AcgnApi = {
       }>,
     getTopicDetail: (topicId: number) =>
       ipcRenderer.invoke('subject:topicDetail', topicId) as Promise<BgmTopicDetail | null>,
+    postTopicReply: (payload: { topicId: number; content: string; replyTo?: number | null }) =>
+      ipcRenderer.invoke('subject:postTopicReply', payload) as Promise<{ id: number }>,
+    toggleTopicReaction: (payload: { postId: number; value: number; remove?: boolean }) =>
+      ipcRenderer.invoke('subject:toggleTopicReaction', payload) as Promise<{ synced: boolean }>,
     getEntity: (kind: 'character' | 'person', id: number) =>
       ipcRenderer.invoke('subject:entity', kind, id) as Promise<EntityDetail>,
     detailFull: (id: number, opts?: { withCn?: boolean }) =>

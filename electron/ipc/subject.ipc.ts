@@ -4,6 +4,8 @@ import {
   getSubjectComments,
   getSubjectTopics,
   getTopicDetail,
+  postTopicReply,
+  toggleTopicPostReaction,
   getEntityDetail,
   getSubjectFull,
   getSubjectCharacters,
@@ -50,6 +52,19 @@ export function registerSubjectIpc(): void {
     if (!topicId) return null
     const token = await getValidToken()
     return getTopicDetail(topicId, token ?? undefined)
+  })
+  // 在讨论串下发表回复（需登录；replyTo 指向楼层 id = 楼中楼）
+  ipcMain.handle('subject:postTopicReply', async (_e, payload: { topicId: number; content: string; replyTo?: number | null }) => {
+    const token = await getValidToken()
+    if (!token) throw new Error('未登录：请先在「个人」页登录 Bangumi 账号')
+    return postTopicReply(payload.topicId, payload.content, token, payload.replyTo)
+  })
+  // 讨论楼层表情回应 toggle（需登录）
+  ipcMain.handle('subject:toggleTopicReaction', async (_e, payload: { postId: number; value: number; remove?: boolean }) => {
+    const token = await getValidToken()
+    if (!token) throw new Error('未登录：请先在「个人」页登录 Bangumi 账号')
+    await toggleTopicPostReaction(payload.postId, payload.value, token, payload.remove)
+    return { synced: true }
   })
   // 角色/人物详情（点击详情页角色或 CV 打开卡片，替代跳转 bgm 网页）
   ipcMain.handle('subject:entity', async (_e, kind: 'character' | 'person', id: number) => {
