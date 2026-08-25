@@ -924,23 +924,22 @@ body,
   position: relative;
 }
 /* 封面横幅：模糊放大的封面铺在详情头部作装饰（可在设置关闭）。
-   绝对定位 + 大幅负 top 直接上探到滚动容器最顶沿（穿过吸顶锚点栏背后，
-   锚点栏磨砂玻璃浮在光晕上、滚动时横幅连续滑过，无生硬分界）；
-   顶部多余部分由 blur(70px) 自然晕开，配合 mask 向下渐隐。
+   绝对定位 + 负内边距外溢到窗口边缘；向上探 64px 漫过吸顶锚点栏背后，
+   让锚点栏浮在模糊光晕上、滚动时横幅从栏后连续滑过，但不到达窗口最顶。
    后续兄弟（.detail__main / .panel）设为 positioned 使其绘制在横幅之上。 */
 .detail-banner {
   position: absolute;
-  top: -130px;
+  top: -90px;
   left: -30px;
   right: -30px;
-  height: 540px;
+  height: 460px;
   background-size: cover;
   background-position: center 25%;
   filter: blur(70px) saturate(1.45);
   opacity: 0.32;
   pointer-events: none;
-  -webkit-mask-image: linear-gradient(to bottom, #000 30%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 30%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 40%, transparent 100%);
 }
 .detail__main,
 .detail > .panel {
