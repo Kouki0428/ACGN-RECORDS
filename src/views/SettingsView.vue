@@ -822,11 +822,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
       </label>
       <label class="progress-editor">
         <input type="checkbox" :checked="settings.immersiveGlow" @change="settings.set('immersiveGlow', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
-        沉浸光感（快捷跳转按钮的液态玻璃质感与鼠标跟随光斑）
-      </label>
-      <label class="progress-editor">
-        <input type="checkbox" :checked="settings.closeBehavior === 'minimize'" @change="settings.set('closeBehavior', ($event.target as HTMLInputElement).checked ? 'minimize' : 'exit')" />
-        关闭按钮最小化到托盘（后台同步继续；从托盘菜单可真正退出）
+        沉浸光感
       </label>
 
       <hr class="divider" />
@@ -1104,6 +1100,13 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         <span class="hint" style="margin: 0">GitHub 仓库：</span>
         <button class="btn btn--ghost btn--sm" @click="openRepo">Kouki0428/ACGN-RECORDS</button>
       </div>
+
+      <!-- 关闭行为 -->
+      <hr class="divider" />
+      <label class="progress-editor">
+        <input type="checkbox" :checked="settings.closeBehavior === 'minimize'" @change="settings.set('closeBehavior', ($event.target as HTMLInputElement).checked ? 'minimize' : 'exit')" />
+        关闭按钮最小化到托盘（后台同步继续；从托盘菜单可真正退出）
+      </label>
     </section>
       </template>
     </template><!-- /v-else 分类详情 -->
