@@ -108,6 +108,53 @@ export interface SubjectComment {
   }
 }
 
+/** Bangumi 讨论串（next.bgm.tv/p1 条目讨论版，结构化 JSON）。
+ *  单条目列表（/p1/subjects/{id}/topics）不含 subject；每条含作者与回复数。 */
+export interface BgmTopic {
+  id: number
+  title: string
+  /** 回复数 */
+  replyCount: number
+  /** 发布时间戳（秒） */
+  createdAt: number
+  /** 最后回复时间戳（秒） */
+  updatedAt: number
+  creator?: {
+    username?: string
+    nickname?: string
+    avatar?: { small?: string; medium?: string; large?: string } | null
+  }
+}
+
+/** 讨论串内一条楼层（/p1/subjects/-/topics/{id} 的 replies 元素；楼中楼嵌套在 replies 里） */
+export interface BgmTopicReply {
+  id: number
+  content: string
+  /** 时间戳（秒） */
+  createdAt: number
+  creator: {
+    username: string
+    nickname: string
+    avatar: string | null
+  }
+  /** 楼中楼（Bangumi 两层模型：子楼层再回复仍归并到所属顶层楼层的 replies） */
+  replies: BgmTopicReply[]
+  /** 表情回应（登录态返回） */
+  reactions?: CommentReaction[]
+}
+
+/** 讨论串详情：元信息 + 所属条目 + 全部楼层（replies[0] 为楼主帖） */
+export interface BgmTopicDetail extends BgmTopic {
+  subject?: {
+    id: number
+    name: string
+    nameCN?: string
+    images?: { medium?: string; common?: string }
+    rating?: { score?: number }
+  } | null
+  replies: BgmTopicReply[]
+}
+
 /** 评论表情回应（Bangumi 单集评论的 reactions 字段，仅登录态返回）。
  *  value=表情标识（数字，对应 Bangumi 一组固定表情之一）；users=回应者列表；total=人数（缺省取 users.length）。 */
 export interface CommentReaction {
@@ -864,6 +911,10 @@ export interface AcgnApi {
   subject: {
     /** 取 Bangumi 条目吐槽区中其它用户的吐槽（next p1 /subjects/{id}/comments，匿名可访问） */
     getComments: (subjectId: string, offset?: number) => Promise<{ comments: SubjectComment[]; total: number; notFound?: boolean }>
+    /** 取某条目的讨论串列表（next p1 /subjects/{id}/topics，匿名可访问；按最后回复排序） */
+    getTopics: (subjectId: string) => Promise<{ topics: BgmTopic[]; total: number; notFound?: boolean }>
+    /** 取讨论串详情（next p1 /subjects/-/topics/{id}，含全部楼层与楼中楼，匿名可访问） */
+    getTopicDetail: (topicId: number) => Promise<BgmTopicDetail | null>
     /** 取角色/人物详情（替代跳转 bgm 网页）：kind='character'|'person'，匿名亦可访问 */
     getEntity: (kind: 'character' | 'person', id: number) => Promise<EntityDetail>
     /**

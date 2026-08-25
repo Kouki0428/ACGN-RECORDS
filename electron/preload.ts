@@ -1,6 +1,6 @@
 import electron from 'electron'
 const { contextBridge, ipcRenderer, webFrame } = electron
-import type { AcgnApi, EntityDetail, SubjectFullDetail, SubjectCharacter, SubjectPerson, EpisodeProgressState, SubjectFullEpisode, EpisodeComment, EpisodeDetail, CacheStats, NetworkStatsResult } from '../shared/types'
+import type { AcgnApi, EntityDetail, SubjectFullDetail, SubjectCharacter, SubjectPerson, EpisodeProgressState, SubjectFullEpisode, EpisodeComment, EpisodeDetail, CacheStats, NetworkStatsResult, BgmTopic, BgmTopicDetail } from '../shared/types'
 
 // 仅暴露白名单方法，绝不直接暴露 require / fs / ipcRenderer 本身
 const api: AcgnApi = {
@@ -139,6 +139,14 @@ const api: AcgnApi = {
   },
   subject: {
     getComments: (subjectId: string, offset = 0) => ipcRenderer.invoke('subject:comments', subjectId, offset),
+    getTopics: (subjectId: string) =>
+      ipcRenderer.invoke('subject:topics', subjectId) as Promise<{
+        topics: BgmTopic[]
+        total: number
+        notFound?: boolean
+      }>,
+    getTopicDetail: (topicId: number) =>
+      ipcRenderer.invoke('subject:topicDetail', topicId) as Promise<BgmTopicDetail | null>,
     getEntity: (kind: 'character' | 'person', id: number) =>
       ipcRenderer.invoke('subject:entity', kind, id) as Promise<EntityDetail>,
     detailFull: (id: number, opts?: { withCn?: boolean }) =>

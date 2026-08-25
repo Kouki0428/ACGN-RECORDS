@@ -5,7 +5,9 @@ import type {
   SubjectCharacter,
   SubjectPerson,
   EpisodeProgressState,
-  SubjectFullEpisode
+  SubjectFullEpisode,
+  BgmTopic,
+  BgmTopicDetail
 } from '@shared/types'
 
 /** 条目维度客户端：当前用于拉取 Bangumi 条目吐槽区中其它用户的吐槽，以及角色/人物/作品详情 */
@@ -16,6 +18,12 @@ export const subjectClient = {
       total: number
       notFound?: boolean
     }>,
+  /** 某条目的讨论串列表（p1，匿名可访问；按最后回复排序） */
+  getTopics: (subjectId: string): Promise<{ topics: BgmTopic[]; total: number; notFound?: boolean }> =>
+    window.acgn.subject.getTopics(subjectId),
+  /** 讨论串详情（全部楼层+楼中楼，匿名可访问） */
+  getTopicDetail: (topicId: number): Promise<BgmTopicDetail | null> =>
+    window.acgn.subject.getTopicDetail(topicId),
   /** 取角色/人物详情（替代跳转 bgm 网页） */
   getEntity: (kind: 'character' | 'person', id: number): Promise<EntityDetail> =>
     window.acgn.subject.getEntity(kind, id),

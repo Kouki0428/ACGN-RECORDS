@@ -2,6 +2,8 @@ import electron from 'electron'
 const { ipcMain } = electron
 import {
   getSubjectComments,
+  getSubjectTopics,
+  getTopicDetail,
   getEntityDetail,
   getSubjectFull,
   getSubjectCharacters,
@@ -36,6 +38,18 @@ export function registerSubjectIpc(): void {
     if (!subjectId) return { comments: [], total: 0 }
     const token = await getValidToken()
     return getSubjectComments(subjectId, offset, 20, token ?? undefined)
+  })
+  // 某条目的讨论串列表（next p1，匿名可访问；受限条目带令牌）
+  ipcMain.handle('subject:topics', async (_e, subjectId: string) => {
+    if (!subjectId) return { topics: [], total: 0 }
+    const token = await getValidToken()
+    return getSubjectTopics(subjectId, token ?? undefined)
+  })
+  // 讨论串详情（全部楼层+楼中楼；受限内容匿名 404 → null）
+  ipcMain.handle('subject:topicDetail', async (_e, topicId: number) => {
+    if (!topicId) return null
+    const token = await getValidToken()
+    return getTopicDetail(topicId, token ?? undefined)
   })
   // 角色/人物详情（点击详情页角色或 CV 打开卡片，替代跳转 bgm 网页）
   ipcMain.handle('subject:entity', async (_e, kind: 'character' | 'person', id: number) => {

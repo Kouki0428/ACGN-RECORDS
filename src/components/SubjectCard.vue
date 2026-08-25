@@ -13,6 +13,7 @@ import SubjectMetaPanel from '@/components/SubjectMetaPanel.vue'
 import SubjectCharacters from '@/components/SubjectCharacters.vue'
 import SubjectRelations from '@/components/SubjectRelations.vue'
 import TucaoBox from '@/components/TucaoBox.vue'
+import SubjectTopics from '@/components/SubjectTopics.vue'
 import CollectionBar from '@/components/CollectionBar.vue'
 import GameGallery from '@/components/GameGallery.vue'
 import PurchaseInfo from '@/components/PurchaseInfo.vue'
@@ -663,6 +664,8 @@ watch(
         </template>
       </PurchaseInfo>
       <p v-if="detail.subject.category === 'galgame' && saveMsg" class="ok">{{ saveMsg }}</p>
+      <!-- 本作讨论（默认最新2条，可展开分页；点击弹出讨论板悬浮窗） -->
+      <SubjectTopics :subject-id="providerId" />
       <!-- 吐槽区 -->
       <TucaoBox :subject-id="providerId" :media-type="mediaType" />
     </div>

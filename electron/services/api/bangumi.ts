@@ -1,4 +1,4 @@
-import type { Category, Subject, SubjectTag, SubjectMeta, SubjectComment, EntityDetail, EntityWorkItem, SubjectFullDetail, SubjectFullEpisode, EpisodeComment, EpisodeDetail, SubjectPerson } from '../../../../shared/types'
+import type { Category, Subject, SubjectTag, SubjectMeta, SubjectComment, EntityDetail, EntityWorkItem, SubjectFullDetail, SubjectFullEpisode, EpisodeComment, EpisodeDetail, SubjectPerson, BgmTopic, BgmTopicReply, BgmTopicDetail } from '../../../../shared/types'
 import { UA, getBangumiAccount, refreshAccessToken } from '../auth/oauth'
 import { getArchiveSubjectDates } from '../archive/archive.service'
 import { dbg } from '../debugLog'
@@ -669,6 +669,108 @@ export async function getSubjectComments(
     }
   })
   return { comments, total: json.total ?? comments.length, notFound: false }
+}
+
+/** 归一化 p1 讨论串（兼容 camelCase 字段名） */
+function normalizeP1Topic(t: any): BgmTopic {
+  const creator = t.creator ?? {}
+  const avatar = creator.avatar
+  return {
+    id: t.id,
+    title: t.title ?? '',
+    replyCount: typeof t.replyCount === 'number' ? t.replyCount : t.replies ?? 0,
+    createdAt:
+      typeof t.createdAt === 'number' ? t.createdAt : Math.floor(new Date(t.date ?? 0).getTime() / 1000),
+    updatedAt:
+      typeof t.updatedAt === 'number' ? t.updatedAt : Math.floor(new Date(t.lastpost ?? 0).getTime() / 1000),
+    creator: {
+      username: creator.username ?? '',
+      nickname: creator.nickname ?? creator.username ?? '',
+      avatar:
+        avatar && typeof avatar === 'object'
+          ? { small: avatar.small, medium: avatar.medium, large: avatar.large }
+          : null
+    }
+  }
+}
+
+/** 归一化楼层（递归楼中楼）；表情回应结构与单集评论 reactions 一致，直接透传 */
+function normalizeP1Reply(r: any): BgmTopicReply {
+  const c = r.creator ?? {}
+  const avatar = c.avatar
+  return {
+    id: r.id,
+    content: r.content ?? '',
+    createdAt: typeof r.createdAt === 'number' ? r.createdAt : 0,
+    creator: {
+      username: c.username ?? '',
+      nickname: c.nickname ?? c.username ?? '',
+      avatar:
+        avatar && typeof avatar === 'object'
+          ? avatar.large || avatar.medium || avatar.small || null
+          : typeof avatar === 'string'
+            ? avatar
+            : null
+    },
+    replies: Array.isArray(r.replies) ? r.replies.map(normalizeP1Reply) : [],
+    reactions: Array.isArray(r.reactions) ? r.reactions : undefined
+  }
+}
+
+export interface BgmTopicsResult {
+  topics: BgmTopic[]
+  total: number
+  /** 条目不存在/已合并/受限需登录 */
+  notFound?: boolean
+}
+
+/**
+ * 取某条目的讨论串列表（next.bgm.tv/p1/subjects/{id}/topics，匿名可访问）。
+ * 返回按最后回复排序；受限条目匿名 404 → notFound=true（与吐槽箱同策略）。
+ */
+export async function getSubjectTopics(subjectId: string, token?: string): Promise<BgmTopicsResult> {
+  const url = `${P1_BASE}/subjects/${encodeURIComponent(subjectId)}/topics`
+  const res = token
+    ? await authedFetch(url, token, { headers: { Accept: 'application/json' } })
+    : await fetch(url, { headers: authHeaders() })
+  if (res.status === 404 || res.status === 410) {
+    console.warn('[getSubjectTopics] 条目不存在/已合并/需登录：', subjectId)
+    return { topics: [], total: 0, notFound: true }
+  }
+  if (!res.ok) throw new Error(`获取条目讨论失败 (HTTP ${res.status})`)
+  const json = (await res.json()) as any
+  // p1 返回 { data: [...], total }；防御性兼容裸数组
+  const list: any[] = Array.isArray(json) ? json : json.data ?? []
+  const topics = list.map(normalizeP1Topic)
+  return { topics, total: json.total ?? topics.length, notFound: false }
+}
+
+/**
+ * 取讨论串详情（next.bgm.tv/p1/subjects/-/topics/{id}，匿名可访问）。
+ * 返回全部楼层（replies[0] 为楼主帖）+ 楼中楼嵌套 + 表情回应；受限内容匿名 404 → null。
+ */
+export async function getTopicDetail(topicId: number, token?: string): Promise<BgmTopicDetail | null> {
+  const url = `${P1_BASE}/subjects/-/topics/${encodeURIComponent(String(topicId))}`
+  const res = token
+    ? await authedFetch(url, token, { headers: { Accept: 'application/json' } })
+    : await fetch(url, { headers: authHeaders() })
+  if (res.status === 404 || res.status === 410) return null
+  if (!res.ok) throw new Error(`获取讨论详情失败 (HTTP ${res.status})`)
+  const json = (await res.json()) as any
+  const s = json.subject ?? null
+  return {
+    ...normalizeP1Topic(json),
+    subject: s
+      ? {
+          id: s.id,
+          name: s.name ?? '',
+          nameCN: s.nameCN ?? s.name_cn,
+          images: s.images,
+          rating: s.rating && typeof s.rating.score !== 'undefined' ? { score: s.rating.score } : undefined
+        }
+      : null,
+    replies: Array.isArray(json.replies) ? json.replies.map(normalizeP1Reply) : []
+  }
 }
 
 export interface CollectionUpdatePayload {
