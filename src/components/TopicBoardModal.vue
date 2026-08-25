@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useModalZ } from '@/composables/useModalZ'
 import { subjectClient } from '@/services/subjectClient'
 import BgmBbcode from '@/components/BgmBbcode.vue'
 import type { BgmTopicDetail, BgmTopicReply } from '@shared/types'
@@ -10,6 +11,10 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{ (e: 'close'): void }>()
+
+// 悬浮窗层级：走全局递增管理器，保证盖在作品悬浮卡（同为 useModalZ 体系）之上
+const isOpen = computed(() => props.topicId != null)
+const z = useModalZ(isOpen)
 
 const detail = ref<BgmTopicDetail | null>(null)
 const loading = ref(false)
@@ -71,7 +76,7 @@ watch(() => props.topicId, () => load(), { immediate: true })
 
 <template>
   <Teleport to="body">
-    <div v-if="topicId != null" class="tb-backdrop" @click.self="emit('close')">
+    <div v-if="topicId != null" class="tb-backdrop" :style="{ zIndex: z }" @click.self="emit('close')">
       <div class="tb-modal" @click.stop>
         <header class="ec-head tb-head">
           <div class="ec-title tb-title">
@@ -160,7 +165,6 @@ watch(() => props.topicId, () => load(), { immediate: true })
 .tb-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 90;
   display: flex;
   align-items: center;
   justify-content: center;

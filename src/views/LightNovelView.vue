@@ -5,6 +5,7 @@ import SubjectMetaPanel from '@/components/SubjectMetaPanel.vue'
 import SubjectCharacters from '@/components/SubjectCharacters.vue'
 import SubjectRelations from '@/components/SubjectRelations.vue'
 import TucaoBox from '@/components/TucaoBox.vue'
+import SubjectTopics from '@/components/SubjectTopics.vue'
 import CollectionBar from '@/components/CollectionBar.vue'
 import StatusTabs from '@/components/StatusTabs.vue'
 import CoverImage from '@/components/CoverImage.vue'
@@ -260,6 +261,7 @@ onUnmounted(() => {
       <SubjectCharacters :subject-id="selected.subject?.id" :characters="selected.characters || []" data-anchor="characters" />
       <SubjectRelations :subject-id="selected.subject.id" :relations="selected.relations || []" filter="single" data-anchor="single" @select="onSubjectSelect" />
       <SubjectRelations :subject-id="selected.subject.id" :relations="selected.relations || []" filter="other" data-anchor="relations" @select="onSubjectSelect" />
+      <SubjectTopics :subject-id="selected.subject?.provider_subject_id ?? null" />
       <TucaoBox :subject-id="selected.subject?.provider_subject_id ?? null" media-type="book" data-anchor="tucao" />
       </div>
     </template>

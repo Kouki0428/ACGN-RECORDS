@@ -6,6 +6,7 @@ import SubjectMetaPanel from '@/components/SubjectMetaPanel.vue'
 import SubjectCharacters from '@/components/SubjectCharacters.vue'
 import SubjectRelations from '@/components/SubjectRelations.vue'
 import TucaoBox from '@/components/TucaoBox.vue'
+import SubjectTopics from '@/components/SubjectTopics.vue'
 import CollectionBar from '@/components/CollectionBar.vue'
 import GameGallery from '@/components/GameGallery.vue'
 import StatusTabs from '@/components/StatusTabs.vue'
@@ -347,6 +348,8 @@ onUnmounted(() => {
         </template>
       </PurchaseInfo>
       <p v-if="saveMsg" class="ok">{{ saveMsg }}</p>
+
+      <SubjectTopics :subject-id="selected.subject?.provider_subject_id ?? null" />
 
       <TucaoBox :subject-id="selected.subject?.provider_subject_id ?? null" media-type="game" data-anchor="tucao" />
       </div>
