@@ -168,12 +168,13 @@ watch(() => props.topicId, () => load(), { immediate: true })
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4vh 16px;
+  padding: 32px;
   background: rgba(0, 0, 0, 0.55);
 }
+/* 宽高与单集评论悬浮窗(.ec-modal + swap-panel)一致：限宽 1000px、高度上限 80vh */
 .tb-modal {
-  width: min(680px, 100%);
-  max-height: 84vh;
+  width: min(1000px, 100%);
+  max-height: 80vh;
   display: flex;
   flex-direction: column;
   background: var(--bg-panel);
