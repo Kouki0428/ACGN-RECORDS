@@ -115,11 +115,6 @@ watch(
   /* 内容缩进保持与页面正文对齐（30px 外边距补偿 + 原 2px + 10px 呼吸位） */
   padding: 8px 42px;
   margin-bottom: 4px;
-  /* 磨砂玻璃：低不透明度底 + 强模糊，横幅光晕从栏体背后透出、随横幅一起「渐隐」；
-     底色透明度压低（56%）让光晕更连贯地漫过栏体，衔接更自然 */
-  background: color-mix(in srgb, var(--bg) 56%, transparent);
-  backdrop-filter: blur(16px) saturate(1.3);
-  -webkit-backdrop-filter: blur(16px) saturate(1.3);
 }
 .anchor-chip {
   padding: 4px 12px;
