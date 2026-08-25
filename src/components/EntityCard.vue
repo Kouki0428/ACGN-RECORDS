@@ -32,8 +32,9 @@ const error = ref('')
 async function load() {
   const s = state.value
   // 作品卡（subject）由 SubjectCard 自行拉取；单集评论（episode）由 EpisodeCommentModal 处理；
-  // 标签作品列表（tag）由 TagWorksCard 处理。EntityCard 只负责角色 / CV 两类。
-  if (!s || s.kind === 'subject' || s.kind === 'episode' || s.kind === 'tag') return
+  // 标签作品列表（tag）由 TagWorksCard 处理；讨论板（topic）由 TopicBoardModal 处理。
+  // EntityCard 只负责角色 / CV 两类。
+  if (!s || s.kind !== 'character' && s.kind !== 'person') return
   loading.value = true
   error.value = ''
   try {

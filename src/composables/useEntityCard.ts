@@ -1,8 +1,8 @@
 import { ref, computed, nextTick } from 'vue'
 import type { SubjectCharacter } from '@shared/types'
 
-/** 实体/作品卡片类型：角色 / 人物（CV） / 作品 / 单集评论 / 标签作品列表 */
-export type CardKind = 'character' | 'person' | 'subject' | 'episode' | 'tag'
+/** 实体/作品卡片类型：角色 / 人物（CV） / 作品 / 单集评论 / 标签作品列表 / 讨论板 */
+export type CardKind = 'character' | 'person' | 'subject' | 'episode' | 'tag' | 'topic'
 
 /** 卡片打开时携带的状态（轻量；详情数据由各卡片组件自行按需拉取） */
 export interface CardState {

@@ -5,6 +5,7 @@ import { useModalZ } from '@/composables/useModalZ'
 import EntityCard from '@/components/EntityCard.vue'
 import SubjectCard from '@/components/SubjectCard.vue'
 import EpisodeCommentModal from '@/components/EpisodeCommentModal.vue'
+import TopicBoardModal from '@/components/TopicBoardModal.vue'
 import TagWorksCard from '@/components/TagWorksCard.vue'
 
 // 实体/作品卡片共用同一导航栈（useEntityCard），原本拆成 EntityCard（角色/CV）与
@@ -25,6 +26,7 @@ const bodyComp = computed(() => {
   const k = state.value?.kind
   if (k === 'subject') return SubjectCard
   if (k === 'episode') return EpisodeCommentModal
+  if (k === 'topic') return TopicBoardModal
   if (k === 'tag') return TagWorksCard
   return EntityCard
 })
@@ -82,10 +84,12 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
 .overlay-enter-active :deep(.entity-card),
 .overlay-enter-active :deep(.subject-card),
 .overlay-enter-active :deep(.ec-modal),
+.overlay-enter-active :deep(.tb-modal),
 .overlay-enter-active :deep(.tag-works-card),
 .overlay-leave-active :deep(.entity-card),
 .overlay-leave-active :deep(.subject-card),
 .overlay-leave-active :deep(.ec-modal),
+.overlay-leave-active :deep(.tb-modal),
 .overlay-leave-active :deep(.tag-works-card) {
   transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.22s ease;
 }
@@ -96,10 +100,12 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
 .overlay-enter-from :deep(.entity-card),
 .overlay-enter-from :deep(.subject-card),
 .overlay-enter-from :deep(.ec-modal),
+.overlay-enter-from :deep(.tb-modal),
 .overlay-enter-from :deep(.tag-works-card),
 .overlay-leave-to :deep(.entity-card),
 .overlay-leave-to :deep(.subject-card),
 .overlay-leave-to :deep(.ec-modal),
+.overlay-leave-to :deep(.tb-modal),
 .overlay-leave-to :deep(.tag-works-card) {
   transform: translateY(-14px) scale(0.98);
   opacity: 0;

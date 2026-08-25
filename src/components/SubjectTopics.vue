@@ -1,13 +1,24 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { useEntityCard } from '@/composables/useEntityCard'
+import { useTopicBoard } from '@/composables/useTopicBoard'
 import { subjectClient } from '@/services/subjectClient'
-import TopicBoardModal from '@/components/TopicBoardModal.vue'
 import type { BgmTopic } from '@shared/types'
 
 const props = defineProps<{
   /** Bangumi 条目 id（provider id，非本地 subjects.id） */
   subjectId: string | null
 }>()
+
+// 讨论板并入 EntitySubjectCard 单一 overlay（kind='topic'）：先写数据再压导航栈，
+// 返回按钮/侧键即可回到上一层作品卡；实体卡未开时 push 空栈 = 直接打开。
+const entity = useEntityCard()
+const board = useTopicBoard()
+
+function openTopic(t: BgmTopic) {
+  board.setData(t.id)
+  entity.push('topic', t.id)
+}
 
 /** 收起时显示的最新条数；展开后每页条数 */
 const COLLAPSED = 2
@@ -21,9 +32,6 @@ const notFound = ref(false)
 /** false=收起（最新 2 条）；true=分页浏览 */
 const expanded = ref(false)
 const page = ref(0)
-
-/** 当前打开讨论板悬浮窗的讨论串 id */
-const openTopicId = ref<number | null>(null)
 
 function fmtTime(ts: number): string {
   if (!ts) return ''
@@ -112,7 +120,7 @@ watch(() => props.subjectId, () => load())
     <template v-else>
       <ul class="topic-list">
         <li v-for="t in visibleTopics" :key="t.id" class="topic-item" role="button" tabindex="0"
-            :title="t.title" @click="openTopicId = t.id" @keydown.enter.prevent="openTopicId = t.id">
+            :title="t.title" @click="openTopic(t)" @keydown.enter.prevent="openTopic(t)">
           <span class="topic-title">{{ t.title }}</span>
           <span class="topic-meta">
             <span v-if="t.creator?.nickname" class="topic-author">{{ t.creator.nickname }}</span>
@@ -128,9 +136,6 @@ watch(() => props.subjectId, () => load())
         <button class="topic-page-btn" type="button" :disabled="page >= totalPages - 1" @click="nextPage">下一页</button>
       </div>
     </template>
-
-    <!-- 讨论板悬浮窗（仿单集评论悬浮窗） -->
-    <TopicBoardModal :topic-id="openTopicId" @close="openTopicId = null" />
   </div>
 </template>
 
