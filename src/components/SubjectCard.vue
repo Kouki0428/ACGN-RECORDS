@@ -8,6 +8,7 @@ import { collectionClient } from '@/services/collectionClient'
 import { useEntityCard } from '@/composables/useEntityCard'
 import { useSearchOverlay } from '@/composables/searchOverlay'
 import { useRecent } from '@/composables/useRecent'
+import { useSettingsStore } from '@/stores/settings'
 import EpisodeGrid from '@/components/EpisodeGrid.vue'
 import SubjectMetaPanel from '@/components/SubjectMetaPanel.vue'
 import SubjectCharacters from '@/components/SubjectCharacters.vue'
@@ -29,6 +30,7 @@ const { openImage: openPoster } = useImagePreview()
 // 与 EntityCard 共用同一导航栈（state.kind === 'subject' 时由本组件渲染）。
 const { isOpen, state, close, push, back, navDir } = useEntityCard()
 const { pushRecentSubject } = useRecent()
+const settings = useSettingsStore()
 const searchOverlay = useSearchOverlay()
 // 当前卡片对应的 Bangumi 作品 id（本地窗口即可靠，不随联网详情替换而丢失 camel/snake 字段差异）
 const providerId = computed(() => {
@@ -595,6 +597,12 @@ watch(
     </div>
 
     <div v-else-if="detail" class="subject-body" ref="bodyEl" @scroll.passive="onBodyScroll">
+      <!-- 封面横幅：与详情页同款（模糊放大的封面铺在头部作装饰，可在设置关闭） -->
+      <div
+        v-if="settings.detailBanner && detail.subject.image_url"
+        class="detail-banner subject-banner"
+        :style="{ backgroundImage: `url(${proxyImg(detail.subject.image_url)})` }"
+      ></div>
       <!-- 头部：封面 + 标题 + 简介（复用全局 .detail__* 样式，与详情页一致） -->
       <div class="detail__main">
         <img v-if="detail.subject.image_url" :src="proxyImg(detail.subject.image_url)" class="detail__poster" :alt="detail.subject.title" @click.stop="openPoster(proxyImg(detail.subject.image_url), detail.subject.title)" style="cursor: pointer" />
@@ -735,6 +743,16 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 4px;
+  /* 封面横幅的定位上下文（横幅随内容滚动，行为与详情页一致） */
+  position: relative;
+}
+/* 悬浮窗内的横幅：抵消 .subject-body 的 16px 内边距铺满可视顶部，
+   其余 blur/透明度/渐隐 mask 复用全局 .detail-banner */
+.subject-banner {
+  top: -16px;
+  left: -16px;
+  right: -16px;
+  height: 360px;
 }
 .detail__poster--empty {
   display: flex;
