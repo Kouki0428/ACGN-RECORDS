@@ -750,12 +750,15 @@ watch(
   gap: 4px;
 }
 /* 悬浮窗横幅：铺到卡片最顶端（含标题栏背后），常驻不随滚动；
-   其余 blur/透明度/渐隐 mask 复用全局 .detail-banner */
+   其余 blur/透明度复用全局 .detail-banner；mask 覆盖为仅底部渐隐
+   （贴顶设计，顶部不需要渐入） */
 .subject-banner {
   top: 0;
   left: 0;
   right: 0;
   height: 300px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 30%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 30%, transparent 100%);
 }
 .detail__poster--empty {
   display: flex;

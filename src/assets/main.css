@@ -938,8 +938,10 @@ body,
   filter: blur(70px) saturate(1.45);
   opacity: 0.32;
   pointer-events: none;
-  -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 40%, transparent 100%);
+  /* 双端渐隐：顶部 0→20% 渐入（消除上缘硬边界，与页面背景融为一体），
+     底部 42%→100% 渐出（漫过锚点栏后柔和平息） */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 42%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 42%, transparent 100%);
 }
 .detail__main,
 .detail > .panel {
