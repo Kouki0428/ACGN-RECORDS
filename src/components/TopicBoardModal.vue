@@ -283,19 +283,6 @@ function onTaKey(e: KeyboardEvent) {
                     <span class="ec-c-floor">#1</span>
                     <span class="ec-c-time">{{ fmtTime(opPost.createdAt) }}</span>
                   </span>
-                </div>
-                <BgmBbcode :text="opPost.content" as="div" class="ec-c-content tb-op-content" />
-
-                <!-- 楼主帖表情回应 -->
-                <CommentReactions
-                  v-if="opPost.reactions && opPost.reactions.length"
-                  :reactions="opPost.reactions"
-                  :me="me"
-                  :logged-in="loggedIn"
-                  @quick-react="(v) => quickReact(opPost!, v)"
-                />
-
-                <div v-if="opPost" class="tb-actions">
                   <button class="ec-reply-btn" type="button" title="回复" @click="startReply(opPost)">
                     <svg class="ec-reply-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                   </button>
@@ -311,6 +298,16 @@ function onTaKey(e: KeyboardEvent) {
                   </button>
                   <ReactionPicker v-if="reactingTo === opPost.id" :reacted="reactedValues(opPost)" @select="(v) => onReact(opPost!, v)" />
                 </div>
+                <BgmBbcode :text="opPost.content" as="div" class="ec-c-content tb-op-content" />
+
+                <!-- 楼主帖表情回应展示 -->
+                <CommentReactions
+                  v-if="opPost.reactions && opPost.reactions.length"
+                  :reactions="opPost.reactions"
+                  :me="me"
+                  :logged-in="loggedIn"
+                  @quick-react="(v) => quickReact(opPost!, v)"
+                />
               </div>
             </div>
 
@@ -377,19 +374,6 @@ function onTaKey(e: KeyboardEvent) {
                       <span class="ec-c-floor">#{{ floorMap[r.id] }}</span>
                       <span class="ec-c-time">{{ fmtTime(r.createdAt) }}</span>
                     </span>
-                  </div>
-                  <BgmBbcode :text="r.content" as="div" class="ec-c-content" />
-
-                  <CommentReactions
-                    v-if="r.reactions && r.reactions.length"
-                    :reactions="r.reactions"
-                    :me="me"
-                    :logged-in="loggedIn"
-                    @quick-react="(v) => quickReact(r, v)"
-                  />
-
-                  <!-- 操作行：回复 / 表情 -->
-                  <div class="tb-actions">
                     <button class="ec-reply-btn" type="button" title="回复" @click="startReply(r)">
                       <svg class="ec-reply-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                     </button>
@@ -405,6 +389,15 @@ function onTaKey(e: KeyboardEvent) {
                     </button>
                     <ReactionPicker v-if="reactingTo === r.id" :reacted="reactedValues(r)" @select="(v) => onReact(r, v)" />
                   </div>
+                  <BgmBbcode :text="r.content" as="div" class="ec-c-content" />
+
+                  <CommentReactions
+                    v-if="r.reactions && r.reactions.length"
+                    :reactions="r.reactions"
+                    :me="me"
+                    :logged-in="loggedIn"
+                    @quick-react="(v) => quickReact(r, v)"
+                  />
 
                   <!-- 楼中楼 -->
                   <div v-if="r.replies && r.replies.length" class="ec-replies">
@@ -415,15 +408,18 @@ function onTaKey(e: KeyboardEvent) {
                         <div class="ec-r-head">
                           <span class="ec-r-name">{{ sub.creator.nickname || sub.creator.username || '匿名' }}</span>
                           <span class="ec-c-time">{{ fmtTime(sub.createdAt) }}</span>
+                          <button class="ec-reply-btn" type="button" title="回复" @click="startReply(sub, r)">
+                            <svg class="ec-reply-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                          </button>
                           <button
-                            class="ec-react-btn tb-sub-react"
+                            class="ec-react-btn"
                             type="button"
                             :class="{ active: commentReacted(sub) }"
                             :disabled="!loggedIn || reactPosting === sub.id"
                             :title="!loggedIn ? '登录后才能发表表情回应' : '发表表情回应'"
                             @click="toggleReaction(sub.id)"
                           >
-                            <svg class="ec-heart" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+                            <svg class="ec-heart" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
                           </button>
                           <ReactionPicker v-if="reactingTo === sub.id" :reacted="reactedValues(sub)" @select="(v) => onReact(sub, v)" />
                         </div>
@@ -563,16 +559,8 @@ function onTaKey(e: KeyboardEvent) {
   padding: 0 5px;
 }
 .tb-op-content { font-size: 14px; }
-/* 楼层操作行（回复/爱心） */
-.tb-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 6px;
-}
 /* 我的回复卡 */
 .tb-mine { margin-bottom: 2px; }
-.tb-sub-react { width: 20px; height: 20px; }
 
 /* ——以下样式类与单集评论悬浮窗(.ec-*)保持一致—— */
 .ec-head {
