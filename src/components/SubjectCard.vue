@@ -574,6 +574,13 @@ watch(
 
 <template>
   <div class="subject-card" @click.stop>
+    <!-- 封面横幅：铺满卡片最顶端（含标题栏背后），常驻背景光晕不随滚动；
+         模糊放大封面作装饰，可在设置关闭。后续 head/body 均 positioned 绘制其上。 -->
+    <div
+      v-if="detail && settings.detailBanner && detail.subject.image_url"
+      class="detail-banner subject-banner"
+      :style="{ backgroundImage: `url(${proxyImg(detail.subject.image_url)})` }"
+    ></div>
     <div class="subject-head">
       <button class="entity-back back-btn" type="button" title="返回上级" aria-label="返回上级" @click="goBack">
         <svg class="back-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="12" x2="4" y2="12" /><polyline points="10,5 4,12 10,19" /></svg>
@@ -597,12 +604,6 @@ watch(
     </div>
 
     <div v-else-if="detail" class="subject-body" ref="bodyEl" @scroll.passive="onBodyScroll">
-      <!-- 封面横幅：与详情页同款（模糊放大的封面铺在头部作装饰，可在设置关闭） -->
-      <div
-        v-if="settings.detailBanner && detail.subject.image_url"
-        class="detail-banner subject-banner"
-        :style="{ backgroundImage: `url(${proxyImg(detail.subject.image_url)})` }"
-      ></div>
       <!-- 头部：封面 + 标题 + 简介（复用全局 .detail__* 样式，与详情页一致） -->
       <div class="detail__main">
         <img v-if="detail.subject.image_url" :src="proxyImg(detail.subject.image_url)" class="detail__poster" :alt="detail.subject.title" @click.stop="openPoster(proxyImg(detail.subject.image_url), detail.subject.title)" style="cursor: pointer" />
@@ -692,6 +693,8 @@ watch(
   border-radius: 16px;
   box-shadow: var(--shadow);
   overflow: hidden;
+  /* 封面横幅的定位上下文 */
+  position: relative;
 }
 .subject-head {
   display: flex;
@@ -699,6 +702,8 @@ watch(
   justify-content: flex-start;
   gap: 10px;
   padding: 14px 16px;
+  /* 绘制在封面横幅之上 */
+  position: relative;
   border-bottom: 1px solid var(--border-soft);
 }
 .subject-head .title {
@@ -743,16 +748,14 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 4px;
-  /* 封面横幅的定位上下文（横幅随内容滚动，行为与详情页一致） */
-  position: relative;
 }
-/* 悬浮窗内的横幅：抵消 .subject-body 的 16px 内边距铺满可视顶部，
+/* 悬浮窗横幅：铺到卡片最顶端（含标题栏背后），常驻不随滚动；
    其余 blur/透明度/渐隐 mask 复用全局 .detail-banner */
 .subject-banner {
-  top: -16px;
-  left: -16px;
-  right: -16px;
-  height: 360px;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 300px;
 }
 .detail__poster--empty {
   display: flex;
