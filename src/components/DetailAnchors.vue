@@ -196,6 +196,9 @@ watch(
 }
 .anchor-bar.glass .anchor-chip.active {
   border-color: transparent;
+  /* 必须在此处重申品牌渐变：上面的玻璃底规则特异性更高，
+     会覆盖低特异性的 .anchor-chip.active 背景 → 激活态不变色 */
+  background: var(--accent-grad);
   box-shadow:
     inset 0 0 0 0.5px color-mix(in srgb, #fff 34%, transparent),
     inset 0 1px 1px color-mix(in srgb, #fff 26%, transparent),
