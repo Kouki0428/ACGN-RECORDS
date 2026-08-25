@@ -40,6 +40,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const lightPreset = ref('classic')
   // 详情页封面横幅背景（模糊放大的封面作装饰）开关，默认开
   const detailBanner = ref(true)
+  // 沉浸光感（液态玻璃）：详情页快捷跳转按钮的玻璃质感与鼠标跟随光斑，默认开
+  const immersiveGlow = ref(true)
   // 窗口关闭行为：默认 exit=点 X 直接退出；勾选后 minimize=缩到托盘。首次点 X 时主进程会弹窗询问一次
   const closeBehavior = ref<'minimize' | 'exit'>('exit')
   // 定时切换时段：浅色起 ~ 深色起（'HH:mm'，支持跨午夜），theme='scheduled' 时生效
@@ -89,6 +91,7 @@ export const useSettingsStore = defineStore('settings', () => {
         setThemePreset('light', lightPreset.value)
       }
       if (r.key === 'detailBanner') detailBanner.value = r.value !== '0'
+      if (r.key === 'immersiveGlow') immersiveGlow.value = r.value !== '0'
       if (r.key === 'closeBehavior') {
         closeBehavior.value = r.value === 'exit' ? 'exit' : 'minimize'
         void window.acgn?.app?.setCloseBehavior?.(closeBehavior.value)
@@ -142,6 +145,7 @@ export const useSettingsStore = defineStore('settings', () => {
       void applyTheme(theme.value)
     }
     if (key === 'detailBanner') detailBanner.value = value !== '0'
+    if (key === 'immersiveGlow') immersiveGlow.value = value !== '0'
     if (key === 'closeBehavior') {
       closeBehavior.value = value === 'exit' ? 'exit' : 'minimize'
       void window.acgn?.app?.setCloseBehavior?.(closeBehavior.value)
@@ -160,5 +164,5 @@ export const useSettingsStore = defineStore('settings', () => {
     theme.value = v
   }
 
-  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, darkPreset, lightPreset, detailBanner, closeBehavior, scheduleLight, scheduleDark, load, set, commitTheme }
+  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, darkPreset, lightPreset, detailBanner, immersiveGlow, closeBehavior, scheduleLight, scheduleDark, load, set, commitTheme }
 })

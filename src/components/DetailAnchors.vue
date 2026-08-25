@@ -2,6 +2,7 @@
 // 详情页吸顶锚点条：点击平滑跳转到对应区块（[data-anchor]），滚动时高亮当前区。
 // 纯渲染层通用组件，四个详情视图共用；依赖全局 [data-anchor] 的 scroll-margin-top。
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { useSettingsStore } from '@/stores/settings'
 
 export interface AnchorItem {
   key: string
@@ -9,6 +10,8 @@ export interface AnchorItem {
 }
 
 const props = defineProps<{ items: AnchorItem[] }>()
+
+const settings = useSettingsStore()
 
 const activeKey = ref('')
 // 仅展示「目标元素真实存在」的锚点：动画/游戏没有单行本区块（SubjectRelations
@@ -101,7 +104,7 @@ watch(
 </script>
 
 <template>
-  <div class="anchor-bar">
+  <div class="anchor-bar" :class="{ glass: settings.immersiveGlow }">
     <button
       v-for="it in shownItems"
       :key="it.key"
@@ -139,10 +142,37 @@ watch(
   padding: 4px 12px;
   font-size: 12.5px;
   border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition:
+    color var(--dur-fast) ease,
+    border-color var(--dur-fast) ease,
+    background var(--dur-fast) ease,
+    box-shadow var(--dur-fast) ease,
+    transform 0.12s var(--ease-out);
+}
+.anchor-chip:hover {
+  color: var(--text);
+  background: var(--bg-elev);
+}
+.anchor-chip:active {
+  transform: scale(0.95);
+}
+.anchor-chip.active {
+  color: #fff;
+  background: var(--accent-grad);
+  border-color: transparent;
+  font-weight: 600;
+}
+
+/* ——以下为「沉浸光感」开启时的液态玻璃覆盖（设置可关）—— */
+.anchor-bar.glass .anchor-chip {
   /* 沉浸式液态玻璃（iOS Liquid Glass / 鸿蒙沉浸光感）：
      无描边、无方向性高光——均匀通透的一层「液体」，靠环境光晕和极细内环塑形；
      背板低模糊+提饱和+提亮，让下层色彩像隔着水膜透出来 */
-  border: none;
+  border-color: transparent;
   background: color-mix(in srgb, #fff 7%, transparent);
   backdrop-filter: blur(8px) saturate(1.8) brightness(1.08);
   -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.08);
@@ -151,16 +181,8 @@ watch(
     inset 0 1px 1px color-mix(in srgb, #fff 18%, transparent),
     inset 0 -1px 2px color-mix(in srgb, #000 10%, transparent),
     0 4px 16px color-mix(in srgb, #000 16%, transparent);
-  color: var(--text-dim);
-  cursor: pointer;
-  transition:
-    color var(--dur-fast) ease,
-    background var(--dur-fast) ease,
-    box-shadow var(--dur-fast) ease,
-    transform 0.12s var(--ease-out);
 }
-.anchor-chip:hover {
-  color: var(--text);
+.anchor-bar.glass .anchor-chip:hover {
   transform: translateY(-1px);
   background: color-mix(in srgb, #fff 13%, transparent);
   box-shadow:
@@ -169,13 +191,8 @@ watch(
     inset 0 -1px 2px color-mix(in srgb, #000 8%, transparent),
     0 6px 20px color-mix(in srgb, #000 22%, transparent);
 }
-.anchor-chip:active {
-  transform: scale(0.95);
-}
-.anchor-chip.active {
-  color: #fff;
-  background: var(--accent-grad);
-  font-weight: 600;
+.anchor-bar.glass .anchor-chip.active {
+  border-color: transparent;
   box-shadow:
     inset 0 0 0 0.5px color-mix(in srgb, #fff 34%, transparent),
     inset 0 1px 1px color-mix(in srgb, #fff 26%, transparent),
@@ -183,7 +200,7 @@ watch(
 }
 /* 鼠标跟随的主题色光斑：径向渐变锚定在指针坐标（--mx/--my 由 JS 写入），
    悬停时淡入、滑出时淡出；纯装饰层不拦截点击 */
-.anchor-chip::after {
+.anchor-bar.glass .anchor-chip::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -197,7 +214,7 @@ watch(
   transition: opacity 0.28s ease;
   pointer-events: none;
 }
-.anchor-chip.chip-glow::after {
+.anchor-bar.glass .anchor-chip.chip-glow::after {
   opacity: 1;
 }
 </style>
