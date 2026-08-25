@@ -120,19 +120,37 @@ watch(
   padding: 4px 12px;
   font-size: 12.5px;
   border-radius: 999px;
-  border: 1px solid var(--border);
-  background: transparent;
+  /* 液态玻璃：顶部微亮→底部的半透明渐变层，配合背板模糊+饱和提升产生「透镜」质感 */
+  border: 1px solid color-mix(in srgb, #fff 16%, transparent);
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, #fff 11%, transparent),
+    color-mix(in srgb, #fff 3%, transparent)
+  );
+  backdrop-filter: blur(14px) saturate(1.7);
+  -webkit-backdrop-filter: blur(14px) saturate(1.7);
+  /* 玻璃高光：顶缘内亮线 + 底缘内暗线塑体积，外投柔影悬浮 */
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 24%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, #000 14%, transparent),
+    0 2px 8px color-mix(in srgb, #000 20%, transparent);
   color: var(--text-dim);
   cursor: pointer;
   transition:
     color var(--dur-fast) ease,
     border-color var(--dur-fast) ease,
     background var(--dur-fast) ease,
+    box-shadow var(--dur-fast) ease,
     transform 0.12s var(--ease-out);
 }
 .anchor-chip:hover {
   color: var(--text);
-  background: var(--bg-elev);
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, #fff 28%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 32%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, #000 12%, transparent),
+    0 4px 12px color-mix(in srgb, #000 26%, transparent);
 }
 .anchor-chip:active {
   transform: scale(0.95);
@@ -142,5 +160,9 @@ watch(
   background: var(--accent-grad);
   border-color: transparent;
   font-weight: 600;
+  /* 选中态保留玻璃质感：白色顶缘高光 + 品牌色柔影 */
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 30%, transparent),
+    0 2px 10px color-mix(in srgb, #ff5c8a 38%, transparent);
 }
 </style>
