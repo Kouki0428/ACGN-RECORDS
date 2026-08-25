@@ -173,16 +173,26 @@ watch(
 /* ——以下为「沉浸光感」开启时的液态玻璃覆盖（设置可关）—— */
 .anchor-bar.glass .anchor-chip {
   /* 沉浸式液态玻璃（iOS Liquid Glass / 鸿蒙沉浸光感）：
-     无描边、无方向性高光——均匀通透的一层「液体」，靠环境光晕和极细内环塑形；
-     背板低模糊+提饱和+提亮，让下层色彩像隔着水膜透出来 */
+     无描边、无方向性高光——均匀通透的一层「液体」。
+     backdrop-filter 本体放在外扩 6px 的 ::before 上：Chromium 会在滤镜区域
+     边缘画出采样亮/暗线，外扩后被 overflow:hidden 裁掉，按钮四周不再有一圈边。 */
+  isolation: isolate;
+  overflow: hidden;
   border-color: transparent;
   background: color-mix(in srgb, #fff 7%, transparent);
-  backdrop-filter: blur(8px) saturate(1.8) brightness(1.08);
-  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.08);
   box-shadow:
     inset 0 1px 1px color-mix(in srgb, #fff 18%, transparent),
     inset 0 -1px 2px color-mix(in srgb, #000 10%, transparent),
     0 4px 16px color-mix(in srgb, #000 16%, transparent);
+}
+.anchor-bar.glass .anchor-chip::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  z-index: -1;
+  border-radius: 999px;
+  backdrop-filter: blur(8px) saturate(1.8) brightness(1.08);
+  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.08);
 }
 .anchor-bar.glass .anchor-chip:hover {
   transform: translateY(-1px);
