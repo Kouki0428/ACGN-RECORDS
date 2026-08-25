@@ -58,6 +58,21 @@ function jump(key: string) {
   el.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
+// 液态玻璃的「沉浸光感」：悬停滑动时主题色光斑跟随鼠标（记录指针在按钮内的坐标，
+// 经 CSS 变量 --mx/--my 驱动 ::after 径向渐变的位置；进入/离开用类切换淡入淡出）
+function onChipMove(e: MouseEvent) {
+  const el = e.currentTarget as HTMLElement
+  const r = el.getBoundingClientRect()
+  el.style.setProperty('--mx', `${e.clientX - r.left}px`)
+  el.style.setProperty('--my', `${e.clientY - r.top}px`)
+}
+function onChipEnter(e: MouseEvent) {
+  ;(e.currentTarget as HTMLElement).classList.add('chip-glow')
+}
+function onChipLeave(e: MouseEvent) {
+  ;(e.currentTarget as HTMLElement).classList.remove('chip-glow')
+}
+
 onMounted(async () => {
   scroller = document.querySelector('.content')
   scroller?.addEventListener('scroll', onScroll, { passive: true })
@@ -94,6 +109,9 @@ watch(
       class="anchor-chip"
       :class="{ active: activeKey === it.key }"
       @click="jump(it.key)"
+      @mousemove="onChipMove"
+      @mouseenter="onChipEnter"
+      @mouseleave="onChipLeave"
     >
       {{ it.label }}
     </button>
@@ -117,6 +135,7 @@ watch(
   margin-bottom: 4px;
 }
 .anchor-chip {
+  position: relative;
   padding: 4px 12px;
   font-size: 12.5px;
   border-radius: 999px;
@@ -161,5 +180,24 @@ watch(
     inset 0 0 0 0.5px color-mix(in srgb, #fff 34%, transparent),
     inset 0 1px 1px color-mix(in srgb, #fff 26%, transparent),
     0 4px 18px color-mix(in srgb, #ff5c8a 40%, transparent);
+}
+/* 鼠标跟随的主题色光斑：径向渐变锚定在指针坐标（--mx/--my 由 JS 写入），
+   悬停时淡入、滑出时淡出；纯装饰层不拦截点击 */
+.anchor-chip::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    90px circle at var(--mx, 50%) var(--my, 50%),
+    color-mix(in srgb, var(--accent) 42%, transparent),
+    transparent 68%
+  );
+  opacity: 0;
+  transition: opacity 0.28s ease;
+  pointer-events: none;
+}
+.anchor-chip.chip-glow::after {
+  opacity: 1;
 }
 </style>
