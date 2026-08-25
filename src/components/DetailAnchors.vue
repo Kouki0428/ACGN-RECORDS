@@ -189,7 +189,7 @@ watch(
   inset: 0;
   border-radius: inherit;
   background: radial-gradient(
-    90px circle at var(--mx, 50%) var(--my, 50%),
+    60px circle at var(--mx, 50%) var(--my, 50%),
     color-mix(in srgb, var(--accent) 42%, transparent),
     transparent 68%
   );
