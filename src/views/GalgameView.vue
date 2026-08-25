@@ -43,7 +43,8 @@ const anchors: AnchorItem[] = [
   { key: 'single', label: '单行本' },
   { key: 'relations', label: '关联条目' },
   { key: 'purchase', label: '购买' },
-  { key: 'tucao', label: '吐槽' }
+  { key: 'topics', label: '讨论' },
+    { key: 'tucao', label: '吐槽' }
 ]
 
 // 卡片右键菜单：快速改状态 / 在 Bangumi 打开 / 删除收藏
@@ -349,7 +350,7 @@ onUnmounted(() => {
       </PurchaseInfo>
       <p v-if="saveMsg" class="ok">{{ saveMsg }}</p>
 
-      <SubjectTopics :subject-id="selected.subject?.provider_subject_id ?? null" />
+      <SubjectTopics :subject-id="selected.subject?.provider_subject_id ?? null" data-anchor="topics" />
 
       <TucaoBox :subject-id="selected.subject?.provider_subject_id ?? null" media-type="game" data-anchor="tucao" />
       </div>

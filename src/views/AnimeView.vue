@@ -39,7 +39,8 @@ const anchors: AnchorItem[] = [
   { key: 'characters', label: '角色' },
   { key: 'single', label: '单行本' },
   { key: 'relations', label: '关联条目' },
-  { key: 'tucao', label: '吐槽' }
+  { key: 'topics', label: '讨论' },
+    { key: 'tucao', label: '吐槽' }
 ]
 
 // 卡片右键菜单：快速改状态 / 在 Bangumi 打开 / 删除收藏
@@ -319,7 +320,7 @@ onUnmounted(() => {
       <SubjectCharacters :subject-id="selected.subject?.id" :characters="selected.characters || []" data-anchor="characters" />
       <SubjectRelations :subject-id="selected.subject?.id" :relations="selected.relations || []" filter="single" data-anchor="single" @select="onSubjectSelect" />
       <SubjectRelations :subject-id="selected.subject?.id" :relations="selected.relations || []" filter="other" data-anchor="relations" @select="onSubjectSelect" />
-      <SubjectTopics :subject-id="selected.subject?.provider_subject_id ?? null" />
+      <SubjectTopics :subject-id="selected.subject?.provider_subject_id ?? null" data-anchor="topics" />
       <TucaoBox :subject-id="selected.subject?.provider_subject_id ?? null" media-type="anime" data-anchor="tucao" />
       </div>
     </template>

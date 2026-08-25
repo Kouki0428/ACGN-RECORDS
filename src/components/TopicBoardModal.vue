@@ -493,7 +493,6 @@ function onTaKey(e: KeyboardEvent) {
   padding: 2px 8px;
   align-self: center;
 }
-.back-btn,
 .ec-close {
   display: inline-flex;
   align-items: center;
@@ -508,9 +507,7 @@ function onTaKey(e: KeyboardEvent) {
   border-radius: 50%;
   transition: background 0.15s ease, color 0.15s ease;
 }
-.back-icon,
 .ec-close svg { width: 16px; height: 16px; display: block; }
-.back-btn:hover,
 .ec-close:hover { background: var(--accent-2); color: #fff; }
 .tb-placeholder {
   padding: 24px 16px;
