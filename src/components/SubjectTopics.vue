@@ -103,20 +103,16 @@ watch(() => props.subjectId, () => load())
 </script>
 
 <template>
-  <div class="topics-box">
+  <!-- 无条目 / 加载完成但没有任何讨论（含条目不存在）时整卡隐藏 -->
+  <div v-if="subjectId && (loading || error || (!notFound && sorted.length > 0))" class="topics-box">
     <div class="tb-head-row">
-      <h3>本作讨论</h3>
+      <h3>讨论版</h3>
       <button v-if="sorted.length > COLLAPSED" class="tb-toggle" type="button" @click="toggleExpand">
         {{ expanded ? '收起' : `展开 (${total})` }}
       </button>
     </div>
-    <p v-if="!subjectId" class="placeholder">无 Bangumi 条目，无法加载讨论。</p>
-    <p v-else-if="loading" class="placeholder">加载中…</p>
+    <p v-if="loading" class="placeholder">加载中…</p>
     <p v-else-if="error" class="placeholder err">{{ error }}</p>
-    <p v-else-if="notFound" class="placeholder warn">
-      该作品在 Bangumi 上可能已不存在，或需登录后才能查看。
-    </p>
-    <p v-else-if="visibleTopics.length === 0" class="placeholder">暂无讨论。</p>
     <template v-else>
       <ul class="topic-list">
         <li v-for="t in visibleTopics" :key="t.id" class="topic-item" role="button" tabindex="0"
