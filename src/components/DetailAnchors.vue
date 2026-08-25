@@ -180,7 +180,6 @@ watch(
   backdrop-filter: blur(8px) saturate(1.8) brightness(1.08);
   -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.08);
   box-shadow:
-    inset 0 0 0 0.5px color-mix(in srgb, #fff 28%, transparent),
     inset 0 1px 1px color-mix(in srgb, #fff 18%, transparent),
     inset 0 -1px 2px color-mix(in srgb, #000 10%, transparent),
     0 4px 16px color-mix(in srgb, #000 16%, transparent);
@@ -189,7 +188,6 @@ watch(
   transform: translateY(-1px);
   background: color-mix(in srgb, #fff 13%, transparent);
   box-shadow:
-    inset 0 0 0 0.5px color-mix(in srgb, #fff 36%, transparent),
     inset 0 1px 1px color-mix(in srgb, #fff 24%, transparent),
     inset 0 -1px 2px color-mix(in srgb, #000 8%, transparent),
     0 6px 20px color-mix(in srgb, #000 22%, transparent);
@@ -200,7 +198,6 @@ watch(
      会覆盖低特异性的 .anchor-chip.active 背景 → 激活态不变色 */
   background: var(--accent-grad);
   box-shadow:
-    inset 0 0 0 0.5px color-mix(in srgb, #fff 34%, transparent),
     inset 0 1px 1px color-mix(in srgb, #fff 26%, transparent),
     0 4px 18px color-mix(in srgb, #ff5c8a 40%, transparent);
 }
