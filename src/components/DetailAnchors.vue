@@ -204,12 +204,7 @@ watch(
   /* 液态流光：高光层在品牌渐变上缓慢流动（background-position 动画不创建 backdrop root） */
   background-size: 220% 100%, 100% 100%;
   animation: chip-liquid-flow 5.5s ease-in-out infinite;
-  box-shadow:
-    inset 0 1px 1px color-mix(in srgb, #fff 40%, transparent),
-    inset 0 -1px 2px color-mix(in srgb, #000 18%, transparent),
-    inset 0 0 12px color-mix(in srgb, #fff 14%, transparent),
-    0 4px 18px color-mix(in srgb, #ff5c8a 45%, transparent);
-  text-shadow: 0 1px 2px color-mix(in srgb, #000 25%, transparent);
+  box-shadow: 0 4px 18px color-mix(in srgb, #ff5c8a 45%, transparent);
 }
 @keyframes chip-liquid-flow {
   0%, 100% { background-position: 0% 0, 0 0; }
