@@ -108,6 +108,20 @@ function updateCardAnchorActive() {
   activeCardAnchor.value = cur || 'overview'
 }
 
+// 沉浸光感：主题色光斑跟随鼠标（同 DetailAnchors，--mx/--my 驱动 ::after 径向渐变）
+function onChipMove(e: MouseEvent) {
+  const el = e.currentTarget as HTMLElement
+  const r = el.getBoundingClientRect()
+  el.style.setProperty('--mx', `${e.clientX - r.left}px`)
+  el.style.setProperty('--my', `${e.clientY - r.top}px`)
+}
+function onChipEnter(e: MouseEvent) {
+  ;(e.currentTarget as HTMLElement).classList.add('chip-glow')
+}
+function onChipLeave(e: MouseEvent) {
+  ;(e.currentTarget as HTMLElement).classList.remove('chip-glow')
+}
+
 // 内容加载完成后，按导航方向定位滚动条：
 //  - 返回（back）→ 还原该作品上次停留的位置（state.scrollTop 由 onBodyScroll 记录）；
 //  - 前向（打开/前进）→ 不再在此统一滚顶（否则会覆盖用户在联网加载完成前已滚动到的位置），
@@ -651,7 +665,7 @@ watch(
 
     <div v-else-if="detail" class="subject-body" ref="bodyEl" @scroll.passive="onBodyScroll">
       <!-- 快捷跳转栏（吸顶于卡片滚动区，作用域限本卡片；可在设置关闭） -->
-      <div v-if="settings.anchorBarEnabled" class="card-anchor-bar">
+      <div v-if="settings.anchorBarEnabled" class="card-anchor-bar" :class="{ glass: settings.immersiveGlow }">
         <button
           v-for="a in shownCardAnchors"
           :key="a.key"
@@ -659,6 +673,9 @@ watch(
           class="card-anchor-chip"
           :class="{ active: activeCardAnchor === a.key }"
           @click="cardJump(a.key)"
+          @mousemove="onChipMove"
+          @mouseenter="onChipEnter"
+          @mouseleave="onChipLeave"
         >{{ a.label }}</button>
       </div>
       <!-- 头部：封面 + 标题 + 简介（复用全局 .detail__* 样式，与详情页一致） -->
@@ -842,6 +859,44 @@ watch(
     linear-gradient(180deg, #ff6d95 0%, #ff5c8a 42%, #ff7a55 100%);
   font-weight: 600;
   box-shadow: 0 3px 14px color-mix(in srgb, #ff5c8a 40%, transparent);
+}
+/* ——沉浸光感开启时的液态玻璃覆盖（与详情页 DetailAnchors 同配方）—— */
+.card-anchor-bar.glass .card-anchor-chip {
+  /* 不能加 isolation/transform（会创建 backdrop root 使折射层失效）；hover 上浮用 margin */
+  overflow: hidden;
+  border-color: transparent;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.card-anchor-bar.glass .card-anchor-chip::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  z-index: -1;
+  border-radius: 999px;
+  backdrop-filter: url(#liquid-glass-distortion) saturate(1.35);
+  -webkit-backdrop-filter: url(#liquid-glass-distortion) saturate(1.35);
+}
+.card-anchor-bar.glass .card-anchor-chip:hover {
+  margin-top: -1px;
+}
+/* 鼠标跟随的主题色光斑 */
+.card-anchor-bar.glass .card-anchor-chip::after {
+  content: '';
+  position: absolute;
+  inset: -28px;
+  background: radial-gradient(
+    60px circle at calc(var(--mx, 50%) + 28px) calc(var(--my, 50%) + 28px),
+    color-mix(in srgb, var(--accent) 42%, transparent),
+    transparent 68%
+  );
+  opacity: 0;
+  transition: opacity 0.28s ease;
+  pointer-events: none;
+}
+.card-anchor-bar.glass .card-anchor-chip.chip-glow::after {
+  opacity: 1;
 }
 /* 悬浮窗横幅：铺到卡片最顶端（含标题栏背后），常驻不随滚动；
    其余 blur/透明度复用全局 .detail-banner；mask 覆盖为仅底部渐隐
