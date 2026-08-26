@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useEntityCard } from '@/composables/useEntityCard'
+import { useTopicBoard } from '@/composables/useTopicBoard'
 import { subjectClient } from '@/services/subjectClient'
 import type { BgmTopic } from '@shared/types'
 
 const entity = useEntityCard()
+const board = useTopicBoard()
 
 const open = ref(false)
 const topics = ref<BgmTopic[]>([])
@@ -30,9 +32,10 @@ function fmtTime(ts: number): string {
   return `${dt.getMonth() + 1}-${dt.getDate()}`
 }
 
-/** 点击标题行：浏览器打开讨论串 */
+/** 点击标题：应用内打开讨论板悬浮窗（压入实体卡导航栈） */
 function openTopic(t: BgmTopic) {
-  void window.acgn.app.openExternal(`https://bgm.tv/subject/topic/${t.id}`)
+  board.setData(t.id)
+  entity.push('topic', t.id)
 }
 
 /** 点击封面/条目名：应用内打开该作品悬浮卡 */
