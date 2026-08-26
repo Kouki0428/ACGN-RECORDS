@@ -166,20 +166,20 @@ function toggle() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: calc(13px * var(--card-scale, 1)) calc(14px * var(--card-scale, 1));
+  padding: 13px 14px;
   border-bottom: 1px solid var(--border-soft);
 }
 .td-head h3 {
   margin: 0;
-  font-size: calc(15px * var(--card-scale, 1));
+  font-size: 15px;
   color: var(--text);
 }
 .td-refresh {
   border: none;
   background: transparent;
   color: var(--text-dim);
-  width: calc(28px * var(--card-scale, 1));
-  height: calc(28px * var(--card-scale, 1));
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   cursor: pointer;
   display: inline-flex;
@@ -191,8 +191,8 @@ function toggle() {
 .td-hint {
   text-align: center;
   color: var(--text-dim);
-  font-size: calc(13px * var(--card-scale, 1));
-  padding: calc(32px * var(--card-scale, 1)) calc(14px * var(--card-scale, 1));
+  font-size: 13px;
+  padding: 32px 14px;
 }
 .td-hint.err { color: var(--err); }
 /* 列表 */
@@ -202,16 +202,16 @@ function toggle() {
   overscroll-behavior: contain;
   list-style: none;
   margin: 0;
-  padding: calc(10px * var(--card-scale, 1));
+  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: calc(8px * var(--card-scale, 1));
+  gap: 8px;
 }
 .td-item {
   display: flex;
-  gap: calc(10px * var(--card-scale, 1));
-  padding: calc(8px * var(--card-scale, 1));
-  border-radius: calc(10px * var(--card-scale, 1));
+  gap: 10px;
+  padding: 8px;
+  border-radius: 10px;
   transition: background .15s;
 }
 .td-item:hover { background: var(--bg-elev); }
@@ -221,15 +221,15 @@ function toggle() {
   border: none;
   background: none;
   cursor: pointer;
-  border-radius: calc(6px * var(--card-scale, 1));
+  border-radius: 6px;
   overflow: hidden;
   line-height: 0;
 }
 .td-cover {
-  width: calc(40px * var(--card-scale, 1));
-  height: calc(53px * var(--card-scale, 1));
+  width: 40px;
+  height: 53px;
   object-fit: cover;
-  border-radius: calc(6px * var(--card-scale, 1));
+  border-radius: 6px;
   background: var(--bg-elev);
 }
 .td-cover--empty { display: inline-block; }
@@ -238,14 +238,14 @@ function toggle() {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: calc(3px * var(--card-scale, 1));
+  gap: 3px;
 }
 .td-title {
   text-align: left;
   border: none;
   background: none;
   padding: 0;
-  font-size: calc(12.5px * var(--card-scale, 1));
+  font-size: 12.5px;
   color: var(--text);
   line-height: 1.45;
   cursor: pointer;
@@ -261,7 +261,7 @@ function toggle() {
   background: none;
   padding: 0;
   align-self: flex-start;
-  font-size: calc(11px * var(--card-scale, 1));
+  font-size: 11px;
   color: var(--accent);
   opacity: .85;
   cursor: pointer;
@@ -274,14 +274,14 @@ function toggle() {
 .td-meta {
   display: flex;
   align-items: center;
-  gap: calc(8px * var(--card-scale, 1));
-  font-size: calc(11px * var(--card-scale, 1));
+  gap: 8px;
+  font-size: 11px;
   color: var(--text-dim);
 }
 .td-replies {
   background: color-mix(in srgb, var(--accent) 12%, transparent);
   color: var(--accent);
-  padding: 0 calc(7px * var(--card-scale, 1));
+  padding: 0 7px;
   border-radius: 999px;
   font-weight: 600;
 }
