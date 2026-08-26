@@ -44,6 +44,14 @@ export const useSettingsStore = defineStore('settings', () => {
   const immersiveGlow = ref(true)
   // 快捷跳转栏：详情页与作品悬浮窗顶部的锚点导航，默认开
   const anchorBarEnabled = ref(true)
+  // 作品栏区块显示开关（详情页与悬浮窗共用），默认全开
+  const showCharacters = ref(true)
+  const showVolumes = ref(true)      // 单行本（书籍类的卷册关联）
+  const showRelations = ref(true)    // 关联条目
+  const showTopics = ref(true)       // 讨论版
+  const showTucao = ref(true)        // 吐槽箱
+  const showGallery = ref(true)      // 游戏画廊
+  const showPurchase = ref(true)     // 购买信息
   // 窗口关闭行为：默认 exit=点 X 直接退出；勾选后 minimize=缩到托盘。首次点 X 时主进程会弹窗询问一次
   const closeBehavior = ref<'minimize' | 'exit'>('exit')
   // 定时切换时段：浅色起 ~ 深色起（'HH:mm'，支持跨午夜），theme='scheduled' 时生效
@@ -95,6 +103,13 @@ export const useSettingsStore = defineStore('settings', () => {
       if (r.key === 'detailBanner') detailBanner.value = r.value !== '0'
       if (r.key === 'immersiveGlow') immersiveGlow.value = r.value !== '0'
       if (r.key === 'anchorBarEnabled') anchorBarEnabled.value = r.value !== '0'
+      if (r.key === 'showCharacters') showCharacters.value = r.value !== '0'
+      if (r.key === 'showVolumes') showVolumes.value = r.value !== '0'
+      if (r.key === 'showRelations') showRelations.value = r.value !== '0'
+      if (r.key === 'showTopics') showTopics.value = r.value !== '0'
+      if (r.key === 'showTucao') showTucao.value = r.value !== '0'
+      if (r.key === 'showGallery') showGallery.value = r.value !== '0'
+      if (r.key === 'showPurchase') showPurchase.value = r.value !== '0'
       if (r.key === 'closeBehavior') {
         closeBehavior.value = r.value === 'exit' ? 'exit' : 'minimize'
         void window.acgn?.app?.setCloseBehavior?.(closeBehavior.value)
@@ -150,6 +165,13 @@ export const useSettingsStore = defineStore('settings', () => {
     if (key === 'detailBanner') detailBanner.value = value !== '0'
     if (key === 'immersiveGlow') immersiveGlow.value = value !== '0'
     if (key === 'anchorBarEnabled') anchorBarEnabled.value = value !== '0'
+    if (key === 'showCharacters') showCharacters.value = value !== '0'
+    if (key === 'showVolumes') showVolumes.value = value !== '0'
+    if (key === 'showRelations') showRelations.value = value !== '0'
+    if (key === 'showTopics') showTopics.value = value !== '0'
+    if (key === 'showTucao') showTucao.value = value !== '0'
+    if (key === 'showGallery') showGallery.value = value !== '0'
+    if (key === 'showPurchase') showPurchase.value = value !== '0'
     if (key === 'closeBehavior') {
       closeBehavior.value = value === 'exit' ? 'exit' : 'minimize'
       void window.acgn?.app?.setCloseBehavior?.(closeBehavior.value)
@@ -168,5 +190,5 @@ export const useSettingsStore = defineStore('settings', () => {
     theme.value = v
   }
 
-  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, darkPreset, lightPreset, detailBanner, immersiveGlow, anchorBarEnabled, closeBehavior, scheduleLight, scheduleDark, load, set, commitTheme }
+  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, darkPreset, lightPreset, detailBanner, immersiveGlow, anchorBarEnabled, showCharacters, showVolumes, showRelations, showTopics, showTucao, showGallery, showPurchase, closeBehavior, scheduleLight, scheduleDark, load, set, commitTheme }
 })

@@ -824,6 +824,37 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         <input type="checkbox" :checked="settings.anchorBarEnabled" @change="settings.set('anchorBarEnabled', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
         快捷跳转栏（详情页与作品悬浮窗顶部的锚点导航）
       </label>
+
+      <hr class="divider" />
+      <p class="hint" style="margin: 0 0 6px">作品栏区块显示</p>
+      <label class="progress-editor">
+        <input type="checkbox" :checked="settings.showCharacters" @change="settings.set('showCharacters', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
+        角色
+      </label>
+      <label class="progress-editor">
+        <input type="checkbox" :checked="settings.showVolumes" @change="settings.set('showVolumes', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
+        单行本
+      </label>
+      <label class="progress-editor">
+        <input type="checkbox" :checked="settings.showRelations" @change="settings.set('showRelations', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
+        关联条目
+      </label>
+      <label class="progress-editor">
+        <input type="checkbox" :checked="settings.showTopics" @change="settings.set('showTopics', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
+        讨论版
+      </label>
+      <label class="progress-editor">
+        <input type="checkbox" :checked="settings.showTucao" @change="settings.set('showTucao', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
+        吐槽箱
+      </label>
+      <label class="progress-editor">
+        <input type="checkbox" :checked="settings.showGallery" @change="settings.set('showGallery', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
+        游戏画廊（仅 Galgame）
+      </label>
+      <label class="progress-editor">
+        <input type="checkbox" :checked="settings.showPurchase" @change="settings.set('showPurchase', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
+        购买信息（仅 Galgame）
+      </label>
       <label class="progress-editor">
         <input type="checkbox" :checked="settings.immersiveGlow" @change="settings.set('immersiveGlow', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
         沉浸光感

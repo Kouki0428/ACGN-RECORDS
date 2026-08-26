@@ -259,11 +259,11 @@ onUnmounted(() => {
         </div>
       </div>
       <SubjectMetaPanel :subject="selected.subject" :collection="selected.collection" :loading="enriching" />
-      <SubjectCharacters :subject-id="selected.subject?.id" :characters="selected.characters || []" data-anchor="characters" />
-      <SubjectRelations :subject-id="selected.subject.id" :relations="selected.relations || []" filter="single" data-anchor="single" @select="onSubjectSelect" />
-      <SubjectRelations :subject-id="selected.subject.id" :relations="selected.relations || []" filter="other" data-anchor="relations" @select="onSubjectSelect" />
-      <SubjectTopics :subject-id="selected.subject?.provider_subject_id ?? null" data-anchor="topics" />
-      <TucaoBox :subject-id="selected.subject?.provider_subject_id ?? null" media-type="book" data-anchor="tucao" />
+      <SubjectCharacters v-if="settings.showCharacters" :subject-id="selected.subject?.id" :characters="selected.characters || []" data-anchor="characters" />
+      <SubjectRelations :subject-id="selected.subject.id" :relations="selected.relations || []" v-if="settings.showVolumes" filter="single" data-anchor="single" @select="onSubjectSelect" />
+      <SubjectRelations :subject-id="selected.subject.id" :relations="selected.relations || []" v-if="settings.showRelations" filter="other" data-anchor="relations" @select="onSubjectSelect" />
+      <SubjectTopics v-if="settings.showTopics" :subject-id="selected.subject?.provider_subject_id ?? null" data-anchor="topics" />
+      <TucaoBox v-if="settings.showTucao" :subject-id="selected.subject?.provider_subject_id ?? null" media-type="book" data-anchor="tucao" />
       </div>
     </template>
 

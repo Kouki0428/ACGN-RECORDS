@@ -709,20 +709,20 @@ watch(
       <SubjectMetaPanel :subject="detail.subject" :collection="collection" :loading="false" :push-nav="true" />
       <!-- 游戏画廊（仅 Galgame 作品展示）：VNDB 截图 / DLsite 样例 / Steam 截图 -->
       <GameGallery
-        v-if="detail.subject.category === 'galgame'"
+        v-if="detail.subject.category === 'galgame' && settings.showGallery"
         :gallery="gallery"
         :loading="galleryLoading"
         :note="galleryNote"
         @refresh="loadGallery(true)"
       />
       <!-- 角色 -->
-      <SubjectCharacters data-card-anchor="characters" :subject-id="detail.subject.id" :characters="detail.characters || []" :push-nav="true" />
+      <SubjectCharacters v-if="settings.showCharacters" data-card-anchor="characters" :subject-id="detail.subject.id" :characters="detail.characters || []" :push-nav="true" />
       <!-- 关联条目：单行本 + 其它 -->
-      <SubjectRelations data-card-anchor="relations" :subject-id="detail.subject.id" :relations="detail.relations || []" filter="single" @select="openSubject" />
-      <SubjectRelations :subject-id="detail.subject.id" :relations="detail.relations || []" filter="other" @select="openSubject" />
+      <SubjectRelations v-if="settings.showVolumes" :subject-id="detail.subject.id" :relations="detail.relations || []" filter="single" @select="openSubject" />
+      <SubjectRelations v-if="settings.showRelations" data-card-anchor="relations" :subject-id="detail.subject.id" :relations="detail.relations || []" filter="other" @select="openSubject" />
       <!-- 购买信息（仅 Galgame 作品展示，依附于本地收藏） -->
       <PurchaseInfo
-        v-if="detail.subject.category === 'galgame'"
+        v-if="detail.subject.category === 'galgame' && settings.showPurchase"
         v-model="purchase"
       >
         <template #actions>
@@ -731,9 +731,9 @@ watch(
       </PurchaseInfo>
       <p v-if="detail.subject.category === 'galgame' && saveMsg" class="ok">{{ saveMsg }}</p>
       <!-- 本作讨论（默认最新2条，可展开分页；点击弹出讨论板悬浮窗） -->
-      <SubjectTopics data-card-anchor="topics" :subject-id="providerId" />
+      <SubjectTopics v-if="settings.showTopics" data-card-anchor="topics" :subject-id="providerId" />
       <!-- 吐槽区 -->
-      <TucaoBox data-card-anchor="tucao" :subject-id="providerId" :media-type="mediaType" />
+      <TucaoBox v-if="settings.showTucao" data-card-anchor="tucao" :subject-id="providerId" :media-type="mediaType" />
     </div>
   </div>
 </template>

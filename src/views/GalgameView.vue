@@ -332,6 +332,7 @@ onUnmounted(() => {
 
       <!-- 游戏画廊（复刻 Bangumi「游戏画廊」组件：VNDB 截图 / DLsite 样例 / Steam 截图） -->
       <GameGallery
+        v-if="settings.showGallery"
         data-anchor="gallery"
         :gallery="gallery"
         :loading="galleryLoading"
@@ -339,20 +340,20 @@ onUnmounted(() => {
         @refresh="loadGallery(true)"
       />
 
-      <SubjectCharacters :subject-id="selected.subject?.id" :characters="selected.characters || []" data-anchor="characters" />
-      <SubjectRelations :subject-id="selected.subject.id" :relations="selected.relations || []" filter="single" data-anchor="single" @select="onSubjectSelect" />
-      <SubjectRelations :subject-id="selected.subject.id" :relations="selected.relations || []" filter="other" data-anchor="relations" @select="onSubjectSelect" />
+      <SubjectCharacters v-if="settings.showCharacters" :subject-id="selected.subject?.id" :characters="selected.characters || []" data-anchor="characters" />
+      <SubjectRelations :subject-id="selected.subject.id" :relations="selected.relations || []" v-if="settings.showVolumes" filter="single" data-anchor="single" @select="onSubjectSelect" />
+      <SubjectRelations :subject-id="selected.subject.id" :relations="selected.relations || []" v-if="settings.showRelations" filter="other" data-anchor="relations" @select="onSubjectSelect" />
 
-      <PurchaseInfo v-model="purchase" data-anchor="purchase">
+      <PurchaseInfo v-if="settings.showPurchase" v-model="purchase" data-anchor="purchase">
         <template #actions>
           <button class="btn btn--accent btn--sm" @click="savePurchase">保存购买信息</button>
         </template>
       </PurchaseInfo>
       <p v-if="saveMsg" class="ok">{{ saveMsg }}</p>
 
-      <SubjectTopics :subject-id="selected.subject?.provider_subject_id ?? null" data-anchor="topics" />
+      <SubjectTopics v-if="settings.showTopics" :subject-id="selected.subject?.provider_subject_id ?? null" data-anchor="topics" />
 
-      <TucaoBox :subject-id="selected.subject?.provider_subject_id ?? null" media-type="game" data-anchor="tucao" />
+      <TucaoBox v-if="settings.showTucao" :subject-id="selected.subject?.provider_subject_id ?? null" media-type="game" data-anchor="tucao" />
       </div>
     </template>
 
