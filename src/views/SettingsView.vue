@@ -1567,10 +1567,10 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
 .accent-swatch.active {
   box-shadow: 0 0 0 2px var(--bg-panel), 0 0 0 4px var(--text);
 }
-/* 自定义颜色入口：彩虹锥形渐变环，内嵌透明取色器；内部小圆点显示当前强调色 */
+/* 自定义颜色入口：外圈显示当前自定义颜色，中间加号；内嵌透明取色器 */
 .accent-custom {
   position: relative;
-  background: conic-gradient(#ff5c8a, #f7b500, #34c98e, #4aa8ff, #a06bff, #ff5c8a);
+  background: var(--accent);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1581,13 +1581,22 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
   opacity: 0;
   cursor: pointer;
 }
-/* 内圆：显示当前生效的强调色（自定义时即取色器值） */
+/* 中间加号（用 ::after 画十字） */
+.accent-custom::before,
 .accent-custom::after {
   content: '';
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--accent);
+  position: absolute;
+  background: #fff;
+  border-radius: 2px;
+  pointer-events: none;
+}
+.accent-custom::before {
+  width: 12px;
+  height: 2px;
+}
+.accent-custom::after {
+  width: 2px;
+  height: 12px;
 }
 .accent-reset {
   padding: 6px 14px;
