@@ -1333,11 +1333,12 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
   font-size: 13px;
 }
 .btn.danger {
-  color: var(--err);
-  border-color: var(--err);
+  /* 危险操作按钮同样跟随强调色（此前固定红色未随强调色同步） */
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
 }
 .btn.danger:hover {
-  background: rgba(255, 107, 107, 0.12);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 .arc-status {
   display: grid;
