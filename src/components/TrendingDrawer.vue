@@ -60,7 +60,8 @@ async function load() {
 
 function toggle() {
   open.value = !open.value
-  if (open.value && !loaded.value && !loading.value) load()
+  // 每次展开都重新拉取最新讨论（刷新期间保留旧内容，不闪白）
+  if (open.value) load()
 }
 </script>
 
