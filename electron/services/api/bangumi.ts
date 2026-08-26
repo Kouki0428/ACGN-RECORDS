@@ -713,7 +713,8 @@ function normalizeP1Topic(t: any): BgmTopic {
  * 即 bgm.tv 首页右侧「热门条目讨论」模块同款数据，每条附带所属条目信息。
  */
 export async function getTrendingSubjectTopics(token?: string): Promise<BgmTopic[]> {
-  const url = `${P1_BASE}/trending/subjects/topics`
+  // 追加缓存破坏参数，确保每次（抽屉展开）都拿到最新网络响应，绕过 CDN/HTTP 缓存
+  const url = `${P1_BASE}/trending/subjects/topics?_=${Date.now()}`
   const res = token
     ? await authedFetch(url, token, { headers: { Accept: 'application/json' } })
     : await fetch(url, { headers: authHeaders() })
