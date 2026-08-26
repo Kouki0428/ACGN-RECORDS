@@ -187,8 +187,8 @@ watch(
   inset: -8px;
   z-index: -1;
   border-radius: 999px;
-  backdrop-filter: url(#liquid-glass-distortion) blur(2px) saturate(1.5);
-  -webkit-backdrop-filter: url(#liquid-glass-distortion) blur(2px) saturate(1.5);
+  backdrop-filter: url(#liquid-glass-distortion) blur(1px) saturate(1.5);
+  -webkit-backdrop-filter: url(#liquid-glass-distortion) blur(1px) saturate(1.5);
 }
 .anchor-bar.glass .anchor-chip:hover {
   transform: translateY(-1px);
