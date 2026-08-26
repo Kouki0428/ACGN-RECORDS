@@ -44,6 +44,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const immersiveGlow = ref(true)
   // 快捷跳转栏：详情页与作品悬浮窗顶部的锚点导航，默认开
   const anchorBarEnabled = ref(true)
+  // 主页卡片大小缩放（0.75~1.5，1=标准 360px 最小列宽），实时生效
+  const cardScale = ref(1)
   // 作品栏区块显示开关（详情页与悬浮窗共用），默认全开
   const showCharacters = ref(true)
   const showVolumes = ref(true)      // 单行本（书籍类的卷册关联）
@@ -103,6 +105,10 @@ export const useSettingsStore = defineStore('settings', () => {
       if (r.key === 'detailBanner') detailBanner.value = r.value !== '0'
       if (r.key === 'immersiveGlow') immersiveGlow.value = r.value !== '0'
       if (r.key === 'anchorBarEnabled') anchorBarEnabled.value = r.value !== '0'
+      if (r.key === 'cardScale') {
+        const v = parseFloat(r.value)
+        cardScale.value = isFinite(v) && v >= 0.6 && v <= 1.8 ? v : 1
+      }
       if (r.key === 'showCharacters') showCharacters.value = r.value !== '0'
       if (r.key === 'showVolumes') showVolumes.value = r.value !== '0'
       if (r.key === 'showRelations') showRelations.value = r.value !== '0'
@@ -165,6 +171,10 @@ export const useSettingsStore = defineStore('settings', () => {
     if (key === 'detailBanner') detailBanner.value = value !== '0'
     if (key === 'immersiveGlow') immersiveGlow.value = value !== '0'
     if (key === 'anchorBarEnabled') anchorBarEnabled.value = value !== '0'
+    if (key === 'cardScale') {
+      const v = parseFloat(value)
+      cardScale.value = isFinite(v) && v >= 0.6 && v <= 1.8 ? v : 1
+    }
     if (key === 'showCharacters') showCharacters.value = value !== '0'
     if (key === 'showVolumes') showVolumes.value = value !== '0'
     if (key === 'showRelations') showRelations.value = value !== '0'
@@ -190,5 +200,5 @@ export const useSettingsStore = defineStore('settings', () => {
     theme.value = v
   }
 
-  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, darkPreset, lightPreset, detailBanner, immersiveGlow, anchorBarEnabled, showCharacters, showVolumes, showRelations, showTopics, showTucao, showGallery, showPurchase, closeBehavior, scheduleLight, scheduleDark, load, set, commitTheme }
+  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, darkPreset, lightPreset, detailBanner, immersiveGlow, anchorBarEnabled, cardScale, showCharacters, showVolumes, showRelations, showTopics, showTucao, showGallery, showPurchase, closeBehavior, scheduleLight, scheduleDark, load, set, commitTheme }
 })

@@ -11,6 +11,7 @@ import { animeClient } from '@/services/animeClient'
 import { collectionClient } from '@/services/collectionClient'
 import { subjectClient } from '@/services/subjectClient'
 import { useAuthStore } from '@/stores/auth'
+import { useSettingsStore } from '@/stores/settings'
 import { useEntityCard } from '@/composables/useEntityCard'
 import { useSearchOverlay } from '@/composables/searchOverlay'
 import { useCollectionModal } from '@/composables/useCollectionModal'
@@ -26,6 +27,12 @@ const { open: openSubject, isOpen: entityOpen } = useEntityCard()
 const { open: openMenu } = useContextMenu()
 const toast = useToast()
 const auth = useAuthStore()
+const settings = useSettingsStore()
+
+// 主页卡片最小列宽随「主页卡片大小」设置缩放（CSS 变量注入，网格 minmax 引用）
+const cardSizeStyle = computed(() => ({
+  '--card-min': Math.round(360 * (settings.cardScale || 1)) + 'px'
+}))
 
 // 主页卡片右键菜单：快速改状态 / 在 Bangumi 打开 / 删除收藏（状态变化后周历同步刷新）
 function onCardMenu(e: MouseEvent, c: HomeCard) {
@@ -438,7 +445,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="home">
+  <div class="home" :style="cardSizeStyle">
     <!-- 三个子分类（仅显示在看/在读的在追作品） -->
     <div class="subtabs">
       <button
@@ -636,7 +643,8 @@ onUnmounted(() => {
    非 transform:scale）→ 封面/内部格子/标题字号保持各自自然像素尺寸、绝不随动画放大缩小/变形，且宽度与位置完全匹配。 */
 .home-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(360px, calc(50% - 8px)), 1fr));
+  /* 最小列宽经 --card-min 注入（= 360px × 卡片大小设置），实时响应个性化调整 */
+  grid-template-columns: repeat(auto-fill, minmax(min(var(--card-min, 360px), calc(50% - 8px)), 1fr));
   gap: 16px;
   /* 换列动画中卡片可能被 transform 临时平移出界，裁掉溢出避免横向滚动条；
      非动画态 1fr 占满，clip 无副作用。 */

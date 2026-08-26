@@ -118,6 +118,7 @@ onMounted(async () => {
   await settings.load()
   gpuLocal.value = settings.gpuAcceleration
   uiScaleLocal.value = settings.uiScale
+  cardSizeLocal.value = settings.cardScale
   gridAnimSpeedLocal.value = settings.gridAnimSpeed
   try {
     const r = await window.acgn.app.getDataDir()
@@ -316,6 +317,18 @@ async function setTheme(v: ThemePref, e?: MouseEvent) {
 // 浏览器式 zoom：作用于整个渲染窗口。滑块 50%–200%，预设 75/100/125/150%。
 const scalePresets = [75, 100, 125, 150]
 const uiScaleLocal = ref(1)
+// 主页卡片大小（0.75~1.5，1=标准）
+const cardSizeLocal = ref(1)
+const cardSizePresets = [80, 100, 125]
+function onCardSizeInput(e: Event) {
+  const v = Number((e.target as HTMLInputElement).value) / 100
+  setCardSize(v)
+}
+function setCardSize(f: number) {
+  const v = Math.min(1.5, Math.max(0.75, Number.isFinite(f) ? f : 1))
+  cardSizeLocal.value = v
+  void settings.set('cardScale', String(v)) // 实时生效 + 持久化
+}
 function onScaleInput(e: Event) {
   const pct = Number((e.target as HTMLInputElement).value)
   setUiScale(pct / 100)
@@ -862,6 +875,37 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         </div>
         <p class="hint">实时预览，立即生效；重启应用后自动恢复。</p>
       </div>
+
+      <!-- 主页卡片大小 -->
+      <hr class="divider" />
+      <div class="scale-control">
+        <div class="scale-head">
+          <span>主页卡片大小</span>
+          <span class="scale-val">{{ Math.round(cardSizeLocal * 100) }}%</span>
+        </div>
+        <input
+          class="scale-range"
+          type="range"
+          min="75"
+          max="150"
+          step="5"
+          :value="Math.round(cardSizeLocal * 100)"
+          @input="onCardSizeInput"
+        />
+        <div class="seg scale-presets">
+          <button
+            v-for="p in cardSizePresets"
+            :key="p"
+            class="seg-item"
+            :class="{ active: Math.round(cardSizeLocal * 100) === p }"
+            @click="setCardSize(p / 100)"
+          >
+            {{ p }}%
+          </button>
+        </div>
+        <p class="hint">调整主页在追卡片的尺寸，实时生效；列数随宽度自适应重排。</p>
+      </div>
+
       <hr class="divider" />
       <label class="progress-editor">
         <input type="checkbox" :checked="settings.detailBanner" @change="settings.set('detailBanner', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
