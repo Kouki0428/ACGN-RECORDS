@@ -50,6 +50,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish release (draft → latest)
-        run: gh release edit ${{ github.ref_name }} --draft=false --title "${{ github.ref_name }}" --generate-notes
+        shell: pwsh
+        run: |
+          $rel = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$($env:GITHUB_REF_NAME)" --jq '.id'
+          gh api -X PATCH "repos/$env:GITHUB_REPOSITORY/releases/$rel" -F draft=false -F "name=$($env:GITHUB_REF_NAME)"
+          gh release edit ${{ github.ref_name }} --latest
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
