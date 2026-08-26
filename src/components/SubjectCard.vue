@@ -884,13 +884,18 @@ watch(
 }
 .card-anchor-bar.glass .card-anchor-chip.active {
   border-color: transparent;
-  /* 重申品牌渐变：玻璃底规则特异性更高会覆盖低特异性的激活背景 */
+  /* 基于强调色派生的垂直渐变：跟随设置中的强调色变化，左右每列颜色一致 */
   background:
     linear-gradient(90deg, transparent 0%, color-mix(in srgb, #fff 26%, transparent) 50%, transparent 100%),
-    linear-gradient(180deg, #ff6d95 0%, #ff5c8a 42%, #ff7a55 100%);
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--accent) 82%, #fff) 0%,
+      var(--accent) 45%,
+      color-mix(in srgb, var(--accent) 78%, #ff8a5c) 100%
+    );
   background-size: 260% 100%, 100% 100%;
   animation: card-chip-liquid-flow 5.5s ease-in-out infinite;
-  box-shadow: 0 4px 18px color-mix(in srgb, #ff5c8a 45%, transparent);
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 @keyframes card-chip-liquid-flow {
   0%, 100% { background-position: 0% 0, 0 0; }
