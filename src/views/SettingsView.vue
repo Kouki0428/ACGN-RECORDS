@@ -806,6 +806,18 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
           :title="c.label"
           @click="settings.set('accentColor', c.hex)"
         ></button>
+        <!-- 自定义颜色：色块显示当前强调色+白色加号，点击唤起系统取色器 -->
+        <label
+          class="accent-swatch accent-custom"
+          :class="{ active: isCustomAccent }"
+          title="自定义颜色"
+        >
+          <input
+            type="color"
+            :value="settings.accentColor || '#ff5c8a'"
+            @input="settings.set('accentColor', ($event.target as HTMLInputElement).value)"
+          />
+        </label>
         <button
           type="button"
           class="accent-reset"
@@ -1541,6 +1553,36 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
 }
 .accent-swatch.active {
   box-shadow: 0 0 0 2px var(--bg-panel), 0 0 0 4px var(--text);
+}
+/* 自定义颜色入口：色块显示当前强调色，中间白色加号；内嵌透明取色器 */
+.accent-custom {
+  position: relative;
+  background: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.accent-custom input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.accent-custom::before,
+.accent-custom::after {
+  content: '';
+  position: absolute;
+  background: #fff;
+  border-radius: 2px;
+  pointer-events: none;
+}
+.accent-custom::before {
+  width: 12px;
+  height: 2px;
+}
+.accent-custom::after {
+  width: 2px;
+  height: 12px;
 }
 .accent-reset {
   padding: 6px 14px;
