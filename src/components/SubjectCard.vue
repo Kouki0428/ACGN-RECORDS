@@ -63,6 +63,49 @@ const bodyEl = ref<HTMLElement | null>(null)
 // 用户滚动时把当前位置写回导航栈当前条目（state.value 即栈中当前 CardState 对象本身）。
 function onBodyScroll() {
   if (state.value && bodyEl.value) state.value.scrollTop = bodyEl.value.scrollTop
+  updateCardAnchorActive()
+}
+
+// —— 悬浮窗内快捷跳转栏（作用域限本卡片的 .subject-body，与详情页 DetailAnchors 互不干扰）——
+const cardAnchors = [
+  { key: 'overview', label: '概览' },
+  { key: 'characters', label: '角色' },
+  { key: 'relations', label: '关联' },
+  { key: 'topics', label: '讨论' },
+  { key: 'tucao', label: '吐槽' }
+]
+const shownCardAnchors = ref<{ key: string; label: string }[]>(cardAnchors)
+const activeCardAnchor = ref('overview')
+
+/** 仅保留真实渲染了的区块（角色/关联等由数据驱动，可能不存在） */
+function refreshCardAnchors() {
+  const root = bodyEl.value
+  if (!root) return
+  shownCardAnchors.value = cardAnchors.filter((a) =>
+    root.querySelector(`[data-card-anchor="${a.key}"]`)
+  )
+}
+
+function cardJump(key: string) {
+  const root = bodyEl.value
+  const el = root?.querySelector<HTMLElement>(`[data-card-anchor="${key}"]`)
+  if (!root || !el) return
+  const top =
+    el.getBoundingClientRect().top - root.getBoundingClientRect().top + root.scrollTop - 4
+  root.scrollTo({ top, behavior: 'smooth' })
+}
+
+/** 以锚点栏下沿为判定线：最后越线的区块即当前区 */
+function updateCardAnchorActive() {
+  const root = bodyEl.value
+  if (!root) return
+  const line = root.getBoundingClientRect().top + 52
+  let cur = ''
+  for (const a of shownCardAnchors.value) {
+    const el = root.querySelector<HTMLElement>(`[data-card-anchor="${a.key}"]`)
+    if (el && el.getBoundingClientRect().top <= line) cur = a.key
+  }
+  activeCardAnchor.value = cur || 'overview'
 }
 
 // 内容加载完成后，按导航方向定位滚动条：
@@ -73,6 +116,9 @@ async function applyScroll() {
   await nextTick()
   const el = bodyEl.value
   if (!el) return
+  // 区块随数据渲染完成后刷新锚点条（角色/关联等可能不存在 → 对应按钮隐藏）
+  refreshCardAnchors()
+  updateCardAnchorActive()
   if (navDir.value === 'back') {
     const saved = state.value?.scrollTop
     el.scrollTop = saved != null ? saved : 0
@@ -604,8 +650,19 @@ watch(
     </div>
 
     <div v-else-if="detail" class="subject-body" ref="bodyEl" @scroll.passive="onBodyScroll">
+      <!-- 快捷跳转栏（吸顶于卡片滚动区，作用域限本卡片） -->
+      <div class="card-anchor-bar">
+        <button
+          v-for="a in shownCardAnchors"
+          :key="a.key"
+          type="button"
+          class="card-anchor-chip"
+          :class="{ active: activeCardAnchor === a.key }"
+          @click="cardJump(a.key)"
+        >{{ a.label }}</button>
+      </div>
       <!-- 头部：封面 + 标题 + 简介（复用全局 .detail__* 样式，与详情页一致） -->
-      <div class="detail__main">
+      <div class="detail__main" data-card-anchor="overview">
         <img v-if="detail.subject.image_url" :src="proxyImg(detail.subject.image_url)" class="detail__poster" :alt="detail.subject.title" @click.stop="openPoster(proxyImg(detail.subject.image_url), detail.subject.title)" style="cursor: pointer" />
         <span v-else class="detail__poster detail__poster--empty">无封面</span>
         <div class="detail__body">
@@ -659,9 +716,9 @@ watch(
         @refresh="loadGallery(true)"
       />
       <!-- 角色 -->
-      <SubjectCharacters :subject-id="detail.subject.id" :characters="detail.characters || []" :push-nav="true" />
+      <SubjectCharacters data-card-anchor="characters" :subject-id="detail.subject.id" :characters="detail.characters || []" :push-nav="true" />
       <!-- 关联条目：单行本 + 其它 -->
-      <SubjectRelations :subject-id="detail.subject.id" :relations="detail.relations || []" filter="single" @select="openSubject" />
+      <SubjectRelations data-card-anchor="relations" :subject-id="detail.subject.id" :relations="detail.relations || []" filter="single" @select="openSubject" />
       <SubjectRelations :subject-id="detail.subject.id" :relations="detail.relations || []" filter="other" @select="openSubject" />
       <!-- 购买信息（仅 Galgame 作品展示，依附于本地收藏） -->
       <PurchaseInfo
@@ -674,9 +731,9 @@ watch(
       </PurchaseInfo>
       <p v-if="detail.subject.category === 'galgame' && saveMsg" class="ok">{{ saveMsg }}</p>
       <!-- 本作讨论（默认最新2条，可展开分页；点击弹出讨论板悬浮窗） -->
-      <SubjectTopics :subject-id="providerId" />
+      <SubjectTopics data-card-anchor="topics" :subject-id="providerId" />
       <!-- 吐槽区 -->
-      <TucaoBox :subject-id="providerId" :media-type="mediaType" />
+      <TucaoBox data-card-anchor="tucao" :subject-id="providerId" :media-type="mediaType" />
     </div>
   </div>
 </template>
@@ -748,6 +805,43 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+/* 快捷跳转栏：吸顶于卡片滚动区；液态玻璃 chip（沉浸光感开启时） */
+.card-anchor-bar {
+  position: sticky;
+  top: -16px; /* 抵消 .subject-body 的 padding-top，贴住卡片滚动区最顶沿 */
+  z-index: 6;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: -4px -4px 8px;
+  padding: 10px 4px 6px;
+}
+.card-anchor-chip {
+  padding: 3px 11px;
+  font-size: 12px;
+  border-radius: 999px;
+  border-color: transparent;
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition:
+    color var(--dur-fast) ease,
+    background var(--dur-fast) ease,
+    box-shadow var(--dur-fast) ease;
+}
+.card-anchor-chip:hover {
+  color: var(--text);
+}
+.card-anchor-chip.active {
+  color: #fff;
+  background:
+    linear-gradient(90deg, transparent 0%, color-mix(in srgb, #fff 26%, transparent) 50%, transparent 100%),
+    linear-gradient(180deg, #ff6d95 0%, #ff5c8a 42%, #ff7a55 100%);
+  font-weight: 600;
+  box-shadow: 0 3px 14px color-mix(in srgb, #ff5c8a 40%, transparent);
 }
 /* 悬浮窗横幅：铺到卡片最顶端（含标题栏背后），常驻不随滚动；
    其余 blur/透明度复用全局 .detail-banner；mask 覆盖为仅底部渐隐
