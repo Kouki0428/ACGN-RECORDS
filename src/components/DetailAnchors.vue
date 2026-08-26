@@ -196,10 +196,11 @@ watch(
 }
 .anchor-bar.glass .anchor-chip.active {
   border-color: transparent;
-  /* 垂直方向的品牌渐变：左右每一列颜色相同 → 胶囊两端颜色完全一致 */
+  /* 垂直方向的品牌渐变：左右每一列颜色相同 → 胶囊两端颜色完全一致。
+     中点 55% 让过渡重心略偏下，过渡更柔和自然 */
   background:
     linear-gradient(90deg, transparent 0%, color-mix(in srgb, #fff 26%, transparent) 50%, transparent 100%),
-    linear-gradient(180deg, #ff5c8a 0%, #ff8a5c 100%);
+    linear-gradient(180deg, #ff6d95 0%, #ff5c8a 42%, #ff7a55 100%);
   /* 液态流光：一条对称亮带缓缓扫过（两端始终是透明→基色不受影响，左右颜色保持一致） */
   background-size: 260% 100%, 100% 100%;
   animation: chip-liquid-flow 5.5s ease-in-out infinite;
