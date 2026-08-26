@@ -301,10 +301,6 @@ const accentPresets = [
   { hex: '#4aa8ff', label: '天蓝' },
   { hex: '#f7b500', label: '琥珀金' }
 ]
-// 当前强调色是否为自定义值（不在预设中）→ 高亮「自定义」色块
-const isCustomAccent = computed(
-  () => !!settings.accentColor && !accentPresets.some((c) => c.hex === settings.accentColor)
-)
 async function setTheme(v: ThemePref, e?: MouseEvent) {
   await settings.set('theme', v) // 先持久化到库
   // View Transitions：以被点按钮为圆心做圆形揭示；onCovered（按钮高亮切换）与新主题同帧原子生效
@@ -738,9 +734,9 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
       </template>
 
       <template v-if="group === 'appearance'">
-    <!-- 外观 -->
+    <!-- 主题与色彩 -->
     <section class="panel">
-      <h2>外观</h2>
+      <h2>主题与色彩</h2>
       <p class="hint">选择界面主题。“跟随系统”随操作系统自动切换；“定时”按下方时段自动切换。</p>
       <div class="seg">
         <button
@@ -810,18 +806,6 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
           :title="c.label"
           @click="settings.set('accentColor', c.hex)"
         ></button>
-        <!-- 自定义颜色：彩虹环标识，点击唤起系统取色器；当前强调色为自定义值时高亮 -->
-        <label
-          class="accent-swatch accent-custom"
-          :class="{ active: isCustomAccent }"
-          title="自定义颜色"
-        >
-          <input
-            type="color"
-            :value="settings.accentColor || '#ff5c8a'"
-            @input="settings.set('accentColor', ($event.target as HTMLInputElement).value)"
-          />
-        </label>
         <button
           type="button"
           class="accent-reset"
@@ -829,8 +813,39 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
           @click="settings.set('accentColor', '')"
         >默认</button>
       </div>
+      </section>
 
-      <!-- 窗口与装饰 -->
+    <!-- 布局与显示 -->
+    <section class="panel">
+      <h2>布局与显示</h2>
+      <p class="hint">界面整体缩放与详情页装饰元素。</p>
+      <div class="scale-control">
+        <div class="scale-head">
+          <span>界面缩放</span>
+          <span class="scale-val">{{ Math.round(uiScaleLocal * 100) }}%</span>
+        </div>
+        <input
+          class="scale-range"
+          type="range"
+          min="50"
+          max="200"
+          step="5"
+          :value="Math.round(uiScaleLocal * 100)"
+          @input="onScaleInput"
+        />
+        <div class="seg scale-presets">
+          <button
+            v-for="p in scalePresets"
+            :key="p"
+            class="seg-item"
+            :class="{ active: Math.round(uiScaleLocal * 100) === p }"
+            @click="setUiScale(p / 100)"
+          >
+            {{ p }}%
+          </button>
+        </div>
+        <p class="hint">实时预览，立即生效；重启应用后自动恢复。</p>
+      </div>
       <hr class="divider" />
       <label class="progress-editor">
         <input type="checkbox" :checked="settings.detailBanner" @change="settings.set('detailBanner', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
@@ -840,9 +855,16 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         <input type="checkbox" :checked="settings.anchorBarEnabled" @change="settings.set('anchorBarEnabled', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
         快捷跳转栏（详情页与作品悬浮窗顶部的锚点导航）
       </label>
+      <label class="progress-editor">
+        <input type="checkbox" :checked="settings.immersiveGlow" @change="settings.set('immersiveGlow', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
+        沉浸光感
+      </label>
+    </section>
 
-      <hr class="divider" />
-      <p class="hint" style="margin: 0 0 6px">作品栏区块显示</p>
+    <!-- 作品栏区块 -->
+    <section class="panel">
+      <h2>作品栏区块</h2>
+      <p class="hint" style="margin: 0 0 6px">控制详情页与悬浮窗中各区块的显示。</p>
       <label class="progress-editor">
         <input type="checkbox" :checked="settings.showCharacters" @change="settings.set('showCharacters', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
         角色
@@ -871,43 +893,11 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         <input type="checkbox" :checked="settings.showPurchase" @change="settings.set('showPurchase', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
         购买信息（仅 Galgame）
       </label>
-      <label class="progress-editor">
-        <input type="checkbox" :checked="settings.immersiveGlow" @change="settings.set('immersiveGlow', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
-        沉浸光感
-      </label>
+    </section>
 
-      <hr class="divider" />
-
-      <div class="scale-control">
-        <div class="scale-head">
-          <span>界面缩放</span>
-          <span class="scale-val">{{ Math.round(uiScaleLocal * 100) }}%</span>
-        </div>
-        <input
-          class="scale-range"
-          type="range"
-          min="50"
-          max="200"
-          step="5"
-          :value="Math.round(uiScaleLocal * 100)"
-          @input="onScaleInput"
-        />
-        <div class="seg scale-presets">
-          <button
-            v-for="p in scalePresets"
-            :key="p"
-            class="seg-item"
-            :class="{ active: Math.round(uiScaleLocal * 100) === p }"
-            @click="setUiScale(p / 100)"
-          >
-            {{ p }}%
-          </button>
-        </div>
-        <p class="hint">实时预览，立即生效；重启应用后自动恢复。</p>
-      </div>
-
-      <hr class="divider" />
-
+    <!-- 性能 -->
+    <section class="panel">
+      <h2>性能</h2>
       <label class="progress-editor">
         <input type="checkbox" :checked="gpuLocal" @change="toggleGpu" />
         启用 GPU 硬件加速
@@ -1081,16 +1071,6 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
       </div>
       <p v-if="dataMsg" :class="dataOk ? 'ok' : 'err'" style="margin-top: 8px">{{ dataMsg }}</p>
 
-      <!-- 应用版本 / 检查更新 -->
-      <hr class="divider" />
-      <div class="row" style="margin-top: 12px; align-items: center">
-        <span class="hint" style="margin: 0">当前版本：</span>
-        <b style="font-size: 13px">{{ appVersion }}</b>
-        <button class="btn btn--ghost btn--sm" :disabled="checkingUpdate" @click="doCheckUpdate">
-          {{ checkingUpdate ? '检查中…' : '检查更新' }}
-        </button>
-      </div>
-      <p v-if="updateMsg" :class="updateOk ? 'ok' : 'hint'" style="margin-top: 8px">{{ updateMsg }}</p>
       <div class="row" style="margin-top: 12px">
         <button class="btn btn--primary" :disabled="backupBusy" @click="doExportBackup">
           {{ backupBusy ? '处理中…' : '导出备份' }}
@@ -1113,10 +1093,6 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         导出收藏为表格文件（标题 / 分类 / 状态 / 评分 / 进度 / 吐槽 / 标记时间 / 链接）。
         CSV 可直接用 Excel 打开；JSON 为结构化格式。<strong>单向导出，不能导回应用。</strong>
       </p>
-      <div class="row" style="margin-top: 10px">
-        <button class="btn btn--ghost" :disabled="backupBusy" @click="doExportCollections('csv')">导出收藏 CSV</button>
-        <button class="btn btn--ghost" :disabled="backupBusy" @click="doExportCollections('json')">导出收藏 JSON</button>
-      </div>
       <div class="row" style="margin-top: 10px">
         <button class="btn btn--ghost" :disabled="backupBusy" @click="doExportCollections('csv')">导出收藏 CSV</button>
         <button class="btn btn--ghost" :disabled="backupBusy" @click="doExportCollections('json')">导出收藏 JSON</button>
@@ -1349,12 +1325,11 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
   font-size: 13px;
 }
 .btn.danger {
-  /* 危险操作按钮同样跟随强调色（此前固定红色未随强调色同步） */
-  color: var(--accent);
-  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  color: var(--err);
+  border-color: var(--err);
 }
 .btn.danger:hover {
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  background: rgba(255, 107, 107, 0.12);
 }
 .arc-status {
   display: grid;
@@ -1566,37 +1541,6 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
 }
 .accent-swatch.active {
   box-shadow: 0 0 0 2px var(--bg-panel), 0 0 0 4px var(--text);
-}
-/* 自定义颜色入口：外圈显示当前自定义颜色，中间加号；内嵌透明取色器 */
-.accent-custom {
-  position: relative;
-  background: var(--accent);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.accent-custom input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-/* 中间加号（用 ::after 画十字） */
-.accent-custom::before,
-.accent-custom::after {
-  content: '';
-  position: absolute;
-  background: #fff;
-  border-radius: 2px;
-  pointer-events: none;
-}
-.accent-custom::before {
-  width: 12px;
-  height: 2px;
-}
-.accent-custom::after {
-  width: 2px;
-  height: 12px;
 }
 .accent-reset {
   padding: 6px 14px;
