@@ -173,33 +173,23 @@ watch(
 /* ——以下为「沉浸光感」开启时的液态玻璃覆盖（设置可关）—— */
 .anchor-bar.glass .anchor-chip {
   /* 沉浸式液态玻璃：无描边的均匀「液体」层。
-     注意只用小幅度 blur、不加 brightness/saturate——提亮/提饱和会让滤镜区
-     与周围内容产生一圈亮度突变（看起来像描边）；低模糊过渡则是渐变的、无硬边 */
+     不加任何 inset 内阴影——顶亮/底暗的内线环绕按钮一周正是「一圈边」的来源；
+     只保留小幅度 blur 与极淡白底 */
   border-color: transparent;
   background: color-mix(in srgb, #fff 7%, transparent);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  box-shadow:
-    inset 0 1px 1px color-mix(in srgb, #fff 18%, transparent),
-    inset 0 -1px 2px color-mix(in srgb, #000 10%, transparent),
-    0 4px 16px color-mix(in srgb, #000 16%, transparent);
 }
 .anchor-bar.glass .anchor-chip:hover {
   transform: translateY(-1px);
   background: color-mix(in srgb, #fff 13%, transparent);
-  box-shadow:
-    inset 0 1px 1px color-mix(in srgb, #fff 24%, transparent),
-    inset 0 -1px 2px color-mix(in srgb, #000 8%, transparent),
-    0 6px 20px color-mix(in srgb, #000 22%, transparent);
 }
 .anchor-bar.glass .anchor-chip.active {
   border-color: transparent;
   /* 必须在此处重申品牌渐变：上面的玻璃底规则特异性更高，
      会覆盖低特异性的 .anchor-chip.active 背景 → 激活态不变色 */
   background: var(--accent-grad);
-  box-shadow:
-    inset 0 1px 1px color-mix(in srgb, #fff 26%, transparent),
-    0 4px 18px color-mix(in srgb, #ff5c8a 40%, transparent);
+  box-shadow: 0 4px 18px color-mix(in srgb, #ff5c8a 40%, transparent);
 }
 /* 鼠标跟随的主题色光斑：径向渐变锚定在指针坐标（--mx/--my 由 JS 写入），
    悬停时淡入、滑出时淡出；纯装饰层不拦截点击 */
