@@ -860,14 +860,14 @@ watch(
   font-weight: 600;
   box-shadow: 0 3px 14px color-mix(in srgb, #ff5c8a 40%, transparent);
 }
-/* ——沉浸光感开启时的液态玻璃覆盖（与详情页 DetailAnchors 同配方）—— */
+/* ——沉浸光感开启时的液态玻璃覆盖（与详情页 DetailAnchors 完全同配方）—— */
 .card-anchor-bar.glass .card-anchor-chip {
-  /* 不能加 isolation/transform（会创建 backdrop root 使折射层失效）；hover 上浮用 margin */
+  /* 沉浸式液态玻璃：折射由全局 SVG 滤镜 liquid-glass-distortion 完成，
+     backdrop-filter 放在外扩 8px 的 ::before 上并被 overflow 裁掉 */
+  isolation: isolate;
   overflow: hidden;
   border-color: transparent;
-  background: transparent;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  background: color-mix(in srgb, #fff 0.1%, transparent);
 }
 .card-anchor-bar.glass .card-anchor-chip::before {
   content: '';
@@ -875,19 +875,35 @@ watch(
   inset: -8px;
   z-index: -1;
   border-radius: 999px;
-  backdrop-filter: url(#liquid-glass-distortion) saturate(1.35);
-  -webkit-backdrop-filter: url(#liquid-glass-distortion) saturate(1.35);
+  backdrop-filter: url(#liquid-glass-distortion) saturate(1.5);
+  -webkit-backdrop-filter: url(#liquid-glass-distortion) saturate(1.5);
 }
 .card-anchor-bar.glass .card-anchor-chip:hover {
-  margin-top: -1px;
+  transform: translateY(-1px);
+  background: color-mix(in srgb, #fff 13%, transparent);
+}
+.card-anchor-bar.glass .card-anchor-chip.active {
+  border-color: transparent;
+  /* 重申品牌渐变：玻璃底规则特异性更高会覆盖低特异性的激活背景 */
+  background:
+    linear-gradient(90deg, transparent 0%, color-mix(in srgb, #fff 26%, transparent) 50%, transparent 100%),
+    linear-gradient(180deg, #ff6d95 0%, #ff5c8a 42%, #ff7a55 100%);
+  background-size: 260% 100%, 100% 100%;
+  animation: card-chip-liquid-flow 5.5s ease-in-out infinite;
+  box-shadow: 0 4px 18px color-mix(in srgb, #ff5c8a 45%, transparent);
+}
+@keyframes card-chip-liquid-flow {
+  0%, 100% { background-position: 0% 0, 0 0; }
+  50% { background-position: 100% 0, 0 0; }
 }
 /* 鼠标跟随的主题色光斑 */
 .card-anchor-bar.glass .card-anchor-chip::after {
   content: '';
   position: absolute;
-  inset: -28px;
+  inset: 0;
+  border-radius: inherit;
   background: radial-gradient(
-    60px circle at calc(var(--mx, 50%) + 28px) calc(var(--my, 50%) + 28px),
+    60px circle at var(--mx, 50%) var(--my, 50%),
     color-mix(in srgb, var(--accent) 42%, transparent),
     transparent 68%
   );
