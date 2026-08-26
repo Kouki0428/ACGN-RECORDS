@@ -166,20 +166,20 @@ function toggle() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 13px 14px;
+  padding: calc(13px * var(--card-scale, 1)) calc(14px * var(--card-scale, 1));
   border-bottom: 1px solid var(--border-soft);
 }
 .td-head h3 {
   margin: 0;
-  font-size: 15px;
+  font-size: calc(15px * var(--card-scale, 1));
   color: var(--text);
 }
 .td-refresh {
   border: none;
   background: transparent;
   color: var(--text-dim);
-  width: 28px;
-  height: 28px;
+  width: calc(28px * var(--card-scale, 1));
+  height: calc(28px * var(--card-scale, 1));
   border-radius: 50%;
   cursor: pointer;
   display: inline-flex;
@@ -191,8 +191,8 @@ function toggle() {
 .td-hint {
   text-align: center;
   color: var(--text-dim);
-  font-size: 13px;
-  padding: 32px 14px;
+  font-size: calc(13px * var(--card-scale, 1));
+  padding: calc(32px * var(--card-scale, 1)) calc(14px * var(--card-scale, 1));
 }
 .td-hint.err { color: var(--err); }
 /* 列表 */
@@ -202,16 +202,16 @@ function toggle() {
   overscroll-behavior: contain;
   list-style: none;
   margin: 0;
-  padding: 10px;
+  padding: calc(10px * var(--card-scale, 1));
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: calc(8px * var(--card-scale, 1));
 }
 .td-item {
   display: flex;
-  gap: 10px;
-  padding: 8px;
-  border-radius: 10px;
+  gap: calc(10px * var(--card-scale, 1));
+  padding: calc(8px * var(--card-scale, 1));
+  border-radius: calc(10px * var(--card-scale, 1));
   transition: background .15s;
 }
 .td-item:hover { background: var(--bg-elev); }
@@ -221,15 +221,15 @@ function toggle() {
   border: none;
   background: none;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: calc(6px * var(--card-scale, 1));
   overflow: hidden;
   line-height: 0;
 }
 .td-cover {
-  width: 40px;
-  height: 53px;
+  width: calc(40px * var(--card-scale, 1));
+  height: calc(53px * var(--card-scale, 1));
   object-fit: cover;
-  border-radius: 6px;
+  border-radius: calc(6px * var(--card-scale, 1));
   background: var(--bg-elev);
 }
 .td-cover--empty { display: inline-block; }
@@ -238,14 +238,14 @@ function toggle() {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: calc(3px * var(--card-scale, 1));
 }
 .td-title {
   text-align: left;
   border: none;
   background: none;
   padding: 0;
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--card-scale, 1));
   color: var(--text);
   line-height: 1.45;
   cursor: pointer;
@@ -261,7 +261,7 @@ function toggle() {
   background: none;
   padding: 0;
   align-self: flex-start;
-  font-size: 11px;
+  font-size: calc(11px * var(--card-scale, 1));
   color: var(--accent);
   opacity: .85;
   cursor: pointer;
@@ -274,14 +274,14 @@ function toggle() {
 .td-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 11px;
+  gap: calc(8px * var(--card-scale, 1));
+  font-size: calc(11px * var(--card-scale, 1));
   color: var(--text-dim);
 }
 .td-replies {
   background: color-mix(in srgb, var(--accent) 12%, transparent);
   color: var(--accent);
-  padding: 0 7px;
+  padding: 0 calc(7px * var(--card-scale, 1));
   border-radius: 999px;
   font-weight: 600;
 }
