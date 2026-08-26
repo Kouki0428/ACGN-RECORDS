@@ -942,8 +942,6 @@ export interface AcgnApi {
     getTopicDetail: (topicId: number) => Promise<BgmTopicDetail | null>
     /** 全站热门条目讨论（next p1 /trending/subjects/topics，bgm 首页右侧同款，匿名可访问） */
     getTrendingTopics: () => Promise<BgmTopic[]>
-    /** 全站热门条目讨论（next p1 /trending/subjects/topics，bgm 首页右侧同款，匿名可访问） */
-    getTrendingTopics: () => Promise<BgmTopic[]>
     /** 在讨论串下发表回复（需登录；replyTo 指向楼层 id = 楼中楼回复），返回新楼层 id */
     postTopicReply: (payload: { topicId: number; content: string; replyTo?: number | null }) => Promise<{ id: number }>
     /** 讨论楼层表情回应 toggle（需登录；端点为 subjects/-/posts/{postId}/like） */
