@@ -4,7 +4,7 @@ import App from './App.vue'
 import router from './router'
 import './assets/main.css'
 import { useSettingsStore } from '@/stores/settings'
-import { applyUiScale } from '@/scale'
+import { applyUiScale, applyCardScale } from '@/scale'
 import { installCrashGuard } from './crashGuard'
 
 const pinia = createPinia()
@@ -17,5 +17,8 @@ installCrashGuard(() => app.mount('#app'), app)
 const settings = useSettingsStore(pinia)
 settings
   .load()
-  .then(() => applyUiScale(settings.uiScale))
+  .then(() => {
+    applyUiScale(settings.uiScale)
+    applyCardScale(settings.cardScale)
+  })
   .catch(() => {})

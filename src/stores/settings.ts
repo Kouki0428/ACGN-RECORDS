@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { dbClient } from '@/services/dbClient'
 import { applyTheme, setThemePreset, setSchedule, type ThemePref } from '@/theme'
 import { applyAccent } from '@/utils/accent'
+import { applyCardScale } from '@/scale'
 
 export const useSettingsStore = defineStore('settings', () => {
   const autoSync = ref(false)
@@ -127,6 +128,8 @@ export const useSettingsStore = defineStore('settings', () => {
     // 若持久化的偏好是「定时」，需在时段载入后重新解析一次（循环内的首次 applyTheme
     // 发生在 setSchedule 之前，用的是默认时段）
     if (theme.value === 'scheduled') void applyTheme('scheduled')
+    // 把卡片大小写入 :root，供全局 .card / 主页 .hcard 等比缩放
+    applyCardScale(cardScale.value)
   }
 
   async function set(key: string, value: string) {
@@ -174,6 +177,7 @@ export const useSettingsStore = defineStore('settings', () => {
     if (key === 'cardScale') {
       const v = parseFloat(value)
       cardScale.value = isFinite(v) && v >= 0.6 && v <= 1.8 ? v : 1
+      applyCardScale(cardScale.value)
     }
     if (key === 'showCharacters') showCharacters.value = value !== '0'
     if (key === 'showVolumes') showVolumes.value = value !== '0'
