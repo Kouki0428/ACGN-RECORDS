@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   /* 配色 —— 沉稳暗色 + ACG 撞色 */
   --bg: #14171c;
   --bg-grad: radial-gradient(1200px 600px at 80% -10%, #1d2330 0%, #14171c 60%);
@@ -1051,12 +1051,12 @@ textarea.input {
   cursor: default;
 }
 .btn--primary {
-  background: var(--accent2-grad);
+  background: var(--accent-grad);
   color: #fff;
 }
 .btn--primary:hover:not(:disabled) {
   filter: brightness(1.08);
-  box-shadow: 0 4px 16px rgba(91, 157, 255, 0.32);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 32%, transparent);
 }
 .btn--accent {
   background: var(--accent-grad);
@@ -1064,7 +1064,7 @@ textarea.input {
 }
 .btn--accent:hover:not(:disabled) {
   filter: brightness(1.06);
-  box-shadow: 0 4px 16px rgba(255, 92, 138, 0.3);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 .btn--ghost {
   background: var(--bg-elev);
