@@ -199,10 +199,10 @@ watch(
   /* 必须在此处重申品牌渐变：上面的玻璃底规则特异性更高，
      会覆盖低特异性的 .anchor-chip.active 背景 → 激活态不变色 */
   background:
-    linear-gradient(120deg, color-mix(in srgb, #fff 30%, transparent) 0%, transparent 45%),
+    linear-gradient(90deg, transparent 0%, color-mix(in srgb, #fff 26%, transparent) 50%, transparent 100%),
     var(--accent-grad);
-  /* 液态流光：高光层在品牌渐变上缓慢流动（background-position 动画不创建 backdrop root） */
-  background-size: 220% 100%, 100% 100%;
+  /* 液态流光：一条对称亮带缓缓扫过（两端始终是透明→基色不受影响，左右颜色保持一致） */
+  background-size: 260% 100%, 100% 100%;
   animation: chip-liquid-flow 5.5s ease-in-out infinite;
   box-shadow: 0 4px 18px color-mix(in srgb, #ff5c8a 45%, transparent);
 }
