@@ -172,13 +172,23 @@ watch(
 
 /* ——以下为「沉浸光感」开启时的液态玻璃覆盖（设置可关）—— */
 .anchor-bar.glass .anchor-chip {
-  /* 沉浸式液态玻璃：无描边的均匀「液体」层。
-     不加任何 inset 内阴影——顶亮/底暗的内线环绕按钮一周正是「一圈边」的来源；
-     只保留小幅度 blur 与极淡白底 */
+  /* 沉浸式液态玻璃：折射由全局 SVG 滤镜 liquid-glass-distortion 完成
+     （feDisplacementMap 扰动背板像素 → 水波扭曲），叠加轻微模糊与提饱和。
+     backdrop-filter 放在外扩 8px 的 ::before 上并被 overflow 裁掉：
+     位移滤镜会把边缘像素拉出拉伸线，外扩裁剪保证按钮四周干净。 */
+  isolation: isolate;
+  overflow: hidden;
   border-color: transparent;
   background: color-mix(in srgb, #fff 7%, transparent);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+}
+.anchor-bar.glass .anchor-chip::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  z-index: -1;
+  border-radius: 999px;
+  backdrop-filter: url(#liquid-glass-distortion) blur(2px) saturate(1.5);
+  -webkit-backdrop-filter: url(#liquid-glass-distortion) blur(2px) saturate(1.5);
 }
 .anchor-bar.glass .anchor-chip:hover {
   transform: translateY(-1px);
