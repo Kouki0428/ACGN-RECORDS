@@ -220,6 +220,11 @@ const cardStyle = computed(() => {
 })
 
 function onCellEnter(i: number, ev: MouseEvent) {
+  // 切换到新格子：取消上一个格子的「移开自动关闭」定时器
+  if (leaveTimer != null) {
+    clearTimeout(leaveTimer)
+    leaveTimer = null
+  }
   openGridId.value = myGridId
   activeIndex.value = i
   const cell = ev.currentTarget as HTMLElement
@@ -228,7 +233,23 @@ function onCellEnter(i: number, ev: MouseEvent) {
   hasEnteredCard.value = false // 切换到新格子，重置「是否进过卡片」状态
   startFollow() // 启动逐帧跟随（含 FLIP 重排动画期间贴住格子）
 }
+// 鼠标离开格子：若从未进入过卡片，短暂延迟后自动收起卡片与激活态——
+// 避免鼠标早已移开、格子却停留在激活高亮的残留状态；延迟窗口留给用户移向卡片。
+// 若已进入过卡片，则交给 onCardLeave 的「滑出即关」逻辑处理。
+let leaveTimer: ReturnType<typeof setTimeout> | null = null
+function onCellLeave() {
+  if (hasEnteredCard.value) return
+  if (leaveTimer != null) clearTimeout(leaveTimer)
+  leaveTimer = setTimeout(() => {
+    leaveTimer = null
+    closeCard()
+  }, 420)
+}
 function closeCard() {
+  if (leaveTimer != null) {
+    clearTimeout(leaveTimer)
+    leaveTimer = null
+  }
   if (openGridId.value === myGridId) openGridId.value = -1
   activeIndex.value = null
   hoverCell.value = null
@@ -236,11 +257,15 @@ function closeCard() {
   hasEnteredCard.value = false
   stopFollow() // 停止逐帧跟随
 }
-// 鼠标进入悬停卡片本体：标记「滑到过上面」。
+// 鼠标进入悬停卡片本体：标记「滑到过上面」，并取消格子的自动收起定时器。
 // 配合 onCardLeave：一旦进入过卡片、再滑出整个卡片（无论移到格子还是别处）即关闭，
 // 实现「鼠标滑到过上面再滑出悬浮窗就关闭」；没进过卡片（仅停在格子）仍保持不关。
 function onCardEnter() {
   hasEnteredCard.value = true
+  if (leaveTimer != null) {
+    clearTimeout(leaveTimer)
+    leaveTimer = null
+  }
 }
 function onCardLeave() {
   if (hasEnteredCard.value) closeCard()
@@ -361,6 +386,7 @@ onUnmounted(() => {
   window.removeEventListener('resize', onResize)
   if (rafId) cancelAnimationFrame(rafId)
   stopFollow()
+  if (leaveTimer != null) clearTimeout(leaveTimer)
   if (openGridId.value === myGridId) openGridId.value = -1
 })
 </script>
@@ -381,6 +407,7 @@ onUnmounted(() => {
           :class="[cellClass(ep), { active: activeIndex === i }]"
           :title="`ep.${ep.epNumber}`"
           @mouseenter="onCellEnter(i, $event)"
+          @mouseleave="onCellLeave"
           @click="onCellClick(ep)"
         >
           {{ ep.epNumber }}
