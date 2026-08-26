@@ -243,7 +243,7 @@ function onCellLeave() {
   leaveTimer = setTimeout(() => {
     leaveTimer = null
     closeCard()
-  }, 420)
+  }, 100)
 }
 function closeCard() {
   if (leaveTimer != null) {
