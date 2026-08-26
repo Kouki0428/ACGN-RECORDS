@@ -198,8 +198,22 @@ watch(
   border-color: transparent;
   /* 必须在此处重申品牌渐变：上面的玻璃底规则特异性更高，
      会覆盖低特异性的 .anchor-chip.active 背景 → 激活态不变色 */
-  background: var(--accent-grad);
-  box-shadow: 0 4px 18px color-mix(in srgb, #ff5c8a 40%, transparent);
+  background:
+    linear-gradient(120deg, color-mix(in srgb, #fff 30%, transparent) 0%, transparent 45%),
+    var(--accent-grad);
+  /* 液态流光：高光层在品牌渐变上缓慢流动（background-position 动画不创建 backdrop root） */
+  background-size: 220% 100%, 100% 100%;
+  animation: chip-liquid-flow 5.5s ease-in-out infinite;
+  box-shadow:
+    inset 0 1px 1px color-mix(in srgb, #fff 40%, transparent),
+    inset 0 -1px 2px color-mix(in srgb, #000 18%, transparent),
+    inset 0 0 12px color-mix(in srgb, #fff 14%, transparent),
+    0 4px 18px color-mix(in srgb, #ff5c8a 45%, transparent);
+  text-shadow: 0 1px 2px color-mix(in srgb, #000 25%, transparent);
+}
+@keyframes chip-liquid-flow {
+  0%, 100% { background-position: 0% 0, 0 0; }
+  50% { background-position: 100% 0, 0 0; }
 }
 /* 鼠标跟随的主题色光斑：径向渐变锚定在指针坐标（--mx/--my 由 JS 写入），
    悬停时淡入、滑出时淡出；纯装饰层不拦截点击 */
