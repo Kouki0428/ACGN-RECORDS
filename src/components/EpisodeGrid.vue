@@ -203,10 +203,10 @@ const cardStyle = computed(() => {
   const r = cell.getBoundingClientRect()
   const c = clipRect.value
   const cardH = cardEl.value?.offsetHeight ?? 200
-  let top = r.bottom + 8 // 默认放格子下方
+  let top = r.bottom + 6 // 默认放格子下方
   // 若下方放不下（会探出裁剪框底部），且上方能完整容纳，则翻到上方，保持可用（不强制隐藏）。
-  if (top + cardH > c.top + c.height && r.top - cardH - 8 >= c.top) {
-    top = r.top - cardH - 8
+  if (top + cardH > c.top + c.height && r.top - cardH - 6 >= c.top) {
+    top = r.top - cardH - 6
   }
   // 卡片相对裁剪框左上角的绝对定位；不夹左右/上下——超出裁剪框的部分由 overflow:hidden 裁断。
   const left = r.left + r.width / 2 - CARD_W / 2
