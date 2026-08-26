@@ -301,6 +301,10 @@ const accentPresets = [
   { hex: '#4aa8ff', label: '天蓝' },
   { hex: '#f7b500', label: '琥珀金' }
 ]
+// 当前强调色是否为自定义值（不在预设中）→ 高亮「自定义」色块
+const isCustomAccent = computed(
+  () => !!settings.accentColor && !accentPresets.some((c) => c.hex === settings.accentColor)
+)
 async function setTheme(v: ThemePref, e?: MouseEvent) {
   await settings.set('theme', v) // 先持久化到库
   // View Transitions：以被点按钮为圆心做圆形揭示；onCovered（按钮高亮切换）与新主题同帧原子生效
