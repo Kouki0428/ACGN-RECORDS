@@ -62,7 +62,7 @@ function toggle() {
 </script>
 
 <template>
-  <!-- 展开手柄：贴主页右缘的竖向小条 -->
+  <!-- 收起态手柄 + 展开面板（定位由父级 .home 的 relative 提供） -->
   <button class="td-handle" type="button" :class="{ open }" title="热门条目讨论" @click="toggle">
     <span class="td-handle-text">热门讨论</span>
     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="td-handle-arrow">
@@ -112,23 +112,22 @@ function toggle() {
 </template>
 
 <style scoped>
-/* 收起态：右缘竖向手柄（固定于视口，不占文档流、不影响卡片网格） */
+/* 收起态：主页右上角的普通胶囊按钮（参与文档流定位，不遮挡滚动条） */
 .td-handle {
-  position: fixed;
+  position: absolute;
+  top: 0;
   right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 60;
-  display: flex;
-  flex-direction: column;
+  z-index: 20;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 14px 7px;
+  padding: 7px 14px;
   border: 1px solid var(--border);
-  border-right: none;
-  border-radius: 10px 0 0 10px;
+  border-radius: 999px;
   background: var(--bg-panel);
   color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
   transition: all .2s var(--ease-out);
 }
@@ -137,12 +136,6 @@ function toggle() {
   color: #fff;
   background: var(--accent-grad);
   border-color: transparent;
-}
-.td-handle-text {
-  writing-mode: vertical-rl;
-  letter-spacing: 4px;
-  font-size: 12px;
-  font-weight: 600;
 }
 .td-handle-arrow {
   transition: transform .25s var(--ease-out);
@@ -153,8 +146,8 @@ function toggle() {
 /* 展开面板：覆盖在内容之上，向左滑入；不挤压卡片网格 */
 .td-panel {
   position: fixed;
-  right: 0;
-  top: 82px; /* 避开顶栏区域 */
+  right: 12px;
+  top: 132px; /* 位于主页 subtabs 行下方，不遮住右上角的收起/展开手柄 */
   bottom: 16px;
   width: min(340px, calc(100vw - 80px));
   z-index: 55;
@@ -163,7 +156,7 @@ function toggle() {
   background: var(--bg-panel);
   border: 1px solid var(--border);
   border-right: none;
-  border-radius: 14px 0 0 14px;
+  border-radius: 14px;
   box-shadow: -8px 0 30px rgba(0, 0, 0, 0.25);
 }
 .td-head {

@@ -562,6 +562,8 @@ onUnmounted(() => {
   max-width: none;
   /* 整体上移 15px（仅主页）：负 margin-top 落在 .content 的 26px 顶部内边距内，不被裁切 */
   margin: -15px auto 0;
+  /* 热门讨论抽屉手柄的定位上下文 */
+  position: relative;
 }
 
 .subtabs {
