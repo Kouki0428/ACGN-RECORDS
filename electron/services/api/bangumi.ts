@@ -675,6 +675,8 @@ export async function getSubjectComments(
 function normalizeP1Topic(t: any): BgmTopic {
   const creator = t.creator ?? {}
   const avatar = creator.avatar
+  // 所属条目（热门/最新列表返回；单作品列表无此字段）
+  const sub = t.subject ?? null
   return {
     id: t.id,
     title: t.title ?? '',
@@ -690,8 +692,35 @@ function normalizeP1Topic(t: any): BgmTopic {
         avatar && typeof avatar === 'object'
           ? { small: avatar.small, medium: avatar.medium, large: avatar.large }
           : null
-    }
+    },
+    subject: sub
+      ? {
+          id: typeof sub.id === 'number' ? sub.id : 0,
+          name: sub.name ?? '',
+          nameCN: sub.nameCN ?? sub.name_cn,
+          images: sub.images,
+          rating:
+            sub.rating && typeof sub.rating.score !== 'undefined'
+              ? { score: sub.rating.score }
+              : undefined
+        }
+      : null
   }
+}
+
+/**
+ * 全站热门条目讨论（next.bgm.tv/p1/trending/subjects/topics，匿名可访问）。
+ * 即 bgm.tv 首页右侧「热门条目讨论」模块同款数据，每条附带所属条目信息。
+ */
+export async function getTrendingSubjectTopics(token?: string): Promise<BgmTopic[]> {
+  const url = `${P1_BASE}/trending/subjects/topics`
+  const res = token
+    ? await authedFetch(url, token, { headers: { Accept: 'application/json' } })
+    : await fetch(url, { headers: authHeaders() })
+  if (!res.ok) throw new Error(`获取热门讨论失败 (HTTP ${res.status})`)
+  const json = (await res.json()) as any
+  const list: any[] = Array.isArray(json) ? json : json.data ?? []
+  return list.map(normalizeP1Topic)
 }
 
 /** 归一化楼层（递归楼中楼）；表情回应结构与单集评论 reactions 一致，直接透传 */

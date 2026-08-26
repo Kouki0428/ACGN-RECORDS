@@ -5,6 +5,7 @@ import EpisodeGrid from '@/components/EpisodeGrid.vue'
 import ProgressEditor from '@/components/ProgressEditor.vue'
 import EllipsisTitle from '@/components/EllipsisTitle.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import TrendingDrawer from '@/components/TrendingDrawer.vue'
 import { dbClient } from '@/services/dbClient'
 import { animeClient } from '@/services/animeClient'
 import { collectionClient } from '@/services/collectionClient'
@@ -549,6 +550,9 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- 右侧热门讨论抽屉：点击右缘手柄向左展开（覆盖式，不挤压卡片网格） -->
+    <TrendingDrawer />
   </div>
 </template>
 

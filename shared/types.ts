@@ -155,6 +155,31 @@ export interface BgmTopicDetail extends BgmTopic {
   replies: BgmTopicReply[]
 }
 
+/** Bangumi 讨论串（next.bgm.tv/p1 全站热门条目讨论，结构化 JSON） */
+export interface BgmTopic {
+  id: number
+  title: string
+  /** 回复数 */
+  replyCount: number
+  /** 发布时间戳（秒） */
+  createdAt: number
+  /** 最后回复时间戳（秒） */
+  updatedAt: number
+  creator?: {
+    username?: string
+    nickname?: string
+    avatar?: { small?: string; medium?: string; large?: string } | null
+  }
+  /** 所属条目 */
+  subject?: {
+    id: number
+    name: string
+    nameCN?: string
+    images?: { small?: string; medium?: string; common?: string; large?: string }
+    rating?: { score?: number }
+  } | null
+}
+
 /** 评论表情回应（Bangumi 单集评论的 reactions 字段，仅登录态返回）。
  *  value=表情标识（数字，对应 Bangumi 一组固定表情之一）；users=回应者列表；total=人数（缺省取 users.length）。 */
 export interface CommentReaction {
@@ -915,6 +940,10 @@ export interface AcgnApi {
     getTopics: (subjectId: string) => Promise<{ topics: BgmTopic[]; total: number; notFound?: boolean }>
     /** 取讨论串详情（next p1 /subjects/-/topics/{id}，含全部楼层与楼中楼，匿名可访问） */
     getTopicDetail: (topicId: number) => Promise<BgmTopicDetail | null>
+    /** 全站热门条目讨论（next p1 /trending/subjects/topics，bgm 首页右侧同款，匿名可访问） */
+    getTrendingTopics: () => Promise<BgmTopic[]>
+    /** 全站热门条目讨论（next p1 /trending/subjects/topics，bgm 首页右侧同款，匿名可访问） */
+    getTrendingTopics: () => Promise<BgmTopic[]>
     /** 在讨论串下发表回复（需登录；replyTo 指向楼层 id = 楼中楼回复），返回新楼层 id */
     postTopicReply: (payload: { topicId: number; content: string; replyTo?: number | null }) => Promise<{ id: number }>
     /** 讨论楼层表情回应 toggle（需登录；端点为 subjects/-/posts/{postId}/like） */

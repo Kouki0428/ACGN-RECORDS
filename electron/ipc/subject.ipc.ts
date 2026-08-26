@@ -4,6 +4,7 @@ import {
   getSubjectComments,
   getSubjectTopics,
   getTopicDetail,
+  getTrendingSubjectTopics,
   postTopicReply,
   toggleTopicPostReaction,
   getEntityDetail,
@@ -52,6 +53,11 @@ export function registerSubjectIpc(): void {
     if (!topicId) return null
     const token = await getValidToken()
     return getTopicDetail(topicId, token ?? undefined)
+  })
+  // 全站热门条目讨论（bgm 首页右侧模块同款；匿名可访问）
+  ipcMain.handle('subject:trendingTopics', async () => {
+    const token = await getValidToken()
+    return getTrendingSubjectTopics(token ?? undefined)
   })
   // 在讨论串下发表回复（需登录；replyTo 指向楼层 id = 楼中楼）
   ipcMain.handle('subject:postTopicReply', async (_e, payload: { topicId: number; content: string; replyTo?: number | null }) => {
