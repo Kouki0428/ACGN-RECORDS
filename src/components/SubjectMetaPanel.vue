@@ -765,9 +765,9 @@ const collapsedMeta = computed<SubjectMeta[]>(() => {
   color: var(--text-dim, #8b94a3);
   font-size: 10px;
 }
-/* 官方/系统标签：与普通标签同款样式，仅边框改为浅粉以作区分 */
+/* 官方/系统标签：与普通标签同款样式，仅边框用半透明强调色以作区分（跟随强调色设置） */
 .tag--official {
-  border-color: #f5b9be;
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 /* 制作信息列表 */
