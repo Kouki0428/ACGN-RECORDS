@@ -637,17 +637,14 @@ onUnmounted(() => {
 }
 
 /* 自适应排布：auto-fill + minmax 连续自适应，且「至少 2 列」。
-   minmax(min(360px, calc(50% - 8px)), 1fr)：下限取「360px」与「容器一半减半个 gap」
-   的较小者——容器 ≥ 736px 时按 360px 逐列增列（连续自适应）；容器 < 736px 时
-   下限 = calc(50% - 8px)，2×(50%-8px)+16px = 100%，永远放得下 2 列 → 永不退化单列。
-   列数增减的平滑过渡由 useGridResizeFlip 负责：卡片「位置平移 + 宽度渐变」按同一节奏同步（直接设 inline width，
-   非 transform:scale）→ 封面/内部格子/标题字号保持各自自然像素尺寸、绝不随动画放大缩小/变形，且宽度与位置完全匹配。 */
+   minmax(min(360px × --card-scale, calc(50% - 8px)), 1fr)：
+    下限取「缩放后的基准宽度」与「容器一半减半个 gap」的较小者——容器较宽时按缩放基准逐列增列（连续自适应）；
+    容器 < 阈值时下限 = calc(50% - 8px)，2×(50%-8px)+16px = 100%，永远放得下 2 列 → 永不退化单列。
+    上限 1fr 使卡片横向填充、随容器宽度自适应拉伸；同时卡片内部尺寸经 --card-scale 同比缩放，
+    整张卡片（在追/动画/游戏/小说/漫画等所有主页卡片）等比变大变小，且不影响 useGridResizeFlip 的换列平滑动画。 */
 .home-cards {
   display: grid;
-  /* 列宽 = 基准 360px × 卡片大小设置；卡片内部所有尺寸也按 --card-scale 同比缩放，
-     故整张卡片（在追/动画等）随滑块等比变大变小，列数随容器自动增减。 */
-  grid-template-columns: repeat(auto-fill, calc(360px * var(--card-scale, 1)));
-  justify-content: start;
+  grid-template-columns: repeat(auto-fill, minmax(min(calc(360px * var(--card-scale, 1)), calc(50% - 8px)), 1fr));
   gap: calc(16px * var(--card-scale, 1));
   /* 换列动画中卡片可能被 transform 临时平移出界，裁掉溢出避免横向滚动条。 */
   overflow-x: clip;
