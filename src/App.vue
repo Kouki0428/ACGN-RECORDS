@@ -123,7 +123,7 @@ onUnmounted(() => {
         <filter id="liquid-glass-distortion" x="0%" y="0%" width="100%" height="100%">
           <feTurbulence type="fractalNoise" baseFrequency="0.02 0.02" numOctaves="2" seed="7" result="noise" />
           <feGaussianBlur in="noise" stdDeviation="2" result="soft-noise" />
-          <feDisplacementMap in="SourceGraphic" in2="soft-noise" scale="30" xChannelSelector="R" yChannelSelector="G" />
+          <feDisplacementMap in="SourceGraphic" in2="soft-noise" scale="18" xChannelSelector="R" yChannelSelector="G" />
         </filter>
       </defs>
     </svg>
