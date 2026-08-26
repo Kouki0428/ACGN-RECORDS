@@ -4,6 +4,10 @@ name: Release
 #   git tag v0.1.4 && git push origin v0.1.4
 # 产出：NSIS setup.exe（winCodeSign 符号链接在 runner 管理员特权下可正常解压）
 #       + latest.yml（electron-updater 更新源）+ 便携 zip
+#
+# 发布流程：electron-builder 以 draft 创建 Release 并上传安装包 → 追加便携 zip →
+# 最后一步把 draft 转正。（不能先用 gh 建正式 Release：electron-builder 检测到
+# existing type=release 与其 draft 发布方式不兼容会跳过上传安装包）
 
 on:
   push:
@@ -29,12 +33,7 @@ jobs:
       - name: Build renderer & main & preload
         run: npm run build
 
-      - name: Create release (auto-generated notes)
-        run: gh release create ${{ github.ref_name }} --title "${{ github.ref_name }}" --generate-notes
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # 全新检出必须重编 native 模块（本地打包用 false 是因 dev 进程占用）
+      # electron-builder 自动以 draft 创建 Release，上传 setup.exe / latest.yml / blockmap
       - name: Package Windows (NSIS, publish to GitHub Release)
         run: npx electron-builder --config build/electron-builder.yml --win --publish always --config.npmRebuild=true
         env:
@@ -47,5 +46,10 @@ jobs:
       - name: Upload portable zip to the release
         run: |
           gh release upload ${{ github.ref_name }} "release/ACGN-Records-$($env:GITHUB_REF_NAME)-portable-win.zip" --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish release (draft → latest)
+        run: gh release edit ${{ github.ref_name }} --draft=false --title "${{ github.ref_name }}" --generate-notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
