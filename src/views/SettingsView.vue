@@ -519,7 +519,7 @@ const GROUPS: GroupDef[] = [
   },
   {
     key: 'appearance',
-    label: '外观与动画',
+    label: '个性化',
     desc: '主题、界面缩放与卡片重排动画',
     icon: 'M12 3a9 9 0 1 0 0 18h1.5a2.5 2.5 0 0 0 0-5H13a2 2 0 0 1 0-4h4.5A3.5 3.5 0 0 0 21 8.5C21 5.5 17 3 12 3Z M7.5 10.5h.01 M9.5 6.5h.01 M14 5.5h.01'
   },
@@ -819,6 +819,10 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
       <label class="progress-editor">
         <input type="checkbox" :checked="settings.detailBanner" @change="settings.set('detailBanner', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
         详情页封面横幅背景（模糊放大的封面作顶部装饰）
+      </label>
+      <label class="progress-editor">
+        <input type="checkbox" :checked="settings.anchorBarEnabled" @change="settings.set('anchorBarEnabled', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
+        快捷跳转栏（详情页与作品悬浮窗顶部的锚点导航）
       </label>
       <label class="progress-editor">
         <input type="checkbox" :checked="settings.immersiveGlow" @change="settings.set('immersiveGlow', ($event.target as HTMLInputElement).checked ? '1' : '0')" />

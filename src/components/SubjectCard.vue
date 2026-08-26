@@ -650,8 +650,8 @@ watch(
     </div>
 
     <div v-else-if="detail" class="subject-body" ref="bodyEl" @scroll.passive="onBodyScroll">
-      <!-- 快捷跳转栏（吸顶于卡片滚动区，作用域限本卡片） -->
-      <div class="card-anchor-bar">
+      <!-- 快捷跳转栏（吸顶于卡片滚动区，作用域限本卡片；可在设置关闭） -->
+      <div v-if="settings.anchorBarEnabled" class="card-anchor-bar">
         <button
           v-for="a in shownCardAnchors"
           :key="a.key"

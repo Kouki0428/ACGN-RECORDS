@@ -104,7 +104,7 @@ watch(
 </script>
 
 <template>
-  <div class="anchor-bar" :class="{ glass: settings.immersiveGlow }">
+  <div v-if="settings.anchorBarEnabled" class="anchor-bar" :class="{ glass: settings.immersiveGlow }">
     <button
       v-for="it in shownItems"
       :key="it.key"
