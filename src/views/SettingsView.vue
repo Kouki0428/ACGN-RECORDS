@@ -301,6 +301,10 @@ const accentPresets = [
   { hex: '#4aa8ff', label: '天蓝' },
   { hex: '#f7b500', label: '琥珀金' }
 ]
+// 当前强调色是否为自定义值（不在预设中）→ 高亮「自定义」色块
+const isCustomAccent = computed(
+  () => !!settings.accentColor && !accentPresets.some((c) => c.hex === settings.accentColor)
+)
 async function setTheme(v: ThemePref, e?: MouseEvent) {
   await settings.set('theme', v) // 先持久化到库
   // View Transitions：以被点按钮为圆心做圆形揭示；onCovered（按钮高亮切换）与新主题同帧原子生效
@@ -806,6 +810,18 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
           :title="c.label"
           @click="settings.set('accentColor', c.hex)"
         ></button>
+        <!-- 自定义颜色：彩虹环标识，点击唤起系统取色器；当前强调色为自定义值时高亮 -->
+        <label
+          class="accent-swatch accent-custom"
+          :class="{ active: isCustomAccent }"
+          title="自定义颜色"
+        >
+          <input
+            type="color"
+            :value="settings.accentColor || '#ff5c8a'"
+            @input="settings.set('accentColor', ($event.target as HTMLInputElement).value)"
+          />
+        </label>
         <button
           type="button"
           class="accent-reset"
@@ -1550,6 +1566,28 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
 }
 .accent-swatch.active {
   box-shadow: 0 0 0 2px var(--bg-panel), 0 0 0 4px var(--text);
+}
+/* 自定义颜色入口：彩虹锥形渐变环，内嵌透明取色器；内部小圆点显示当前强调色 */
+.accent-custom {
+  position: relative;
+  background: conic-gradient(#ff5c8a, #f7b500, #34c98e, #4aa8ff, #a06bff, #ff5c8a);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.accent-custom input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+/* 内圆：显示当前生效的强调色（自定义时即取色器值） */
+.accent-custom::after {
+  content: '';
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
 }
 .accent-reset {
   padding: 6px 14px;
