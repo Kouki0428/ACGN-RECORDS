@@ -196,11 +196,10 @@ watch(
 }
 .anchor-bar.glass .anchor-chip.active {
   border-color: transparent;
-  /* 必须在此处重申品牌渐变：上面的玻璃底规则特异性更高，
-     会覆盖低特异性的 .anchor-chip.active 背景 → 激活态不变色 */
+  /* 垂直方向的品牌渐变：左右每一列颜色相同 → 胶囊两端颜色完全一致 */
   background:
     linear-gradient(90deg, transparent 0%, color-mix(in srgb, #fff 26%, transparent) 50%, transparent 100%),
-    var(--accent-grad);
+    linear-gradient(180deg, #ff5c8a 0%, #ff8a5c 100%);
   /* 液态流光：一条对称亮带缓缓扫过（两端始终是透明→基色不受影响，左右颜色保持一致） */
   background-size: 260% 100%, 100% 100%;
   animation: chip-liquid-flow 5.5s ease-in-out infinite;
