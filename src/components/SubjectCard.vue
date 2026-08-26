@@ -641,7 +641,7 @@ watch(
       class="detail-banner subject-banner"
       :style="{ backgroundImage: `url(${proxyImg(detail.subject.image_url)})` }"
     ></div>
-    <div class="subject-head">
+    <div class="subject-head" :class="{ 'has-banner': detail && settings.detailBanner && detail.subject.image_url }">
       <button class="entity-back back-btn" type="button" title="返回上级" aria-label="返回上级" @click="goBack">
         <svg class="back-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="12" x2="4" y2="12" /><polyline points="10,5 4,12 10,19" /></svg>
       </button>
@@ -779,6 +779,11 @@ watch(
   /* 绘制在封面横幅之上 */
   position: relative;
   border-bottom: 1px solid var(--border-soft);
+}
+/* 横幅开启时去掉标题栏分割线：实色细线叠在模糊光晕上会形成突兀的白横线；
+   横幅本身向下渐隐，天然起到分隔作用 */
+.subject-head.has-banner {
+  border-bottom-color: transparent;
 }
 .subject-head .title {
   font-size: 16px;
