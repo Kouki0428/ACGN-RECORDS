@@ -29,10 +29,9 @@ const toast = useToast()
 const auth = useAuthStore()
 const settings = useSettingsStore()
 
-// 主页卡片尺寸随「主页卡片大小」设置等比缩放：通过 --card-scale 注入，
-// 卡片内部（封面/字号/间距）与网格列宽统一乘以该系数 → 整张卡片同比变大/变小。
+// 主页卡片最小列宽随「主页卡片大小」设置缩放（CSS 变量注入，网格 minmax 引用）
 const cardSizeStyle = computed(() => ({
-  '--card-scale': String(settings.cardScale || 1)
+  '--card-min': Math.round(360 * (settings.cardScale || 1)) + 'px'
 }))
 
 // 主页卡片右键菜单：快速改状态 / 在 Bangumi 打开 / 删除收藏（状态变化后周历同步刷新）
@@ -614,18 +613,18 @@ onUnmounted(() => {
 /* 首次加载骨架卡：与真实 hcard 同构，避免加载完成时布局跳动 */
 .skel-card {
   pointer-events: none;
-  height: calc(132px * var(--card-scale, 1));
+  height: 132px;
 }
 .skel-card .hcard-cover {
-  border-radius: calc(8px * var(--card-scale, 1));
+  border-radius: 8px;
 }
 .hcard-body .sk-line {
-  height: calc(14px * var(--card-scale, 1));
-  margin: calc(2px * var(--card-scale, 1)) 0 calc(6px * var(--card-scale, 1));
+  height: 14px;
+  margin: 2px 0 6px;
 }
 .hcard-body .sk-block {
   flex: 1;
-  min-height: calc(58px * var(--card-scale, 1));
+  min-height: 58px;
 }
 /* 切换分类时保留旧内容、轻微降透明过渡（不闪白） */
 .home-cards {
@@ -644,22 +643,21 @@ onUnmounted(() => {
    非 transform:scale）→ 封面/内部格子/标题字号保持各自自然像素尺寸、绝不随动画放大缩小/变形，且宽度与位置完全匹配。 */
 .home-cards {
   display: grid;
-  /* 列宽 = 基准 360px × 卡片大小设置；卡片内部所有尺寸也按 --card-scale 同比缩放，
-     故整张卡片（在追/动画等）随滑块等比变大变小，列数随容器自动增减。 */
-  grid-template-columns: repeat(auto-fill, calc(360px * var(--card-scale, 1)));
-  justify-content: start;
-  gap: calc(16px * var(--card-scale, 1));
-  /* 换列动画中卡片可能被 transform 临时平移出界，裁掉溢出避免横向滚动条。 */
+  /* 最小列宽经 --card-min 注入（= 360px × 卡片大小设置），实时响应个性化调整 */
+  grid-template-columns: repeat(auto-fill, minmax(min(var(--card-min, 360px), calc(50% - 8px)), 1fr));
+  gap: 16px;
+  /* 换列动画中卡片可能被 transform 临时平移出界，裁掉溢出避免横向滚动条；
+     非动画态 1fr 占满，clip 无副作用。 */
   overflow-x: clip;
 }
 
 .hcard {
   display: flex;
-  padding: calc(12px * var(--card-scale, 1));
+  padding: 12px;
   min-width: 0;
   text-align: left;
   border: 1px solid var(--border);
-  border-radius: calc(14px * var(--card-scale, 1));
+  border-radius: 14px;
   background: var(--bg-panel);
   cursor: pointer;
   transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease;
@@ -675,17 +673,17 @@ onUnmounted(() => {
 .hcard-inner {
   flex: 1;
   display: flex;
-  gap: calc(12px * var(--card-scale, 1));
+  gap: 12px;
   min-width: 0;
   align-items: stretch;
 }
 .hcard-cover {
   position: relative;
-  height: calc(86px * var(--card-scale, 1));
+  height: 86px;
   aspect-ratio: 3 / 4;
   flex-shrink: 0;
   align-self: flex-start;
-  border-radius: calc(8px * var(--card-scale, 1));
+  border-radius: 8px;
   overflow: hidden;
   background: var(--bg-elev);
 }
@@ -729,21 +727,21 @@ onUnmounted(() => {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: calc(4px * var(--card-scale, 1));
+  gap: 4px;
 }
 /* 主页小说/漫画卡片：已读话(章)/已读卷 两行间距收紧 + 整块缩到 80%。
    全局 .progress-editor 默认 margin:12px 0，配合 .hcard-body 的 gap(4px) 两行间达 ~28px；
    主页内改为 2px 使行距收到 ~8px。内部样式全是固定 px，故按比例重写到 0.8 倍，
    布局盒真的变小（行距不反弹），且不影响详情页全局样式。 */
 .hcard-body :deep(.progress-editor) {
-  margin: calc(2px * var(--card-scale, 1)) 0;
-  font-size: calc(10.4px * var(--card-scale, 1)); /* 13 * 0.8 */
-  gap: calc(8px * var(--card-scale, 1));          /* 10 * 0.8 */
+  margin: 2px 0;
+  font-size: 10.4px; /* 13 * 0.8 */
+  gap: 8px;          /* 10 * 0.8 */
 }
 .hcard-body :deep(.progress-editor input[type='number']) {
-  width: calc(51px * var(--card-scale, 1));        /* 64 * 0.8 */
-  padding: calc(4.6px * var(--card-scale, 1)) calc(4.8px * var(--card-scale, 1)); /* 原 5.6，上下各减 1px 共降 2px */
-  font-size: calc(11.2px * var(--card-scale, 1));  /* 14 * 0.8 */
+  width: 51px;        /* 64 * 0.8 */
+  padding: 4.6px 4.8px; /* 原 5.6，上下各减 1px 共降 2px */
+  font-size: 11.2px;  /* 14 * 0.8 */
   -moz-appearance: textfield; /* Firefox 隐藏上下箭头 */
   appearance: textfield;
 }
@@ -757,12 +755,12 @@ onUnmounted(() => {
 .home-prog-row {
   display: flex;
   align-items: center;
-  gap: calc(6px * var(--card-scale, 1));
+  gap: 6px;
 }
 .prog-plus {
   flex: 0 0 auto;
-  width: calc(17.6px * var(--card-scale, 1));
-  height: calc(17.6px * var(--card-scale, 1));
+  width: 17.6px;
+  height: 17.6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -770,7 +768,7 @@ onUnmounted(() => {
   background: var(--bg-elev);
   color: var(--text);
   border-radius: var(--radius-sm);
-  font-size: calc(12px * var(--card-scale, 1));
+  font-size: 12px;
   line-height: 1;
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s;
@@ -783,7 +781,7 @@ onUnmounted(() => {
   transform: scale(0.92);
 }
 .hcard-title {
-  font-size: calc(14px * var(--card-scale, 1));
+  font-size: 14px;
   font-weight: 600;
   color: var(--text);
   line-height: 1.35;
@@ -796,23 +794,23 @@ onUnmounted(() => {
 /* 主页卡片内集数格子：最多显示两行（29*2+5=63px），超出部分内部滚动，
    不撑高卡片 → 封面严格只对应两行、底部与第 2 行格子齐平 */
 .hcard-grid :deep(.episode-block) {
-  margin-top: calc(2px * var(--card-scale, 1));
+  margin-top: 2px;
 }
 .hcard-grid :deep(.episode-grid) {
-  grid-template-columns: repeat(auto-fill, calc(29px * var(--card-scale, 1)));
-  gap: calc(5px * var(--card-scale, 1));
+  grid-template-columns: repeat(auto-fill, 29px);
+  gap: 5px;
 }
 .hcard-grid :deep(.ep-cell) {
-  width: calc(29px * var(--card-scale, 1));
-  height: calc(29px * var(--card-scale, 1));
-  font-size: calc(11px * var(--card-scale, 1));
+  width: 29px;
+  height: 29px;
+  font-size: 11px;
 }
 /* 主页 SP 分隔格文字：组件默认 14px，本应小 1px → 13px（仅主页，不影响详情页）；
    水平居中修正：组件写死的 x=18 是按 36px 格子算的，主页格子 29px 宽，
    文字中心需落在 14.5px 处，故左移 3.5px；仅平移文字，竖线保持原样 */
 .hcard-grid :deep(.ep-sep-svg text) {
-  font-size: calc(13px * var(--card-scale, 1));
-  transform: translateX(calc(-3.5px * var(--card-scale, 1)));
+  font-size: 13px;
+  transform: translateX(-3.5px);
 }
 
 /* 小说/漫画进度已改用全局 ProgressEditor（见 main.css .progress-editor），不再需要 .hprog */
