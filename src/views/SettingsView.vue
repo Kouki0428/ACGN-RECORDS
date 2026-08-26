@@ -903,7 +903,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
             {{ p }}%
           </button>
         </div>
-        <p class="hint">调整主页在追卡片的尺寸，实时生效；列数随宽度自适应重排。</p>
+        <p class="hint">等比缩放主页所有卡片（在追/动画等）整体尺寸，实时生效；列数随宽度自适应重排。</p>
       </div>
 
       <hr class="divider" />
