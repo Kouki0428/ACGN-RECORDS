@@ -179,7 +179,7 @@ watch(
   isolation: isolate;
   overflow: hidden;
   border-color: transparent;
-  background: color-mix(in srgb, #fff 7%, transparent);
+  background: color-mix(in srgb, #fff 0.1%, transparent);
 }
 .anchor-bar.glass .anchor-chip::before {
   content: '';
