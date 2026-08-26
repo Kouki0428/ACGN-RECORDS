@@ -49,7 +49,15 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    topics.value = await subjectClient.getTrendingTopics()
+    const list = await subjectClient.getTrendingTopics()
+    // 最新的放在最前面：按最后回复时间降序，并列时按发布时间降序
+    list.sort((a, b) => {
+      const ba = b.updatedAt || b.createdAt
+      const aa = a.updatedAt || a.createdAt
+      if (ba !== aa) return ba - aa
+      return b.createdAt - a.createdAt
+    })
+    topics.value = list
     loaded.value = true
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
