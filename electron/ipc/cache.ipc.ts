@@ -56,9 +56,9 @@ async function computeStats(): Promise<CacheStats> {
   const db = await getDb()
   const userData = app.getPath('userData')
   const dbSize =
-    fileSize(join(userData, 'acgn-records.db')) +
-    fileSize(join(userData, 'acgn-records.db-wal')) +
-    fileSize(join(userData, 'acgn-records.db-shm'))
+    fileSize(join(userData, 'bangumi-for-pc.db')) +
+    fileSize(join(userData, 'bangumi-for-pc.db-wal')) +
+    fileSize(join(userData, 'bangumi-for-pc.db-shm'))
   const episodes = (db.prepare('SELECT COUNT(*) AS n FROM subject_episodes').get() as { n: number }).n
   const characters = (db.prepare('SELECT COUNT(*) AS n FROM subject_characters').get() as { n: number }).n
   const relations = (db.prepare('SELECT COUNT(*) AS n FROM subject_relations').get() as { n: number }).n

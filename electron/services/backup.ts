@@ -25,7 +25,7 @@ function stamp(): string {
 }
 
 function mainDbPath(): string {
-  return join(app.getPath('userData'), 'acgn-records.db')
+  return join(app.getPath('userData'), 'bangumi-for-pc.db')
 }
 
 /** 导出备份：在线 backup API 保证一致性（含未 checkpoint 的 WAL 内容） */

@@ -253,7 +253,22 @@ const api: AcgnApi = {
       }>
   },
   statsSnapshotHistory: (limit = 12) =>
-    ipcRenderer.invoke('collection:snapshotHistory', limit)
+    ipcRenderer.invoke('collection:snapshotHistory', limit),
+  win: {
+    minimize: () => ipcRenderer.invoke('window:minimize'),
+    toggleMaximize: () => ipcRenderer.invoke('window:toggle-maximize'),
+    close: () => ipcRenderer.invoke('window:close'),
+    isMaximized: () => ipcRenderer.invoke('window:is-maximized') as Promise<boolean>,
+    onMaximizedChange: (cb: (maximized: boolean) => void) => {
+      const listener = (_e: unknown, v: unknown) => cb(v as boolean)
+      ipcRenderer.on('window:maximized-change', listener)
+      return () => ipcRenderer.removeListener('window:maximized-change', listener)
+    },
+    getBounds: () =>
+      ipcRenderer.invoke('window:get-bounds') as Promise<{ x: number; y: number; width: number; height: number }>,
+    setBounds: (bounds: { x: number; y: number; width: number; height: number }) =>
+      ipcRenderer.invoke('window:set-bounds', bounds)
+  }
 }
 
 contextBridge.exposeInMainWorld('acgn', api)

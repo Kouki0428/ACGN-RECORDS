@@ -1,4 +1,4 @@
-﻿# ACGN Records
+﻿# Bangumi
 
 轻量级 ACGN（动画 / 轻小说 / 漫画 / Galgame）进度追踪与统计桌面应用。
 本地优先，进度可同步到 Bangumi。基于 **Electron + Vue 3 + TypeScript + Vite**。
@@ -8,12 +8,12 @@
 
 ## 安装（普通用户）
 
-到 [Releases](https://github.com/Kouki0428/ACGN-RECORDS/releases) 页面下载最新版本：
+到 [Releases](https://github.com/Kouki0428/Bangumi-For-PC/releases) 页面下载最新版本：
 
 | 附件 | 说明 |
 |---|---|
-| `ACGN-Records-x.x.x-setup.exe` | 安装版：双击安装，支持自选目录；数据默认存于安装目录 `userData\`（可在安装目录放 `data-dir.txt` 指定其它位置）|
-| `ACGN-Records-x.x.x-portable-win.zip` | 便携版：解压即用 |
+| `Bangumi-x.x.x-setup.exe` | 安装版：双击安装，支持自选目录；数据默认存于安装目录 `userData\`（可在安装目录放 `data-dir.txt` 指定其它位置）|
+| `Bangumi-x.x.x-portable-win.zip` | 便携版：解压即用 |
 
 未签名，SmartScreen 提示时点「仍要运行」。应用内「设置 → 储存 → 检查更新」可检测新版本。
 
@@ -54,7 +54,7 @@ npx electron-builder --config build/electron-builder.yml --win
 
 ## 接入 Bangumi
 在 https://bgm.tv/dev/app 注册应用，拿到 `client_id` / `client_secret`，
-将回调地址配置为 `acgn-records://oauth/callback`，并在 `electron/services/auth/oauth.ts` 中填入。
+ 将回调地址配置为 `http://localhost:7321/oauth/callback`（应用内本地回调服务监听 7321，详见 `electron/services/auth/oauth.ts`）。
 
 ## 进程通信模型
 渲染进程只通过 `window.acgn.*`（由 `electron/preload.ts` 经 `contextBridge` 暴露）调用主进程能力；

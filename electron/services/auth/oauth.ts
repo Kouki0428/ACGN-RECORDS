@@ -10,7 +10,7 @@ import type { AuthStatus } from '../../../../shared/types'
 import { dbg } from '../debugLog'
 
 // 合规 User-Agent（Bangumi 会拦截默认 UA，必须带 开发者ID/应用名/版本）
-export const UA = 'yhq18/ACGN-Records/0.1 (https://github.com/yhq18/acgn-records)'
+export const UA = 'Bangumi-For-PC/0.1 (https://github.com/Kouki0428/Bangumi-For-PC)'
 
 const API_BASE = 'https://api.bgm.tv/v0'
 const AUTHORIZE_URL = 'https://bgm.tv/oauth/authorize'
@@ -29,7 +29,7 @@ const DEFAULT_APP_SECRET = '15ed6976037812276fce26fccd6c1599'
 export interface BangumiAccount {
   username: string | null
   userId: number | null
-  accessToken: string
+  accessToken: string | null
   refreshToken: string | null
   expiresAt: number | null
 }
@@ -46,18 +46,18 @@ export interface OAuthTokenData {
 
 /* ----------------------------- App 凭据管理 ----------------------------- */
 
-/** 读取 App ID / Secret（解密自 settings）；缺失时用默认值播种并加密保存。 */
+/** 读取 App ID / Secret（解密自 settings）；缺失或密文无法解密时用默认值重新播种并加密保存。 */
 export async function getAppCredentials(): Promise<{ appId: string; appSecret: string }> {
-  let appId = await getSetting('bgm_app_id')
-  let secret = await getSetting('bgm_app_secret')
+  const storedId = await getSetting('bgm_app_id')
+  const storedSecret = await getSetting('bgm_app_secret')
+  const appId = storedId ? decrypt(storedId) : null
+  const secret = storedSecret ? decrypt(storedSecret) : null
   if (!appId || !secret) {
-    appId = appId ? decrypt(appId) : DEFAULT_APP_ID
-    secret = secret ? decrypt(secret) : DEFAULT_APP_SECRET
-    await setSetting('bgm_app_id', encrypt(appId))
-    await setSetting('bgm_app_secret', encrypt(secret))
-  } else {
-    appId = decrypt(appId)
-    secret = decrypt(secret)
+    const id = DEFAULT_APP_ID
+    const sec = DEFAULT_APP_SECRET
+    await setSetting('bgm_app_id', encrypt(id))
+    await setSetting('bgm_app_secret', encrypt(sec))
+    return { appId: id, appSecret: sec }
   }
   return { appId, appSecret: secret }
 }

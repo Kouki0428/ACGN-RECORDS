@@ -77,7 +77,7 @@ export async function resolveRatingDistribution(subject: any): Promise<void> {
   } catch {
     /* 离线库不可用，继续兜底 */
   }
-  // 兜底：主库缓存（上轮已落库到 acgn-records.db.subjects.rating_count）
+  // 兜底：主库缓存（上轮已落库到 bangumi-for-pc.db.subjects.rating_count）
   applyCachedRatingDistribution(subject)
 }
 

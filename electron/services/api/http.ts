@@ -5,6 +5,7 @@ import { createConnection } from 'node:net'
 import { HttpsProxyAgent } from 'https-proxy-agent'
 import { SocksProxyAgent } from 'socks-proxy-agent'
 import { execSync } from 'node:child_process'
+import { app } from 'electron'
 
 /**
  * 让主进程（Electron main / Node）的网络请求与浏览器行为对齐：
@@ -275,6 +276,21 @@ function buildHeaders(init?: FetchInit): Record<string, string> {
   return headers
 }
 
+/** 应用级 User-Agent：便于 Bangumi 识别客户端（部分官方/私有接口要求或建议携带）。
+ *  采用 `Name/Version (+url)` 约定，其中 url 为联系/主页链接（可带链接）。 */
+let cachedUserAgent: string | null = null
+function userAgent(): string {
+  if (cachedUserAgent) return cachedUserAgent
+  let v = '0.0.0'
+  try {
+    v = app.getVersion()
+  } catch {
+    /* app 未就绪时退回占位版本 */
+  }
+  cachedUserAgent = `Bangumi-For-PC/${v} (+https://github.com/Kouki0428/Bangumi-For-PC)`
+  return cachedUserAgent
+}
+
 /**
  * 带可读错误的最小 fetch 封装：基于 Node https/http + https-proxy-agent。
  * - 自动跟随重定向（Node 原生 https 不跟随 302，而 GitHub release 下载地址会 302 到 CDN）。
@@ -293,6 +309,8 @@ async function doRequest(
   const lib = u.protocol === 'https:' ? httpsRequest : httpRequest
   const method = (init.method || 'GET').toUpperCase()
   const headers = buildHeaders(init)
+  // 统一注入 User-Agent（调用方未显式指定时），覆盖所有经 safeFetch 的请求（v0/p1 等）
+  if (!headers['user-agent']) headers['user-agent'] = userAgent()
   const rawBody = init.body
   const body = typeof rawBody === 'string' ? rawBody : rawBody ? rawBody.toString() : undefined
   // 注意：不能写 `options?.agent ?? agent`，否则显式传入 { agent: undefined }（强制直连重试）
@@ -315,7 +333,8 @@ async function doRequest(
           res.resume() // 丢弃响应体，释放 socket
           const nextUrl = new URL(location, u).toString()
           const nextHost = new URL(nextUrl).host
-          const nextHeaders = nextHost === u.host ? init.headers : stripAuth(init.headers)
+          // 复用已注入 UA 的 headers；跨主机时去除 Authorization 避免凭据泄漏（UA 非机密，保留）
+          const nextHeaders = nextHost === u.host ? headers : stripAuth(headers)
           const nextInit: FetchInit = { ...init, headers: nextHeaders }
           // 301/302/303 按惯例改回 GET（307/308 保留原方法与请求体）
           if (status === 301 || status === 302 || status === 303) {

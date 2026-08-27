@@ -10,10 +10,16 @@ export function encrypt(plain: string): string {
   return `enc:${safeStorage.encryptString(plain).toString('base64')}`
 }
 
-export function decrypt(payload: string): string {
+export function decrypt(payload: string): string | null {
   if (payload.startsWith('enc:')) {
-    const buf = Buffer.from(payload.slice(4), 'base64')
-    return safeStorage.decryptString(buf)
+    try {
+      const buf = Buffer.from(payload.slice(4), 'base64')
+      return safeStorage.decryptString(buf)
+    } catch {
+      // 密文无法解密（safeStorage 密钥环境变化 / 数据损坏）：返回 null，
+      // 由调用方按「无有效令牌」处理，而不是抛出导致 IPC（如 auth:login）整体失败。
+      return null
+    }
   }
   if (payload.startsWith('b64:')) {
     return Buffer.from(payload.slice(4), 'base64').toString('utf-8')

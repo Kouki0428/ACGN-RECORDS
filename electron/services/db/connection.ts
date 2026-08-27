@@ -16,7 +16,7 @@ export async function getDb(): Promise<Database> {
   if (!dbPromise) {
     dbPromise = (async () => {
       const Database = (await import('better-sqlite3')).default
-      const dbPath = join(app.getPath('userData'), 'acgn-records.db')
+      const dbPath = join(app.getPath('userData'), 'bangumi-for-pc.db')
       const db: Database = new Database(dbPath)
       db.pragma('journal_mode = WAL')
       db.pragma('foreign_keys = ON')

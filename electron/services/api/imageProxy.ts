@@ -55,7 +55,7 @@ export function registerImageProxy(): void {
       const upstream = await safeFetch(target, {
         headers: {
           Accept: 'image/*,*/*;q=0.8',
-          'User-Agent': 'Mozilla/5.0 (compatible; ACGNRecords/0.1)'
+          'User-Agent': 'Mozilla/5.0 (compatible; Bangumi-For-PC/0.1)'
         }
       })
       if (!upstream.ok) {

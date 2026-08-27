@@ -24,6 +24,19 @@ export function setThemePreset(mode: 'dark' | 'light', p: string) {
   presets[mode] = p || 'classic'
 }
 
+// 原生窗口底色：必须与各主题/预设的 --bg 完全一致，缩放时内容未重绘而露出的「底色缝」
+// 才会与内容右缘同色、不可见。改动 src/assets/main.css 中 --bg 时需同步此处。
+const NATIVE_BG: Record<string, string> = {
+  'dark:classic': '#14171c',
+  'dark:oled': '#000000',
+  'dark:pink': '#1a1216',
+  'dark:ink': '#0e1411',
+  'light:classic': '#f3f5f9',
+  'light:pure': '#ffffff',
+  'light:pink': '#fbf1f4',
+  'light:paper': '#f1f5ef'
+}
+
 // —— 定时切换时段（'HH:mm'，浅色起 ~ 深色起；支持跨午夜）——
 let schedLight = '07:00'
 let schedDark = '19:00'
@@ -114,11 +127,13 @@ export async function applyTheme(
     /* 忽略：隐私模式 / 存储不可用 */
   }
 
-  // 同步原生窗口背景色：从已生效的 --bg 计算取值（预设皮肤下自动跟随）。
+  // 同步原生窗口背景色：用确定性的主题→底色映射（避开 getComputedStyle 时序问题），
+  // 保证与内容右缘 --bg 完全一致，缩放时露出的底色缝不可见。
   const syncNativeBg = () => {
     try {
-      const bg = getComputedStyle(root).getPropertyValue('--bg').trim()
-      void window.acgn?.theme?.setNativeBg?.(bg || (target === 'light' ? '#f3f5f9' : '#14171c'))
+      const key = `${target}:${presetAttr || 'classic'}`
+      const bg = NATIVE_BG[key] || (target === 'light' ? '#f3f5f9' : '#14171c')
+      void window.acgn?.theme?.setNativeBg?.(bg)
     } catch {
       /* 忽略 */
     }

@@ -1,6 +1,6 @@
 // Bangumi 离线数据库（Archive）服务：下载每周导出 dump、sha256 校验、解压 JSONL、入库到独立 SQLite。
 // 数据来源：https://github.com/bangumi/Archive （latest.json 指向最新 dump 的下载地址与 sha256）
-// 该库与用户个人收藏库（acgn-records.db）完全分离，仅作离线只读数据源：
+// 该库与用户个人收藏库（bangumi-for-pc.db）完全分离，仅作离线只读数据源：
 //   - 支持离线搜索全 Bangumi 条目
 //   - 详情页角色 / 关联作品 / 声优 在实时 API 不可用时回退到此库（无需登录即可看）
 import electron from 'electron'
@@ -938,7 +938,7 @@ export async function maybeAutoUpdateArchive(): Promise<void> {
 /**
  * 删除整个离线数据库目录（bangumi-archive/，含 db / wal / shm / dump.zip / extract）。
  * 先关闭当前 Archive 连接释放文件句柄，再递归删除磁盘目录；
- * 下次需要时由 getArchiveDb 懒加载重新创建空目录与连接。不触碰用户个人库（acgn-records.db）。
+ * 下次需要时由 getArchiveDb 懒加载重新创建空目录与连接。不触碰用户个人库（bangumi-for-pc.db）。
  */
 export async function deleteArchive(): Promise<void> {
   // 关闭并释放当前连接（若有）

@@ -4,7 +4,7 @@ import type { Category, Subject } from '../../../../shared/types'
 const BASE = 'https://api.vndb.org/kana/vn'
 
 // VNDB 建议提供 UA；匿名检索也有较严格限流（200 次/5 分钟）
-export const VNDB_UA = 'yhq18/ACGN-Records/0.1 (https://github.com/yhq18/acgn-records)'
+export const VNDB_UA = 'Bangumi-For-PC/0.1 (https://github.com/Kouki0428/Bangumi-For-PC)'
 const UA = VNDB_UA
 
 function vndbHeaders(token?: string): Record<string, string> {

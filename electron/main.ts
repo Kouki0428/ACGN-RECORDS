@@ -15,7 +15,7 @@ import { createRequire } from 'node:module'
 // ① 环境变量 ACGN_DATA_DIR = 自定义数据目录绝对路径
 // ② exe 同级 data-dir.txt：内容为目录路径；留空 = 明确使用 exe 同级 userData
 // ③ 默认：exe 同级的 userData 文件夹（数据与安装位置一致）
-// ④ 目标不可写（如被装进 Program Files）→ 自动回退 %APPDATA% 下的 acgn-records 并告警
+// ④ 目标不可写（如被装进 Program Files）→ 自动回退 %APPDATA% 下的 bangumi-for-pc 并告警
 // 开发模式（未打包且未设 ①）保持系统默认 AppData，避免污染 node_modules。
 const EXE_ADJACENT = app.isPackaged || process.env.ACGN_PORTABLE === '1'
 
@@ -26,7 +26,7 @@ function resolveDataDirSync(): string {
     return envDir
   }
   // ② 设置页写入的持久化覆盖（固定放在 %APPDATA% 根，永远可写）
-  const confPath = join(app.getPath('appData'), 'acgn-records', 'data-location.conf')
+    const confPath = join(app.getPath('appData'), 'bangumi-for-pc', 'data-location.conf')
   if (existsSync(confPath)) {
     const custom = readFileSync(confPath, 'utf8').trim()
     if (custom) {
@@ -34,7 +34,7 @@ function resolveDataDirSync(): string {
       return custom
     }
   }
-  if (!EXE_ADJACENT) return join(app.getPath('appData'), 'acgn-records')
+  if (!EXE_ADJACENT) return join(app.getPath('appData'), 'bangumi-for-pc')
   const exeDir = dirname(app.getPath('exe'))
   try {
     const confPath2 = join(exeDir, 'data-dir.txt')
@@ -55,14 +55,14 @@ function resolveDataDirSync(): string {
     rmSync(probe)
     return def
   } catch {
-    console.warn('[data-dir] 安装目录不可写，回退 %APPDATA% 下的 acgn-records')
-    return join(app.getPath('appData'), 'acgn-records')
+    console.warn('[data-dir] 安装目录不可写，回退 %APPDATA% 下的 bangumi-for-pc')
+    return join(app.getPath('appData'), 'bangumi-for-pc')
   }
 }
 
 /** 写入/清除「数据目录」覆盖配置（null = 恢复默认解析链）。 */
 function writeDataDirConf(dir: string | null) {
-  const confDir = join(app.getPath('appData'), 'acgn-records')
+  const confDir = join(app.getPath('appData'), 'bangumi-for-pc')
   mkdirSync(confDir, { recursive: true })
   const confPath = join(confDir, 'data-location.conf')
   if (dir) writeFileSync(confPath, dir, 'utf8')
@@ -71,33 +71,46 @@ function writeDataDirConf(dir: string | null) {
 
 const LEGACY_APP_DATA_DIR = join(app.getPath('appData'), 'acgn-records')
 const DATA_DIR = resolveDataDirSync()
-if (DATA_DIR !== app.getPath('userData')) {
-  app.setPath('userData', DATA_DIR)
-  migrateUserDataIfNeeded(LEGACY_APP_DATA_DIR, DATA_DIR)
-}
+app.setPath('userData', DATA_DIR)
+migrateUserDataIfNeeded(LEGACY_APP_DATA_DIR, DATA_DIR)
 
 // ── 首次启动迁移：把系统盘的旧数据搬进绿色版 userData ──────────────────
 // 仅当「目标便携目录的主库不存在，或虽有主库但尚无任何收藏记录」时才从旧位置复制，
 // 避免覆盖用户已经在便携目录里产生的新数据
 // （例如把整个绿色文件夹复制到新机器、而新机器旧 AppData 也恰有数据时，不动便携数据）。
-// 复制范围覆盖：个人数据 + 缓存（同在 acgn-records.db）、离线库（bangumi-archive/）。
+// 复制范围覆盖：个人数据 + 缓存（同在 bangumi-for-pc.db）、离线库（bangumi-archive/）。
 function migrateUserDataIfNeeded(oldDir: string, newDir: string) {
-  if (!existsSync(oldDir)) return
-  const newDb = join(newDir, 'acgn-records.db')
+  if (!existsSync(oldDir) || oldDir === newDir) return
+  const newDb = join(newDir, 'bangumi-for-pc.db')
   if (existsSync(newDb) && dbHasUserData(newDb)) return
   try {
     mkdirSync(newDir, { recursive: true })
-    // 1) 主库 + 缓存 + 调试日志（含 WAL/SHM 附属文件）
-    for (const f of ['acgn-records.db', 'acgn-records.db-wal', 'acgn-records.db-shm', 'debug.log']) {
+    // 1) 主库 + 缓存 + 调试日志（含 WAL/SHM 附属文件），并重命名为新文件名
+    const dbMap: [string, string][] = [
+      ['acgn-records.db', 'bangumi-for-pc.db'],
+      ['acgn-records.db-wal', 'bangumi-for-pc.db-wal'],
+      ['acgn-records.db-shm', 'bangumi-for-pc.db-shm'],
+    ]
+    for (const [srcName, dstName] of dbMap) {
+      const src = join(oldDir, srcName)
+      if (existsSync(src)) copyFileSync(src, join(newDir, dstName))
+    }
+    for (const f of ['debug.log', 'data-location.conf']) {
       const src = join(oldDir, f)
       if (existsSync(src)) copyFileSync(src, join(newDir, f))
     }
-    // 2) 离线库（整个 bangumi-archive 目录）
-    const oldArc = join(oldDir, 'bangumi-archive')
-    if (existsSync(oldArc)) cpSync(oldArc, join(newDir, 'bangumi-archive'), { recursive: true })
-    console.log(`[portable] migrated user data: ${oldDir} -> ${newDir}`)
+    // 2) 离线库与备份（整个目录）
+    for (const sub of ['bangumi-archive', 'backups']) {
+      const oldSub = join(oldDir, sub)
+      if (existsSync(oldSub)) cpSync(oldSub, join(newDir, sub), { recursive: true })
+    }
+    // 3) 复制成功 → 删除旧目录（用户已确认可删；删除失败仅告警，不阻断新数据）
+    if (existsSync(newDb)) {
+      try { rmSync(oldDir, { recursive: true, force: true }) } catch (e) { console.warn('[migrate] 旧目录删除失败（可手动删）', e) }
+    }
+    console.log(`[migrate] user data: ${oldDir} -> ${newDir}`)
   } catch (e) {
-    console.error('[portable] migration failed', e)
+    console.error('[migrate] failed', e)
   }
 }
 
@@ -127,7 +140,7 @@ function isGpuAccelerationEnabled(): boolean {
   try {
     const require = createRequire(import.meta.url)
     const Database = require('better-sqlite3') as { new (p: string, o?: object): any }
-    const dbPath = join(app.getPath('userData'), 'acgn-records.db')
+    const dbPath = join(app.getPath('userData'), 'bangumi-for-pc.db')
     const db = new Database(dbPath, { readonly: true, fileMustExist: true })
     const row = db
       .prepare('SELECT value FROM settings WHERE key = ?')
@@ -190,10 +203,15 @@ function createWindow(): void {
     height: 760,
     minWidth: 920,
     minHeight: 600,
-    // 自动隐藏原生菜单栏：顶部的「ACGN Records / 编辑」菜单条默认不显示（按 Alt 临时浮现），
+    // 自动隐藏原生菜单栏：顶部的「Bangumi / 编辑」菜单条默认不显示（按 Alt 临时浮现），
     // 但菜单仍保留 → Ctrl+R 重载 / Ctrl+Shift+I 开 DevTools / Ctrl+C·V·X 编辑快捷键均有效。
     autoHideMenuBar: true,
-    title: 'ACGN Records',
+    // 完全去原生边框（frame: false）：内容铺满整窗、右侧无原生边框缝。
+    // 标题栏拖拽走 -webkit-app-region: drag；窗口四周缩放改由渲染层 ResizeHandles 用
+    // win.setBounds 驱动（见 App.vue / ResizeHandles.vue）——尺寸变化由 Chromium 自身发起，
+    // 合成层随内容同步重绘，根除「frameless 原生缩放时合成层滞后」导致的重影；动画全程不被碰。
+    frame: false,
+    title: 'Bangumi',
     // 运行时窗口图标用 PNG（Electron 加载最可靠）；.ico 仅用于 exe 内嵌资源
     icon: app.isPackaged
       ? join(process.resourcesPath, 'icon.png')
@@ -277,7 +295,74 @@ function createWindow(): void {
       e.preventDefault()
     }
   })
+
+  // 自定义标题栏：最大化/还原时通知渲染层，用于切换按钮图标
+  win.on('maximize', () => win?.webContents.send('window:maximized-change', true))
+  win.on('unmaximize', () => win?.webContents.send('window:maximized-change', false))
+
+  // 自定义窗口缩放：frame:false 下仍用 WM_NCHITTEST 钩子让 OS 在光标线程原生执行
+  // resize（4px 抓取区，零延迟、自动遵守 min/max 尺寸）。标题栏拖拽仍由渲染层 -webkit-app-region 处理；
+  // 右上按钮区返回 HTCLIENT，保证最小化/最大化/关闭按钮可点击。仅 Windows。
+  if (process.platform === 'win32') {
+    const WM_NCHITTEST = 0x0084
+    const HTCLIENT = 0x0001
+    const HTLEFT = 0x000a
+    const HTRIGHT = 0x000b
+    const HTTOP = 0x000c
+    const HTTOPLEFT = 0x000d
+    const HTTOPRIGHT = 0x000e
+    const HTBOTTOM = 0x000f
+    const HTBOTTOMLEFT = 0x0010
+    const HTBOTTOMRIGHT = 0x0011
+    const EDGE = 4 // 抓取边宽
+    const TITLE_H = 32 // 标题栏高度
+    const BTN_W = 120 // 右上三按钮区宽度（3×40px）
+    win?.hookWindowMessage(WM_NCHITTEST, (_w, l) => {
+      const x = l.readInt16LE(0)
+      const y = l.readInt16LE(2)
+      const b = win?.getBounds()
+      if (!b) return HTCLIENT
+      const px = x - b.x
+      const py = y - b.y
+      const w = b.width
+      const h = b.height
+      // 右上按钮区：交给渲染层，保证按钮可点（优先于边缘命中）
+      if (py <= TITLE_H && px >= w - BTN_W) return HTCLIENT
+      const left = px <= EDGE
+      const right = px >= w - EDGE
+      const top = py <= EDGE
+      const bottom = py >= h - EDGE
+      if (top && left) return HTTOPLEFT
+      if (top && right) return HTTOPRIGHT
+      if (bottom && left) return HTBOTTOMLEFT
+      if (bottom && right) return HTBOTTOMRIGHT
+      if (left) return HTLEFT
+      if (right) return HTRIGHT
+      if (top) return HTTOP
+      if (bottom) return HTBOTTOM
+      return HTCLIENT
+    })
+  }
 }
+
+// ---- 自定义窗口控制（替代原生标题栏；渲染层 TitleBar / ResizeHandles 调用）----
+ipcMain.handle('window:minimize', () => {
+  win?.minimize()
+})
+ipcMain.handle('window:toggle-maximize', () => {
+  if (!win) return
+  if (win.isMaximized()) win.unmaximize()
+  else win.maximize()
+})
+ipcMain.handle('window:close', () => {
+  // 走原生 close 流程：受「关闭行为」逻辑约束（缩到托盘 / 直接退出）
+  win?.close()
+})
+ipcMain.handle('window:is-maximized', () => !!win?.isMaximized())
+ipcMain.handle('window:get-bounds', () => win?.getBounds() ?? { x: 0, y: 0, width: 0, height: 0 })
+ipcMain.handle('window:set-bounds', (_e, bounds: { x: number; y: number; width: number; height: number }) => {
+  win?.setBounds(bounds)
+})
 
 // ---- 应用级 IPC（与设计的 db/api/auth/sync 并列）----
 ipcMain.handle('app:getInfo', () => ({
@@ -333,7 +418,7 @@ function readCloseBehaviorSync(): 'minimize' | 'exit' {
   try {
     const require = createRequire(import.meta.url)
     const Database = require('better-sqlite3') as { new (p: string, o?: object): any }
-    const dbPath = join(app.getPath('userData'), 'acgn-records.db')
+    const dbPath = join(app.getPath('userData'), 'bangumi-for-pc.db')
     const db = new Database(dbPath, { readonly: true, fileMustExist: true })
     const row = db.prepare('SELECT value FROM settings WHERE key = ?').get('closeBehavior') as
       | { value: string }
@@ -365,7 +450,7 @@ function createTray() {
     }
     const finalImg = img.isEmpty() ? nativeImage.createFromPath(join(base, 'icon.png')) : img
     tray = new Tray(finalImg)
-    tray.setToolTip('ACGN Records')
+    tray.setToolTip('Bangumi')
     const menu = Menu.buildFromTemplate([
       { label: '显示主界面', click: () => showMainWindow() },
       { type: 'separator' },
@@ -475,7 +560,7 @@ async function maybePromptLegacyImport() {
   try {
     if (!app.isPackaged) return
     const dir = app.getPath('userData')
-    if (existsSync(join(dir, 'acgn-records.db'))) return
+    if (existsSync(join(dir, 'bangumi-for-pc.db'))) return
     const marker = join(dir, '.import-asked')
     if (existsSync(marker)) return
     writeFileSync(marker, '1') // 只询问一次（无论用户选什么）
@@ -484,7 +569,7 @@ async function maybePromptLegacyImport() {
       title: '导入旧版数据',
       message: '检测到全新安装。要把旧版便携包里的数据导入吗？',
       detail:
-        '选择旧版程序所在文件夹（内含 acgn-records.db），将整体迁移收藏、进度、离线数据库与备份。',
+        '选择旧版程序所在文件夹（内含数据库文件），将整体迁移收藏、进度、离线数据库与备份。',
       buttons: ['选择文件夹导入', '跳过'],
       defaultId: 0,
       cancelId: 1
@@ -500,13 +585,13 @@ async function maybePromptLegacyImport() {
       await dialog.showMessageBox({
         type: 'warning',
         title: '导入失败',
-        message: '所选文件夹中没有找到 acgn-records.db，已取消导入。'
+        message: '所选文件夹中没有找到数据库文件，已取消导入。'
       })
       return
     }
-    for (const f of ['acgn-records.db', 'acgn-records.db-wal', 'acgn-records.db-shm', 'debug.log']) {
-      const s = join(src, f)
-      if (existsSync(s)) copyFileSync(s, join(dir, f))
+    for (const [sname, dname] of [['acgn-records.db', 'bangumi-for-pc.db'], ['acgn-records.db-wal', 'bangumi-for-pc.db-wal'], ['acgn-records.db-shm', 'bangumi-for-pc.db-shm'], ['debug.log', 'debug.log']] as const) {
+      const s = join(src, sname)
+      if (existsSync(s)) copyFileSync(s, join(dir, dname))
     }
     const arc = join(src, 'bangumi-archive')
     if (existsSync(arc)) cpSync(arc, join(dir, 'bangumi-archive'), { recursive: true })
@@ -551,7 +636,7 @@ app.whenReady().then(() => {
   ipcMain.handle('app:getDataDir', () => {
     const dir = app.getPath('userData')
     // 是否为自定义覆盖（存在 conf 即视为已自定义）
-    const confPath = join(app.getPath('appData'), 'acgn-records', 'data-location.conf')
+  const confPath = join(app.getPath('appData'), 'bangumi-for-pc', 'data-location.conf')
     return { dir, custom: existsSync(confPath) }
   })
   ipcMain.handle('app:openDataDir', () => {
@@ -578,15 +663,15 @@ app.whenReady().then(() => {
     } catch {
       return { ok: false, error: '目标目录不可写' }
     }
-    if (existsSync(join(newDir, 'acgn-records.db'))) {
+    if (existsSync(join(newDir, 'bangumi-for-pc.db'))) {
       return { ok: false, error: '目标文件夹已包含应用数据库，请换一个空文件夹' }
     }
     // 先把网络统计刷进旧库，再关连接
     await flushNetworkNow()
     await closeDb()
-    for (const f of ['acgn-records.db', 'acgn-records.db-wal', 'acgn-records.db-shm', 'debug.log']) {
-      const s = join(cur, f)
-      if (existsSync(s)) copyFileSync(s, join(newDir, f))
+    for (const [sname, dname] of [['acgn-records.db', 'bangumi-for-pc.db'], ['acgn-records.db-wal', 'bangumi-for-pc.db-wal'], ['acgn-records.db-shm', 'bangumi-for-pc.db-shm'], ['debug.log', 'debug.log']] as const) {
+      const s = join(cur, sname)
+      if (existsSync(s)) copyFileSync(s, join(newDir, dname))
     }
     for (const sub of ['bangumi-archive', 'backups']) {
       const s = join(cur, sub)

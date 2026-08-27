@@ -597,6 +597,23 @@ export interface AcgnApi {
          *  page 仅用于前端展示页码；实际翻页走 until 游标（p1 接口忽略 offset）。 */
         timeline: (username: string, page?: number, until?: string | null) => Promise<TimelinePage>;
     };
+    /** 自定义窗口控制（替代原生标题栏）：最小化 / 最大化切换 / 关闭 / 查询与订阅最大化状态 / 拖拽缩放 */
+    win: {
+        /** 最小化窗口 */
+        minimize: () => Promise<void>;
+        /** 切换最大化 / 还原 */
+        toggleMaximize: () => Promise<void>;
+        /** 关闭窗口（受主进程「关闭行为」逻辑约束：缩到托盘或直接退出） */
+        close: () => Promise<void>;
+        /** 当前是否处于最大化状态 */
+        isMaximized: () => Promise<boolean>;
+        /** 订阅最大化状态变化（最大化/还原时主进程推送） */
+        onMaximizedChange: (cb: (maximized: boolean) => void) => () => void;
+        /** 取当前窗口位置与尺寸 */
+        getBounds: () => Promise<{ x: number; y: number; width: number; height: number }>;
+        /** 设置窗口位置与尺寸（用于边缘拖拽缩放） */
+        setBounds: (bounds: { x: number; y: number; width: number; height: number }) => Promise<void>;
+    };
 }
 /** 时间胶囊里涉及的作品引用（单条目 1 个，多条目如「想读 X、Y 2 本书」为多个） */
 export interface TimelineSubjectRef {
@@ -654,7 +671,7 @@ export interface TimelineItem {
     time: string;
     /** 绝对时间（title 属性），如「2026-8-10 16:01」 */
     timeAbs?: string;
-    /** 来源：web / mobile / API（next 应用归为 API） */
+    /** 来源角标：如 web / mobile / API（本应用经私有接口产生归为 API） */
     source?: string;
 }
 /** 时间胶囊单页数据（解析自 p1 /users/{username}/timeline 的 JSON 响应） */

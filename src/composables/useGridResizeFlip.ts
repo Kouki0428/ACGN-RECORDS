@@ -88,6 +88,9 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
   // 基线：上一帧「自然布局」矩形（crossing 时的 First 来源） + 当前稳定列数。
   let lastRects = new Map<HTMLElement, DOMRect>()
   let lastCols = -1
+  // 自然布局缓存：列数不变时复用，避免 tick/同列期每帧强制重排（关 GPU 合成器仍流畅的关键）。
+  let cachedNatural = new Map<HTMLElement, DOMRect>()
+  let cachedCols = -1
 
   // 动画状态（位置追向模型）
   let animActive = false
@@ -134,6 +137,25 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
     const m = new Map<HTMLElement, DOMRect>()
     for (const c of cs) if (c.isConnected) m.set(c, c.getBoundingClientRect())
     return m
+  }
+
+  // 仅读取当前视觉矩形（不清除 transform，无 style 写入 → 强制 layout 但远比 measureNatural 便宜）。
+  // 用于「同列连续拖拽」期的基线更新：卡片随浏览器原生 resize，这里只同步记录当前几何，不跑 FLIP。
+  function readRects(cs: HTMLElement[]): Map<HTMLElement, DOMRect> {
+    const m = new Map<HTMLElement, DOMRect>()
+    for (const c of cs) if (c.isConnected) m.set(c, c.getBoundingClientRect())
+    return m
+  }
+
+  // 带列数缓存的自然矩形：列数不变直接复用，仅在跨断点（列数变化）时重新强制一次 reflow。
+  // tick 与 onObserve 跨列分支据此拿到「当前自然布局」，稳定期内零重排 → CPU 合成下流畅。
+  function refreshNatural(cs: HTMLElement[]): Map<HTMLElement, DOMRect> {
+    const cols = naturalCols()
+    if (cols !== cachedCols) {
+      cachedNatural = measureNatural(cs)
+      cachedCols = cols
+    }
+    return cachedNatural
   }
 
   // 某元素是否可纵向滚动（作为滚动锚定容器）
@@ -193,6 +215,8 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
     const natural = measureNatural(cs)
     lastRects = natural
     lastCols = naturalCols()
+    cachedNatural = natural
+    cachedCols = lastCols
   }
 
   // 宽松兜底：仅在极端未收敛时强制落位（届时已≈收敛 → 无跳）；拖拽中 natural 持续变化不会到点（自然跟手）。
@@ -245,7 +269,7 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
       finish()
       return
     }
-    const natural = measureNatural(cs) // 清零 transform 后测量的「自然」矩形（当前 scrollTop 下）
+    const natural = refreshNatural(cs) // 列数不变时复用缓存，稳定拖拽期零每帧强制重排
     const vh = window.innerHeight
 
     // 动画期间滚动已锁定（见 onObserve 的 lockScroll），scrollTop 不变，无需锚定/平移。
@@ -317,12 +341,12 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
       return
     }
 
-    const natural = measureNatural(cs)
     const cols = naturalCols()
 
     if (cols === lastCols || lastCols === -1) {
-      // 同列数（或无基线）：持续记录「上一帧自然布局」
-      lastRects = natural
+      // 同列数（或无基线）：让浏览器原生 resize 卡片（零每帧强制重排），
+      // 仅同步记录当前几何作为下次 crossing 的 First 起点。
+      lastRects = readRects(cs)
       lastCols = cols
       return
     }
@@ -330,10 +354,13 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
     // 关闭动画（用户开关 / 系统 reduce-motion）：直接跟随自然流，无 FLIP、无过渡。
     if (!settings.gridAnimEnabled || reduceMotion) {
       if (animActive) finish()
-      lastRects = natural
+      lastRects = readRects(cs)
       lastCols = cols
       return
     }
+
+    // 跨断点：以 lastRects(当前旧布局) 作起点、refreshNatural(新自然布局) 作目标 → 位置追向。
+    const natural = refreshNatural(cs) // 列数已变 → 重新测量一次
     const g = gridEl()
     if (g) {
       // 动画期间临时解除网格容器裁切（overflow:visible），让滑动出界的卡片完整可见，
@@ -401,10 +428,13 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
     const cs = cards()
     lastRects = measureNatural(cs) // 首帧建立基线（卡片可能尚未加载，稍后由 MutationObserver 补全）
     lastCols = naturalCols()
+    cachedNatural = lastRects
+    cachedCols = lastCols
     ro = new ResizeObserver(() => schedule())
     ro.observe(container)
     // 卡片异步加载 / 切换 tab 后补全基线
     mo = new MutationObserver(() => {
+      cachedCols = -1 // 卡片增删使自然缓存失效，下次 refreshNatural 重新测量
       schedule()
     })
     mo.observe(container, { childList: true, subtree: true })

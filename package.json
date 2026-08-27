@@ -1,9 +1,9 @@
 {
-  "name": "acgn-records",
-  "version": "0.2.6-beta.2",
+  "name": "bangumi-for-pc",
+  "version": "0.2.6-beta.3",
   "private": true,
   "type": "module",
-  "description": "ACGN Records - 轻量级 ACGN 进度追踪与统计桌面应用",
+  "description": "Bangumi-For-PC - 轻量级 ACGN 进度追踪与统计桌面应用",
   "main": "dist-electron/main.js",
   "author": "",
   "license": "MIT",

@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useSearchOverlay } from '@/composables/searchOverlay'
 import { useSidebar } from '@/composables/useSidebar'
 import type { SyncEngineState } from '@shared/types'
+import bangumiLogo from '@/assets/bangumi-logo.svg'
 
 const route = useRoute()
 const router = useRouter()
@@ -98,8 +99,8 @@ function onSpinEnd() {
 <template>
   <aside class="sidebar" :class="{ collapsed }">
     <div class="brand">
-      <span class="logo">A</span>
-      <span class="brand-name">ACGN Records</span>
+      <img :src="bangumiLogo" class="logo" alt="Bangumi" />
+      <span class="brand-name">Bangumi</span>
       <button class="collapse-btn" type="button" :title="collapsed ? '展开边栏' : '收起边栏'" @click="toggleSidebar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="3" width="18" height="18" rx="4" />

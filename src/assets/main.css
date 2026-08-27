@@ -238,7 +238,15 @@ body,
 /* ===== 布局 ===== */
 .app-shell {
   display: flex;
+  flex-direction: column;
   height: 100vh;
+  overflow: hidden;
+}
+
+.app-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -266,26 +274,25 @@ body,
   letter-spacing: 0.3px;
   padding: 0 18px;
   color: var(--text);
+  position: relative;
+  top: -8px;
 }
 .sidebar .brand .logo {
-  width: 22px;
-  height: 22px;
-  max-width: 22px;
+  width: 28px;
+  height: 28px;
+  max-width: 28px;
   flex-shrink: 0;
-  border-radius: 7px;
-  background: var(--accent-grad);
+  background: transparent;
   display: grid;
   place-items: center;
-  font-size: 13px;
-  color: #fff;
-  overflow: hidden;
+  object-fit: contain;
   transition: opacity 0.2s ease, max-width 0.25s ease, height 0.25s ease, margin 0.25s ease;
 }
 .sidebar .brand .brand-name {
   max-width: 200px;
   transition: opacity 0.2s ease, max-width 0.25s ease;
 }
-/* 收起边栏按钮（在 ACGN Records 文字旁） */
+/* 收起边栏按钮（在 Bangumi 文字旁） */
 .sidebar .collapse-btn {
   margin-left: auto;
   display: flex;
@@ -306,8 +313,8 @@ body,
   border-color: var(--accent);
 }
 .sidebar .collapse-btn svg {
-  width: 27px;
-  height: 27px;
+  width: 18px;
+  height: 18px;
 }
 .sidebar.collapsed .brand {
   justify-content: flex-start;
@@ -348,8 +355,8 @@ body,
   border-color: transparent;
 }
 .sidebar.collapsed .collapse-btn svg {
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
 }
 
 .sidebar nav {
@@ -364,6 +371,7 @@ body,
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
+  height: 38px;
   border-radius: 10px;
   color: var(--text-dim);
   text-decoration: none;
@@ -411,8 +419,8 @@ body,
   gap: 8px;
   box-sizing: border-box;
   height: 38px;
-  margin: 8px 10px 4px;
-  padding: 0 10px;
+  margin: -6px 10px 2px;
+  padding: 0 12px;
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--bg-elev);
@@ -466,7 +474,7 @@ body,
 /* 折叠态：固定高度 38px 不变（防偏移），去掉边框/背景，只留放大镜图标，hover 才高亮 */
 .sidebar.collapsed .nav-search {
   height: 38px;
-  padding: 0 10px;
+  padding: 0 12px;
   border-color: transparent;
   background: transparent;
 }
@@ -498,6 +506,7 @@ body,
   gap: 10px;
   margin: 2px 10px 14px;
   padding: 10px 12px;
+  height: 38px;
   border-radius: 10px;
   color: var(--text-dim);
   text-decoration: none;

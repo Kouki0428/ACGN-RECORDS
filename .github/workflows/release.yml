@@ -41,11 +41,11 @@ jobs:
 
       - name: Make portable zip
         shell: pwsh
-        run: Compress-Archive -Path 'release/win-unpacked/*' -DestinationPath "release/ACGN-Records-$($env:GITHUB_REF_NAME)-portable-win.zip" -Force
+        run: Compress-Archive -Path 'release/win-unpacked/*' -DestinationPath "release/Bangumi-$($env:GITHUB_REF_NAME)-portable-win.zip" -Force
 
       - name: Upload portable zip to the release
         run: |
-          gh release upload ${{ github.ref_name }} "release/ACGN-Records-$($env:GITHUB_REF_NAME)-portable-win.zip" --clobber
+          gh release upload ${{ github.ref_name }} "release/Bangumi-$($env:GITHUB_REF_NAME)-portable-win.zip" --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

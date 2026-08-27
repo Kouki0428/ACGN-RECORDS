@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import SidebarNav from './components/SidebarNav.vue'
+import TitleBar from './components/TitleBar.vue'
 import SearchOverlay from './components/SearchOverlay.vue'
 import EntitySubjectCard from './components/EntitySubjectCard.vue'
 import CollectionModal from './components/CollectionModal.vue'
@@ -101,9 +102,11 @@ onUnmounted(() => {
 
 <template>
   <div class="app-shell">
-    <SidebarNav />
-    <main class="content">
-      <div class="content-inner">
+    <TitleBar />
+    <div class="app-body">
+      <SidebarNav />
+      <main class="content">
+        <div class="content-inner">
         <!-- 路由视图：不加 Transition。
              曾用 <Transition mode="out-in"> 做切换淡入淡出，但会偶发「新视图已挂载却停留在
              opacity:0 的 enter-from 态」→ 整页空白、刷新才恢复（诊断：DOM 存在但不可见，
@@ -116,6 +119,7 @@ onUnmounted(() => {
         </router-view>
       </div>
     </main>
+    </div>
     <!-- 液态玻璃折射滤镜（全局唯一）：feTurbulence 大尺度平滑噪声 → feDisplacementMap
          扰动背板像素，产生水波折射。供 backdrop-filter: url(#liquid-glass-distortion) 引用 -->
     <svg width="0" height="0" style="position: absolute" aria-hidden="true">
