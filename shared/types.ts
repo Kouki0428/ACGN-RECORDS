@@ -926,7 +926,7 @@ export interface AcgnApi {
     getMe: () => Promise<{ username?: string; nickname?: string; avatar?: string | null }>
   }
   sync: {
-    pushAll: () => Promise<SyncResult>
+    pushAll: (opts?: { episodeMarks?: boolean }) => Promise<SyncResult>
     pullAll: () => Promise<SyncResult>
     pullAllFull: () => Promise<SyncResult>
     syncAll: () => Promise<SyncResult>
@@ -992,6 +992,13 @@ export interface AcgnApi {
       progress: Record<number, EpisodeProgressState>
       episodes: SubjectFullEpisode[]
     }>
+    /**
+     * C' 全局短路：切栏前判断是否需实际拉取单集进度。
+     * 基于 p1 timeline 第一条动态时间 vs 本地上次拉取时钟；取不到时返回 true（降级）。
+     */
+    shouldRefreshProgress: () => Promise<boolean>
+    /** 标记一次进度拉取完成，刷新本地 lastPullAt 时钟（C' 用）。 */
+    markProgressPulled: () => Promise<void>
     /** 读某作品本地缓存的剧集（瞬时，不联网），悬浮窗打开时优先用于瞬时显示真实集号/标题 */
     getEpisodes: (providerSubjectId: string) => Promise<SubjectFullEpisode[]>
   }

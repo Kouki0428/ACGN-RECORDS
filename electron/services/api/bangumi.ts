@@ -1044,6 +1044,34 @@ export async function getEpisodeProgress(
   return parseBgmEps(all)
 }
 
+export async function getP1UserTimeline(
+  username: string,
+  token: string,
+  limit = 1
+): Promise<number | null> {
+  try {
+    const url = `${P1_BASE}/users/${encodeURIComponent(username)}/timeline?limit=${limit}`
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
+    })
+    if (!res.ok) return null
+    const json = (await res.json()) as any
+    const list = Array.isArray(json) ? json : json?.data ?? []
+    if (!Array.isArray(list) || list.length === 0) return null
+    return parseActivityTime(list[0])
+  } catch {
+    return null
+  }
+}
+
+function parseActivityTime(item: any): number | null {
+  const raw = item?.time ?? item?.created_at ?? item?.datetime ?? item?.date ?? item?.timestamp
+  if (raw == null) return null
+  if (typeof raw === 'number') return raw < 1e12 ? raw : Math.floor(raw / 1000)
+  const t = Date.parse(String(raw))
+  return Number.isFinite(t) ? Math.floor(t / 1000) : null
+}
+
 export async function getMyCollections(
   token: string,
   opts: { limit?: number; offset?: number },

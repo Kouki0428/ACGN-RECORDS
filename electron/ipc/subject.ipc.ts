@@ -32,6 +32,7 @@ import { importSubject, saveSubjectRatingDistribution } from '../services/db/rep
 import { getCachedEpisodes, upsertEpisodes } from '../services/db/repositories/episodesCache.repository'
 import { cacheCharacters, cacheRelations } from '../services/db/repositories/subjectExtra.repository'
 import { getSubjectDetailLocal } from '../services/subjectDetailLocal'
+import { shouldRefreshProgress, markProgressPulled } from '../services/progressGuard'
 import { saveArchiveScore } from '../services/archive/archive.service'
 import { resolveScore } from '../services/subjectScore'
 import type { EpisodeProgressState, Subject, SubjectFullEpisode } from '../../shared/types'
@@ -305,4 +306,10 @@ export function registerSubjectIpc(): void {
       }
     }
   )
+
+  // C' 全局短路：切栏前问一次「是否需拉进度」，以及拉完后记录时钟。
+  ipcMain.handle('subject:shouldRefreshProgress', async () => shouldRefreshProgress())
+  ipcMain.handle('subject:markProgressPulled', async () => {
+    markProgressPulled()
+  })
 }

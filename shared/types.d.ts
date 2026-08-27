@@ -538,7 +538,7 @@ export interface AcgnApi {
         logout: () => Promise<void>;
     };
     sync: {
-        pushAll: () => Promise<SyncResult>;
+        pushAll: (opts?: { episodeMarks?: boolean }) => Promise<SyncResult>;
         pullAll: () => Promise<SyncResult>;
         pullAllFull: () => Promise<SyncResult>;
         syncAll: () => Promise<SyncResult>;

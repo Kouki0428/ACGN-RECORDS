@@ -127,7 +127,7 @@ const api: AcgnApi = {
     getMe: () => ipcRenderer.invoke('auth:getMe') as Promise<{ username?: string; nickname?: string; avatar?: string | null }>
   },
   sync: {
-    pushAll: () => ipcRenderer.invoke('sync:pushAll'),
+    pushAll: (opts?: { episodeMarks?: boolean }) => ipcRenderer.invoke('sync:pushAll', opts),
     pullAll: () => ipcRenderer.invoke('sync:pullAll'),
     pullAllFull: () => ipcRenderer.invoke('sync:pullAllFull'),
     syncAll: () => ipcRenderer.invoke('sync:syncAll'),
@@ -168,12 +168,16 @@ const api: AcgnApi = {
         collectionId: number | null
         progress: Record<number, EpisodeProgressState>
       }>,
-    pullEpisodeProgress: (providerSubjectId: string, opts?: { force?: boolean; reconcile?: boolean }) =>
-      ipcRenderer.invoke('subject:pullEpisodeProgress', providerSubjectId, opts) as Promise<{
-        collectionId: number | null
-        progress: Record<number, EpisodeProgressState>
-        episodes: SubjectFullEpisode[]
-      }>,
+  pullEpisodeProgress: (providerSubjectId: string, opts?: { force?: boolean; reconcile?: boolean }) =>
+    ipcRenderer.invoke('subject:pullEpisodeProgress', providerSubjectId, opts) as Promise<{
+      collectionId: number | null
+      progress: Record<number, EpisodeProgressState>
+      episodes: SubjectFullEpisode[]
+    }>,
+  shouldRefreshProgress: () =>
+    ipcRenderer.invoke('subject:shouldRefreshProgress') as Promise<boolean>,
+  markProgressPulled: () =>
+    ipcRenderer.invoke('subject:markProgressPulled') as Promise<void>,
     getEpisodes: (providerSubjectId: string) =>
       ipcRenderer.invoke('subject:getEpisodes', providerSubjectId) as Promise<SubjectFullEpisode[]>
   },

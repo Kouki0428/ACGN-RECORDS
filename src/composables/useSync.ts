@@ -5,10 +5,10 @@ export function useSync() {
   const syncing = ref(false)
   const lastResult = ref<{ pushed: number; failed: number } | null>(null)
 
-  async function pushAll() {
+  async function pushAll(opts?: { episodeMarks?: boolean }) {
     syncing.value = true
     try {
-      lastResult.value = await window.acgn.sync.pushAll()
+      lastResult.value = await window.acgn.sync.pushAll(opts)
     } finally {
       syncing.value = false
     }

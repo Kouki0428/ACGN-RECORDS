@@ -61,6 +61,8 @@ export const subjectClient = {
       progress: Record<number, EpisodeProgressState>
       episodes: SubjectFullEpisode[]
     }>,
+  shouldRefreshProgress: () => window.acgn.subject.shouldRefreshProgress() as Promise<boolean>,
+  markProgressPulled: () => window.acgn.subject.markProgressPulled() as Promise<void>,
   /** 取某作品本地缓存的剧集（瞬时，不联网），悬浮窗打开时优先用于瞬时显示真实集号/标题 */
   getEpisodes: (providerSubjectId: string): Promise<SubjectFullEpisode[]> =>
     window.acgn.subject.getEpisodes(providerSubjectId)

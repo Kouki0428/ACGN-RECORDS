@@ -167,6 +167,10 @@ async function openDetail(subjectId: number) {
         cur.progress = res.progress
       })
       .catch(() => {})
+      .finally(() => {
+        // 详情页主动 force 拉取后，刷新 C' 的 lastPullAt 时钟，避免返回主页后重复拉
+        subjectClient.markProgressPulled().catch(() => {})
+      })
   }
   // 后台联网补全：完成后再更新（仍在看同一作品才覆盖）
   enriching.value = true

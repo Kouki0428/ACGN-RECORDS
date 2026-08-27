@@ -49,11 +49,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish release (draft → latest)
+      - name: Publish release (draft → latest, or prerelease for beta)
         shell: pwsh
         run: |
           $rel = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$($env:GITHUB_REF_NAME)" --jq '.id'
-          gh api -X PATCH "repos/$env:GITHUB_REPOSITORY/releases/$rel" -F draft=false -F "name=$($env:GITHUB_REF_NAME)"
-          gh release edit ${{ github.ref_name }} --latest
+          $isBeta = $env:GITHUB_REF_NAME -match '-beta'
+          if ($isBeta) {
+            # Beta：作为预发布，且不抢占稳定版 Latest（避免把测试版推给所有稳定版用户）
+            gh api -X PATCH "repos/$env:GITHUB_REPOSITORY/releases/$rel" -F draft=false -F "name=$($env:GITHUB_REF_NAME)" -F prerelease=true
+          } else {
+            gh api -X PATCH "repos/$env:GITHUB_REPOSITORY/releases/$rel" -F draft=false -F "name=$($env:GITHUB_REF_NAME)"
+            gh release edit ${{ github.ref_name }} --latest
+          }
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

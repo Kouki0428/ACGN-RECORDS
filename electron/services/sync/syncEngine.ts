@@ -32,6 +32,7 @@ import {
   toSubject,
   BGM_TYPE_TO_CATEGORY
 } from '../api/bangumi'
+import { markProgressPulled } from '../progressGuard'
 
 /** 将 Bangumi 返回的 ISO 时间字符串解析为 Unix 秒；无法解析时返回 undefined（由本地 now 兜底）。 */
 function parseBgmUpdatedAt(v: any): number | undefined {
@@ -119,7 +120,7 @@ function endSync(err: string | null) {
  * 上传本地脏收藏到 Bangumi。
  * 仅推送 provider='bangumi' 且 dirty=1 的本地收藏（离线优先：本地永远是源，Bangumi 是镜像）。
  */
-async function pushAllInner(): Promise<SyncResult> {
+async function pushAllInner(opts?: { episodeMarks?: boolean }): Promise<SyncResult> {
   const acct = await getBangumiAccount()
   if (!acct) return { pushed: 0, pulled: 0, failed: 0, error: '未登录 Bangumi' }
 
@@ -154,18 +155,21 @@ async function pushAllInner(): Promise<SyncResult> {
       await clearDirty(r.id)
       pushed++
       await logSync('push', 'collection', r.id, 'ok')
-      // 上传该收藏的本地单集标记（本地离线改动 → Bangumi，保证全量同步含单集双向）
-      try {
-        const localMarks = await listProgressFull(r.id)
-        const toPush = Object.entries(localMarks)
-          .filter(([id, v]) => Number(id) > 0 && (v.watched || v.want || v.dropped))
-          .map(([id, v]) => ({ id: Number(id), type: v.dropped ? 3 : v.watched ? 2 : 1 }))
-        if (toPush.length) {
-          await mapWithConcurrency(toPush, 5, (a) => setEpisodeStatusOnBgm(a.id, a.type, token))
+        // 上传该收藏的本地单集标记（本地离线改动 → Bangumi，保证全量同步含单集双向）
+        // episodeMarks=false 时跳过：调用方已通过 setEpisodeStatus 直传单集，避免把整部单集重推一遍
+        if (opts?.episodeMarks !== false) {
+          try {
+            const localMarks = await listProgressFull(r.id)
+            const toPush = Object.entries(localMarks)
+              .filter(([id, v]) => Number(id) > 0 && (v.watched || v.want || v.dropped))
+              .map(([id, v]) => ({ id: Number(id), type: v.dropped ? 3 : v.watched ? 2 : 1 }))
+            if (toPush.length) {
+              await mapWithConcurrency(toPush, 5, (a) => setEpisodeStatusOnBgm(a.id, a.type, token))
+            }
+          } catch (e) {
+            console.warn('[pushAll] 单集标记上传失败（忽略）：', e)
+          }
         }
-      } catch (e) {
-        console.warn('[pushAll] 单集标记上传失败（忽略）：', e)
-      }
     } catch (e) {
       failed++
       await logSync('push', 'collection', r.id, 'failed', String(e))
@@ -175,10 +179,10 @@ async function pushAllInner(): Promise<SyncResult> {
 }
 
 /** 带状态跟踪的上传：begin/end 驱动侧栏指示灯；有失败或授权问题标记 error。 */
-export async function pushAll(): Promise<SyncResult> {
+export async function pushAll(opts?: { episodeMarks?: boolean }): Promise<SyncResult> {
   beginSync('push')
   try {
-    const r = await pushAllInner()
+    const r = await pushAllInner(opts)
     const err =
       r.failed > 0
         ? `上传失败 ${r.failed} 部${r.error ? '：' + r.error : ''}`
@@ -443,6 +447,8 @@ async function pullOne(token: string, r: RemotePullItem, localId: number, order:
 export async function syncAll(): Promise<SyncResult> {
   const push = await pushAll()
   const pull = await pullAll()
+  // 同步（pull）完成即视为已拉取最新进度，刷新 C' 的 lastPullAt 时钟
+  markProgressPulled()
   const errors = [push.error, pull.error].filter(Boolean) as string[]
   return {
     pushed: push.pushed,

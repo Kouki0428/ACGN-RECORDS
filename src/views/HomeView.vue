@@ -23,7 +23,7 @@ import { useGridResizeFlip } from '@/composables/useGridResizeFlip'
 import type { AnimeDetail, EpisodeMarkPayload } from '@shared/types'
 import type { EpisodeCell } from '@/components/EpisodeGrid.vue'
 
-const { open: openSubject, isOpen: entityOpen } = useEntityCard()
+const { open: openSubject, isOpen: entityOpen, state: entityState } = useEntityCard()
 const { open: openMenu } = useContextMenu()
 const toast = useToast()
 const auth = useAuthStore()
@@ -151,7 +151,7 @@ async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promis
   return out
 }
 
-async function loadTab(cat: CatKey) {
+async function loadTab(cat: CatKey, progressPids?: Array<string | number> | null) {
   loading.value = true
   try {
     const rows = await dbClient.query<{
@@ -211,9 +211,13 @@ async function loadTab(cat: CatKey) {
     } else {
       cards.value = base
     }
-    // 后台从 Bangumi 强制拉取最新单集标记（force+reconcile，与详情页打开时同口径），
-    // 拉到即就地更新格子着色——网页/其它端标的进度进主页也能看到
-    void refreshRemoteProgress(cards.value)
+    // 后台从 Bangumi 拉取最新单集标记（force:false，受 shouldRefresh 短路 + 本地镜像兜底）。
+    // 若调用方指定了 progressPids（被动过的作品），只刷那些；否则整批（切栏/初始等合理时机）。
+    const subset =
+      progressPids && progressPids.length
+        ? cards.value.filter((c) => progressPids.some((p) => String(p) === String(c.providerSubjectId)))
+        : cards.value
+    void refreshRemoteProgress(subset)
   } finally {
     loading.value = false
   }
@@ -224,6 +228,10 @@ async function loadTab(cat: CatKey) {
 // 保持下次全量加载的排序一致。仅动排序时间戳，不标 dirty（远端已是权威，无需上传）。
 async function refreshRemoteProgress(list: HomeCard[]) {
   if (!auth.status.loggedIn) return // 未登录：无远端可拉，避免匿名请求打限流
+  // C' 全局短路：自上次拉取后 Bangumi 无新标记（p1 timeline 第一行时间未变）则整批跳过，0 请求
+  let needRefresh = true
+  try { needRefresh = await subjectClient.shouldRefreshProgress() } catch { needRefresh = true }
+  if (!needRefresh) return
   const targets = list.filter(
     (c) => c.providerSubjectId && /^\d+$/.test(String(c.providerSubjectId))
   )
@@ -232,8 +240,8 @@ async function refreshRemoteProgress(list: HomeCard[]) {
   await mapLimit(targets, 8, async (c) => {
     try {
       const res = await subjectClient.pullEpisodeProgress(String(c.providerSubjectId), {
-        force: true,
-        reconcile: true
+        force: false,
+        reconcile: false
       })
       const prog = res.progress as Record<
         number,
@@ -282,6 +290,8 @@ async function refreshRemoteProgress(list: HomeCard[]) {
       /* 离线/未登录/限流：跳过该卡，保留本地状态 */
     }
   })
+  // 标记本次进度拉取完成（用于 C' 全局短路的 lastPullAt 时钟）
+  await subjectClient.markProgressPulled().catch(() => {})
   // 等时间戳/ep_status 自愈写库完成，再做确定性重排（避免读到旧值）
   await Promise.all(bumps)
   // —— 确定性兜底重排：直接按数据库真实时间戳对当前卡片降序排列，不依赖逐格变化检测 ——
@@ -314,14 +324,20 @@ watch(activeTab, (c) => loadTab(c), { immediate: false })
 const entityOpenRef = entityOpen
 const searchOv = useSearchOverlay()
 const colModal = useCollectionModal()
+
 watch([entityOpenRef, searchOv.isOpen], ([a, b], [pa, pb]) => {
   const closed = (pa && !a) || (pb && !b)
   if (closed) {
-    void loadTab(activeTab.value).then(() => refreshRemoteProgress(cards.value))
+    // 实体卡关闭：若是作品卡，只刷新那一部（loadTab 内部按 pids 增量）；
+    // 搜索浮层关闭无法定位 → 传 null 退化为全量（force:false 下无网络请求）
+    const st = entityState.value
+    const pids = st && st.kind === 'subject' ? [st.id] : null
+    void loadTab(activeTab.value, pids)
   }
 })
 watch(colModal.refreshTick, () => {
-  void loadTab(activeTab.value).then(() => refreshRemoteProgress(cards.value))
+  const pid = colModal.providerSubjectId.value
+  void loadTab(activeTab.value, pid ? [pid] : null)
 })
 
 const displayCards = computed(() => cards.value)
@@ -356,7 +372,7 @@ async function onMark(card: HomeCard, payload: EpisodeMarkPayload) {
     }
     card.epStatus = epStatus
     // 即时上传：把收藏级变更（ep_status 等）同步到 Bangumi（fire-and-forget）
-    void window.acgn.sync.pushAll().catch(() => {})
+    void window.acgn.sync.pushAll({ episodeMarks: false }).catch(() => {})
   } catch (e) {
     toast.err(parseAppError(e, '标记失败').message)
     console.warn('[HomeView] 标记单集进度失败', e)
