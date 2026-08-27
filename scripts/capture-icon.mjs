@@ -140,7 +140,7 @@ for(const p of pngs){
   e.writeUInt8(p.s>=256?0:p.s,0);e.writeUInt8(p.s>=256?0:p.s,1)
   e.writeUInt8(0,2);e.writeUInt8(0,3)
   e.writeUInt16LE(1,4);e.writeUInt16LE(32,6)
-  e.writeUInt32BE(d.length,8);e.writeUInt32LE(off,12)
+  e.writeUInt32LE(d.length,8);e.writeUInt32LE(off,12)
   entries.push(e);datas.push(d);off+=d.length
 }
 writeFileSync(join(buildDir,'icon.ico'),Buffer.concat([hdr,...entries,...datas]))
