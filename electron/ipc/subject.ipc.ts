@@ -20,7 +20,7 @@ import {
 } from '../services/api/bangumi'
 import { getValidToken, getBangumiAccount } from '../services/auth/oauth'
 import { getDb } from '../services/db/connection'
-import { cachedGet, ONE_DAY_MS, ONE_MIN_MS } from '../services/api/requestCache'
+import { cachedGet, ONE_DAY_MS, TEN_MIN_MS } from '../services/api/requestCache'
 import {
   listProgressFull,
   applyRemoteEpisodeProgress,
@@ -42,7 +42,7 @@ export function registerSubjectIpc(): void {
     if (!subjectId) return { comments: [], total: 0 }
     return cachedGet(
       `comments:${subjectId}:${offset}`,
-      ONE_MIN_MS,
+      TEN_MIN_MS,
       async () => {
         const token = await getValidToken()
         return getSubjectComments(subjectId, offset, 20, token ?? undefined)
@@ -54,7 +54,7 @@ export function registerSubjectIpc(): void {
     if (!subjectId) return { topics: [], total: 0 }
     return cachedGet(
       `topics:${subjectId}`,
-      ONE_MIN_MS,
+      TEN_MIN_MS,
       async () => {
         const token = await getValidToken()
         return getSubjectTopics(subjectId, token ?? undefined)
@@ -66,7 +66,7 @@ export function registerSubjectIpc(): void {
     if (!topicId) return null
     return cachedGet(
       `topic:${topicId}`,
-      ONE_MIN_MS,
+      TEN_MIN_MS,
       async () => {
         const token = await getValidToken()
         return getTopicDetail(topicId, token ?? undefined)
@@ -78,7 +78,7 @@ export function registerSubjectIpc(): void {
   ipcMain.handle('subject:trendingTopics', async (_e, force?: boolean) => {
     return cachedGet(
       'trending',
-      ONE_MIN_MS,
+      TEN_MIN_MS,
       async () => {
         const token = await getValidToken()
         return getTrendingSubjectTopics(token ?? undefined)

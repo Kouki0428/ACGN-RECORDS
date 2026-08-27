@@ -41,5 +41,5 @@ export async function cachedGet<T>(
 
 /** 天（毫秒），详情类接口默认有效期 */
 export const ONE_DAY_MS = 86_400_000
-/** 分钟（毫秒），热门讨论 / 单作品评论默认有效期 */
-export const ONE_MIN_MS = 60_000
+/** 10 分钟（毫秒），热门讨论 / 单作品吐槽 / 评论默认有效期 */
+export const TEN_MIN_MS = 600_000
