@@ -31,10 +31,9 @@ export const apiClient = {
   setDataDir: (dir: null) => acgn().app.setDataDir(dir),
   gallery: (subjectId: number | string, force = false): Promise<GameGallery> =>
     acgn().api.gallery(subjectId, force),
-  /** 时间胶囊（操作历史）：拉取指定用户的时间线动态（支持分页） */
-  /** 时间胶囊（操作历史）：拉取指定用户的时间线动态，支持分页 */
-  timeline: (username: string, page = 1): Promise<TimelinePage> =>
-    acgn().personal.timeline(username, page)
+  /** 时间胶囊（操作历史）：拉取指定用户的时间线动态，支持分页（until 游标翻页） */
+  timeline: (username: string, page = 1, until?: string | null): Promise<TimelinePage> =>
+    acgn().personal.timeline(username, page, until)
 }
 
 export interface AppCredentials {

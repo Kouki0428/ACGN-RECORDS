@@ -16,6 +16,9 @@ const page = ref(1)
 const hasPrev = ref(false)
 const hasNext = ref(false)
 const rootEl = ref<HTMLElement | null>(null)
+// p1 时间胶囊按动态 id 游标翻页（until），offset 被接口忽略。
+// cursors[p] 记录第 p 页请求所用的 until 游标（第 1 页为 undefined）。
+const cursors = ref<Record<number, string | undefined>>({ 1: undefined })
 
 async function load(p = 1) {
   if (!auth.status.username) {
@@ -24,16 +27,20 @@ async function load(p = 1) {
     page.value = 1
     hasPrev.value = false
     hasNext.value = false
+    cursors.value = { 1: undefined }
     return
   }
   loading.value = true
   error.value = null
   try {
-    const res = await apiClient.timeline(auth.status.username, p)
+    const until = p === 1 ? undefined : (cursors.value[p] ?? undefined)
+    const res = await apiClient.timeline(auth.status.username, p, until)
     items.value = res.items
     page.value = res.page
     hasPrev.value = res.hasPrev
     hasNext.value = res.hasNext
+    // 记下下一页游标，供 goNext 使用
+    if (res.nextUntil != null) cursors.value[p + 1] = res.nextUntil
     // 翻页后回到列表顶部
     requestAnimationFrame(() => {
       if (rootEl.value) rootEl.value.scrollIntoView({ block: 'start' })
@@ -132,8 +139,7 @@ onMounted(async () => {
         </button>
       </div>
       <p class="hint">
-        你的 Bangumi 操作历史（看过某集、读过某部、标记状态等）。数据来自
-        bgm.tv 时间线页面的只读解析，非官方 API，可能随网页改版变动。
+        你的 Bangumi 操作历史（看过某集、读过某部、标记状态等）。
       </p>
 
       <p v-if="!loading && !error && !auth.status.loggedIn" class="panel-empty">

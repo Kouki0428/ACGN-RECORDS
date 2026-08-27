@@ -377,6 +377,17 @@ export async function runMigrations(db: any): Promise<void> {
     )`
   )
 
+  // 应用网络使用量日度统计：以 day='YYYY-MM-DD' 为主键聚合当天上行/下行字节与请求次数。
+  // 供设置页「网络使用量」展示当天请求次数。幂等建表。
+  db.exec(
+    `CREATE TABLE IF NOT EXISTS network_stats_daily (
+      day      TEXT PRIMARY KEY,
+      sent     INTEGER NOT NULL DEFAULT 0,
+      received INTEGER NOT NULL DEFAULT 0,
+      requests INTEGER NOT NULL DEFAULT 0
+    )`
+  )
+
   // 收藏月度快照：每月首次启动记录当期计数，供统计悬浮窗绘制历史趋势曲线。幂等建表。
   db.exec(
     `CREATE TABLE IF NOT EXISTS stats_snapshots (

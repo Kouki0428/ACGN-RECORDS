@@ -736,6 +736,13 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
       <p v-else-if="netStats" class="hint">本月尚无网络请求记录。</p>
       <p v-else class="hint">正在统计网络使用量…</p>
 
+      <div class="arc-status" v-if="netStats?.today">
+        <div class="arc-stat"><span>当日上传</span><b>{{ fmtSize(netStats.today.sent) }}</b></div>
+        <div class="arc-stat"><span>当日下载</span><b>{{ fmtSize(netStats.today.received) }}</b></div>
+        <div class="arc-stat"><span>当日请求次数</span><b>{{ fmtCount(netStats.today.requests) }}</b></div>
+      </div>
+      <p v-else-if="netStats" class="hint">当日尚无网络请求记录。</p>
+
       <div class="net-history" v-if="netPast.length">
         <div class="net-hrow net-hhead">
           <span>月份</span><span>上行</span><span>下行</span><span>请求</span>

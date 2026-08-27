@@ -221,8 +221,8 @@ const api: AcgnApi = {
     setZoomFactor: (factor: number) => webFrame.setZoomFactor(factor)
   },
   personal: {
-    timeline: (username: string, limit?: number) =>
-      ipcRenderer.invoke('personal:timeline', username, limit)
+    timeline: (username: string, page?: number, until?: string | null) =>
+      ipcRenderer.invoke('personal:timeline', username, page, until)
   },
   cache: {
     stats: () => ipcRenderer.invoke('cache:stats') as Promise<CacheStats>,

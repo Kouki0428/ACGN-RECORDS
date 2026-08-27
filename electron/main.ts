@@ -1,7 +1,7 @@
 ﻿// 必须最先 import：让主进程所有 fetch 自动走代理/TLS 配置（详见该模块）
 import './services/api/http'
 import { setManualProxy, flushNetworkNow } from './services/api/http'
-import { getNetworkStats, getNetworkHistory } from './services/db/repositories/networkStats.repository'
+import { getNetworkStats, getNetworkHistory, getTodayStats } from './services/db/repositories/networkStats.repository'
 import { closeDb } from './services/db/connection'
 import electron from 'electron'
 const { app, BrowserWindow, ipcMain, shell, protocol, Tray, Menu, nativeImage, dialog } = electron
@@ -301,10 +301,14 @@ ipcMain.handle('app:setProxy', (_event, url: unknown) => {
   setManualProxy(typeof url === 'string' && url.trim() ? url.trim() : null)
 })
 
-// 拉取应用网络使用量统计（当月 + 近 6 月历史），供设置页「网络使用量」卡片展示。
+// 拉取应用网络使用量统计（当天 + 当月 + 近 6 月历史），供设置页「网络使用量」卡片展示。
 ipcMain.handle('app:getNetworkStats', async () => {
-  const [current, history] = await Promise.all([getNetworkStats(), getNetworkHistory(6)])
-  return { current, history }
+  const [current, history, today] = await Promise.all([
+    getNetworkStats(),
+    getNetworkHistory(6),
+    getTodayStats()
+  ])
+  return { current, history, today }
 })
 
 // 退出前强制落库：把 debounce 攒批的网络统计增量写入 network_stats，避免数据丢失。

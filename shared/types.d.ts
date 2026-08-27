@@ -593,8 +593,9 @@ export interface AcgnApi {
     /** 个人中心：时间胶囊（操作历史）。数据来自 bgm.tv/user/{username}/timeline 只读 HTML 解析，
      *  因 Bangumi v0 无对应官方 API 端点，故为抓取解析，结构可能随网页改版变动。 */
     personal: {
-        /** 拉取指定用户的时间胶囊动态（动作/封面/标题/时间/评论），支持分页 */
-        timeline: (username: string, page?: number) => Promise<TimelinePage>;
+        /** 拉取指定用户的时间胶囊动态（动作/封面/标题/时间/评论），支持分页。
+         *  page 仅用于前端展示页码；实际翻页走 until 游标（p1 接口忽略 offset）。 */
+        timeline: (username: string, page?: number, until?: string | null) => Promise<TimelinePage>;
     };
 }
 /** 时间胶囊里涉及的作品引用（单条目 1 个，多条目如「想读 X、Y 2 本书」为多个） */
@@ -656,7 +657,7 @@ export interface TimelineItem {
     /** 来源：web / mobile / API（next 应用归为 API） */
     source?: string;
 }
-/** 时间胶囊单页数据（解析自 bgm.tv/user/{username}/timeline 的只读 HTML） */
+/** 时间胶囊单页数据（解析自 p1 /users/{username}/timeline 的 JSON 响应） */
 export interface TimelinePage {
     /** 本页动态列表 */
     items: TimelineItem[];
@@ -666,4 +667,6 @@ export interface TimelinePage {
     hasPrev: boolean;
     /** 是否有下一页 */
     hasNext: boolean;
+    /** 下一页游标：传给下次请求的 until 参数（p1 按动态 id 游标翻页）；无更多时为 null */
+    nextUntil?: string | null;
 }

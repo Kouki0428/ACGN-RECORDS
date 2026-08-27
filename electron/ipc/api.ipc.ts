@@ -27,8 +27,11 @@ export function registerApiIpc(): void {
     return getGalleryForSubject(subjectId, force)
   })
 
-  // 时间胶囊（操作历史）：解析 bgm.tv/user/{username}/timeline 只读 HTML（非官方 API 端点）
-  ipcMain.handle('personal:timeline', async (_event, username: string, page?: number) => {
-    return fetchTimeline(username, page ?? 1)
-  })
+  // 时间胶囊（操作历史）：p1 /users/{username}/timeline（官方接口，游标翻页）
+  ipcMain.handle(
+    'personal:timeline',
+    async (_event, username: string, page?: number, until?: string | null) => {
+      return fetchTimeline(username, page ?? 1, undefined, until)
+    }
+  )
 }

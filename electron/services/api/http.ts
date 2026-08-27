@@ -561,8 +561,9 @@ export async function flushNetworkNow(): Promise<void> {
   pendingReceived = 0
   pendingRequests = 0
   try {
-    const { addNetworkUsage } = await import('../db/repositories/networkStats.repository')
+    const { addNetworkUsage, addDailyUsage } = await import('../db/repositories/networkStats.repository')
     await addNetworkUsage(s, r, q)
+    await addDailyUsage(s, r, q)
   } catch {
     // 落库失败：退回 pending，下次重试（避免数据丢失）
     pendingSent += s

@@ -512,10 +512,22 @@ export interface NetworkMonthStat {
   requests: number
 }
 
-/** 设置页「网络使用量」一次性拉取结果（当月 + 近 6 月历史）。 */
+/** 单日应用网络使用量统计（字节 / 请求次数）。day 形如 'YYYY-MM-DD'。 */
+export interface NetworkDayStat {
+  day: string
+  /** 上行字节（请求头 + URL + 请求体） */
+  sent: number
+  /** 下行字节（响应体） */
+  received: number
+  /** 请求次数（safeFetch 逻辑调用次数） */
+  requests: number
+}
+
+/** 设置页「网络使用量」一次性拉取结果（当天 + 当月 + 近 6 月历史）。 */
 export interface NetworkStatsResult {
   current: NetworkMonthStat | null
   history: NetworkMonthStat[]
+  today: NetworkDayStat | null
 }
 
 /** 离线搜索结果条目 */
@@ -1061,8 +1073,9 @@ export interface AcgnApi {
   /** 个人中心：时间胶囊（操作历史）。数据来自 bgm.tv/user/{username}/timeline 只读 HTML 解析，
    *  因 Bangumi v0 无对应官方 API 端点，故为抓取解析，结构可能随网页改版变动。 */
   personal: {
-    /** 拉取指定用户的时间胶囊动态（动作/封面/标题/时间/评论），支持分页 */
-    timeline: (username: string, page?: number) => Promise<TimelinePage>
+    /** 拉取指定用户的时间胶囊动态（动作/封面/标题/时间/评论），支持分页。
+     *  page 仅用于前端展示页码；实际翻页走 until 游标（p1 接口忽略 offset）。 */
+    timeline: (username: string, page?: number, until?: string | null) => Promise<TimelinePage>
   }
   /** 缓存管理：统计并清理可重新抓取的本地辅助缓存（剧集/角色/关联作品/画廊）。
    *  不触碰用户数据（收藏/进度/评论）与离线数据库。 */
@@ -1168,4 +1181,6 @@ export interface TimelinePage {
   hasPrev: boolean
   /** 是否有下一页 */
   hasNext: boolean
+  /** 下一页游标：传给下次请求的 until 参数（p1 按动态 id 游标翻页）；无更多时为 null */
+  nextUntil?: string | null
 }
