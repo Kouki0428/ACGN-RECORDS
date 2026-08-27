@@ -3,6 +3,7 @@ import { UA, getBangumiAccount, refreshAccessToken } from '../auth/oauth'
 import { getArchiveSubjectDates } from '../archive/archive.service'
 import { dbg } from '../debugLog'
 import { tagError, codeForStatus } from '../errors'
+import { cachedGet, ONE_DAY_MS } from './requestCache'
 
 const API_BASE = 'https://api.bgm.tv/v0'
 const LEGACY_BASE = 'https://api.bgm.tv'
@@ -1107,17 +1108,26 @@ export function toSubject(raw: any, category: Category): Subject {
 
 /** 取作品详情（含 tags 与 platform），用于书籍细分归类。带 20s 超时，避免逐本重分类时单请求挂死。 */
 export async function getSubjectDetail(id: string, token?: string): Promise<any> {
-  const headers: Record<string, string> = { Accept: 'application/json', 'User-Agent': UA }
-  if (token) headers.Authorization = `Bearer ${token}`
-  const ctrl = new AbortController()
-  const timer = setTimeout(() => ctrl.abort(), 20000)
-  try {
-    const res = await fetch(`${API_BASE}/subjects/${encodeURIComponent(id)}`, { headers, signal: ctrl.signal })
-    if (!res.ok) throw new Error(`获取作品详情失败 (HTTP ${res.status})`)
-    return await res.json()
-  } finally {
-    clearTimeout(timer)
-  }
+  // 底层磁盘缓存：同一作品主信息 1 天内只真正拉取 1 次（含在途去重）。
+  // 这样同步引擎 / 分析服务 / 浏览详情（getSubjectFull 内部）无论谁调用都复用同一份，
+  // 避免跨模块重复拉取，降低瞬时速率。token 维度区分匿名/登录（受限内容可能不同）。
+  return cachedGet(
+    `subjectDetail:${token ? 'a' : 'n'}:${id}`,
+    ONE_DAY_MS,
+    async () => {
+      const headers: Record<string, string> = { Accept: 'application/json', 'User-Agent': UA }
+      if (token) headers.Authorization = `Bearer ${token}`
+      const ctrl = new AbortController()
+      const timer = setTimeout(() => ctrl.abort(), 20000)
+      try {
+        const res = await fetch(`${API_BASE}/subjects/${encodeURIComponent(id)}`, { headers, signal: ctrl.signal })
+        if (!res.ok) throw new Error(`获取作品详情失败 (HTTP ${res.status})`)
+        return await res.json()
+      } finally {
+        clearTimeout(timer)
+      }
+    }
+  )
 }
 
 /**
