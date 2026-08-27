@@ -147,8 +147,8 @@ const api: AcgnApi = {
       }>,
     getTopicDetail: (topicId: number) =>
       ipcRenderer.invoke('subject:topicDetail', topicId) as Promise<BgmTopicDetail | null>,
-    getTrendingTopics: () =>
-      ipcRenderer.invoke('subject:trendingTopics') as Promise<BgmTopic[]>,
+    getTrendingTopics: (force?: boolean) =>
+      ipcRenderer.invoke('subject:trendingTopics', force) as Promise<BgmTopic[]>,
     postTopicReply: (payload: { topicId: number; content: string; replyTo?: number | null }) =>
       ipcRenderer.invoke('subject:postTopicReply', payload) as Promise<{ id: number }>,
     toggleTopicReaction: (payload: { postId: number; value: number; remove?: boolean }) =>

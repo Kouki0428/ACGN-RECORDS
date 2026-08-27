@@ -45,11 +45,11 @@ function openSubject(t: BgmTopic, e: MouseEvent) {
   entity.openInstant('subject', t.subject.id)
 }
 
-async function load() {
+async function load(force = false) {
   loading.value = true
   error.value = ''
   try {
-    const list = await subjectClient.getTrendingTopics()
+    const list = await subjectClient.getTrendingTopics(force)
     // 最新的放在最前面：按最后回复时间降序，并列时按发布时间降序
     list.sort((a, b) => {
       const ba = b.updatedAt || b.createdAt
@@ -68,8 +68,8 @@ async function load() {
 
 function toggle() {
   open.value = !open.value
-  // 每次展开都重新拉取最新讨论（刷新期间保留旧内容，不闪白）
-  if (open.value) load()
+  // 展开时优先用 1 分钟缓存（不闪白、不重复请求）；点「刷新」才强制绕过缓存
+  if (open.value) load(false)
 }
 </script>
 
@@ -87,7 +87,7 @@ function toggle() {
     <aside v-if="open" class="td-panel">
       <header class="td-head">
         <h3>热门条目讨论</h3>
-        <button class="td-refresh" type="button" title="刷新" @click="load">
+        <button class="td-refresh" type="button" title="刷新" @click="load(true)">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 12a9 9 0 1 1-2.64-6.36" />
             <polyline points="21 3 21 9 15 9" />

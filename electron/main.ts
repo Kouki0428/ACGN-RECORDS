@@ -175,6 +175,7 @@ import { registerCollectionIpc } from './ipc/collection.ipc'
 import { registerPurchasesIpc } from './ipc/purchases.ipc'
 import { registerArchiveIpc } from './ipc/archive.ipc'
 import { registerCacheIpc, maybeAutoCleanCache } from './ipc/cache.ipc'
+import { deleteExpiredCache } from './services/db/repositories/cache.repository'
 import { maybeAutoUpdateArchive, warmArchiveDb } from './services/archive/archive.service'
 import { buildMenu } from './menu'
 import { getSetting, setSetting } from './services/db/repositories/settings.repository'
@@ -527,6 +528,8 @@ app.whenReady().then(() => {
   registerArchiveIpc()
   registerCacheIpc()
   registerBackupIpc()
+  // 启动期清理已过期的只读数据缓存（作品/角色/讨论等），防止 cache 表无限增长
+  void deleteExpiredCache().catch((e) => console.warn('[main] 缓存清理失败（忽略）：', e))
   // 图片代理协议：渲染端 acgn-img:// 由主进程（走代理）下载 Bangumi 图片 CDN
   registerImageProxy()
 

@@ -941,7 +941,7 @@ export interface AcgnApi {
     /** 取讨论串详情（next p1 /subjects/-/topics/{id}，含全部楼层与楼中楼，匿名可访问） */
     getTopicDetail: (topicId: number) => Promise<BgmTopicDetail | null>
     /** 全站热门条目讨论（next p1 /trending/subjects/topics，bgm 首页右侧同款，匿名可访问） */
-    getTrendingTopics: () => Promise<BgmTopic[]>
+    getTrendingTopics: (force?: boolean) => Promise<BgmTopic[]>
     /** 在讨论串下发表回复（需登录；replyTo 指向楼层 id = 楼中楼回复），返回新楼层 id */
     postTopicReply: (payload: { topicId: number; content: string; replyTo?: number | null }) => Promise<{ id: number }>
     /** 讨论楼层表情回应 toggle（需登录；端点为 subjects/-/posts/{postId}/like） */
@@ -953,7 +953,7 @@ export interface AcgnApi {
      * subject + 角色 + 关联作品，匿名亦可访问。返回归一化的 SubjectFullDetail。
      * opts.withCn=false 时跳过角色/CV 中文名详情请求（首屏快开，中文名由 characters() 异步补）。
      */
-    detailFull: (id: number, opts?: { withCn?: boolean }) => Promise<SubjectFullDetail>
+    detailFull: (id: number, opts?: { withCn?: boolean; force?: boolean }) => Promise<SubjectFullDetail>
     /** 本地优先：先返回离线/缓存详情（含 Archive 站点均分、角色、关联），不联网、瞬时。悬浮窗打开即调用，再 detailFull 静默替换。 */
     detailLocal: (id: number) => Promise<SubjectFullDetail | null>
     /**

@@ -391,4 +391,15 @@ export async function runMigrations(db: any): Promise<void> {
       created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
     )`
   )
+
+  // 通用只读数据缓存：把 Bangumi 详情类接口的响应按 key 暂存到本地硬盘，
+  // 有效期内直接返回、不再发网络请求（详见 services/api/requestCache.ts）。
+  // value 存 JSON 文本，expires_at 为绝对过期时间戳（秒）。幂等建表。
+  db.exec(
+    `CREATE TABLE IF NOT EXISTS cache (
+      key        TEXT PRIMARY KEY,
+      value      TEXT NOT NULL,
+      expires_at INTEGER NOT NULL
+    )`
+  )
 }

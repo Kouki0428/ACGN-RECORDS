@@ -382,7 +382,13 @@ export async function getBangumiAccount(): Promise<BangumiAccount | null> {
  * - OAuth 令牌：临近过期则用 refresh_token 静默刷新。
  * 返回 null 表示未配置令牌。syncEngine 与 bangumi 适配器依赖此签名。
  */
-export async function getValidToken(): Promise<string | null> {
+// 短期内存缓存：同一时刻大量 IPC（如悬浮窗并发拉取详情）会反复调用 getValidToken，
+// 每次都读库 + 解密。30s 内的重复调用直接返回上次结果，显著降低 DB 压力（令牌临近过期
+// 时刷新也走同一条路径，30s 窗口足够短，不会挡住真实刷新 / 登录态变更）。
+let tokenMemo: { value: string | null; ts: number } | null = null
+const TOKEN_MEMO_TTL = 30_000
+
+async function computeValidToken(): Promise<string | null> {
   const acct = await getBangumiAccount()
   dbg('getValidToken acctPresent=', !!acct, 'hasAccessToken=', !!(acct && acct.accessToken), 'expiresAt=', acct?.expiresAt)
   if (!acct?.accessToken) return null
@@ -399,4 +405,12 @@ export async function getValidToken(): Promise<string | null> {
     }
   }
   return acct.accessToken
+}
+
+export async function getValidToken(): Promise<string | null> {
+  const now = Date.now()
+  if (tokenMemo && now - tokenMemo.ts < TOKEN_MEMO_TTL) return tokenMemo.value
+  const value = await computeValidToken()
+  tokenMemo = { value, ts: now }
+  return value
 }

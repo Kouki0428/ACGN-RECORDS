@@ -20,6 +20,7 @@ import {
 } from '../services/api/bangumi'
 import { getValidToken, getBangumiAccount } from '../services/auth/oauth'
 import { getDb } from '../services/db/connection'
+import { cachedGet, ONE_DAY_MS, ONE_MIN_MS } from '../services/api/requestCache'
 import {
   listProgressFull,
   applyRemoteEpisodeProgress,
@@ -39,25 +40,51 @@ import type { EpisodeProgressState, Subject, SubjectFullEpisode } from '../../sh
 export function registerSubjectIpc(): void {
   ipcMain.handle('subject:comments', async (_e, subjectId: string, offset = 0) => {
     if (!subjectId) return { comments: [], total: 0 }
-    const token = await getValidToken()
-    return getSubjectComments(subjectId, offset, 20, token ?? undefined)
+    return cachedGet(
+      `comments:${subjectId}:${offset}`,
+      ONE_MIN_MS,
+      async () => {
+        const token = await getValidToken()
+        return getSubjectComments(subjectId, offset, 20, token ?? undefined)
+      }
+    )
   })
   // 某条目的讨论串列表（next p1，匿名可访问；受限条目带令牌）
   ipcMain.handle('subject:topics', async (_e, subjectId: string) => {
     if (!subjectId) return { topics: [], total: 0 }
-    const token = await getValidToken()
-    return getSubjectTopics(subjectId, token ?? undefined)
+    return cachedGet(
+      `topics:${subjectId}`,
+      ONE_MIN_MS,
+      async () => {
+        const token = await getValidToken()
+        return getSubjectTopics(subjectId, token ?? undefined)
+      }
+    )
   })
   // 讨论串详情（全部楼层+楼中楼；受限内容匿名 404 → null）
   ipcMain.handle('subject:topicDetail', async (_e, topicId: number) => {
     if (!topicId) return null
-    const token = await getValidToken()
-    return getTopicDetail(topicId, token ?? undefined)
+    return cachedGet(
+      `topic:${topicId}`,
+      ONE_MIN_MS,
+      async () => {
+        const token = await getValidToken()
+        return getTopicDetail(topicId, token ?? undefined)
+      }
+    )
   })
-  // 全站热门条目讨论（bgm 首页右侧模块同款；匿名可访问）
-  ipcMain.handle('subject:trendingTopics', async () => {
-    const token = await getValidToken()
-    return getTrendingSubjectTopics(token ?? undefined)
+  // 全站热门条目讨论（bgm 首页右侧模块同款；匿名可访问）。
+  // force=true 时绕过 1 分钟缓存强制刷新（「刷新」按钮触发）；打开抽屉默认走缓存。
+  ipcMain.handle('subject:trendingTopics', async (_e, force?: boolean) => {
+    return cachedGet(
+      'trending',
+      ONE_MIN_MS,
+      async () => {
+        const token = await getValidToken()
+        return getTrendingSubjectTopics(token ?? undefined)
+      },
+      { force }
+    )
   })
   // 在讨论串下发表回复（需登录；replyTo 指向楼层 id = 楼中楼）
   ipcMain.handle('subject:postTopicReply', async (_e, payload: { topicId: number; content: string; replyTo?: number | null }) => {
@@ -75,16 +102,25 @@ export function registerSubjectIpc(): void {
   // 角色/人物详情（点击详情页角色或 CV 打开卡片，替代跳转 bgm 网页）
   ipcMain.handle('subject:entity', async (_e, kind: 'character' | 'person', id: number) => {
     if (!id) throw new Error('缺少实体 id')
-    return getEntityDetail(kind === 'character' ? 'characters' : 'persons', id)
+    return cachedGet(`entity:${kind}:${id}`, ONE_DAY_MS, async () =>
+      getEntityDetail(kind === 'character' ? 'characters' : 'persons', id)
+    )
   })
   // 作品完整详情（点击角色卡「出演作品」打开的卡片；匿名亦可访问）。
   // withCn=false 时跳过角色/CV 中文名请求（首屏快开），中文名由 subject:characters 异步补。
   // 传入当前有效 token：已登录时中文名解析走更高并发(5)+更高配额(80/min)。
-  ipcMain.handle('subject:detailFull', async (_e, id: number, opts?: { withCn?: boolean }) => {
+  // 默认缓存 1 天：重复打开同一作品不再重复拉取网络详情（详情页/悬浮窗秒显）。
+  // opts.force=true（详情页手动刷新）时绕过缓存强制重新联网。
+  ipcMain.handle('subject:detailFull', async (_e, id: number, opts?: { withCn?: boolean; force?: boolean }) => {
     if (!id) throw new Error('缺少作品 id')
-    const token = await getValidToken()
-    const detail = await getSubjectFull(String(id), token ?? undefined, { withCn: opts?.withCn ?? true })
-    // 真实剧集写回本地缓存（供悬浮窗瞬时读取，下次打开不必再联网）
+    const withCn = opts?.withCn ?? true
+    return cachedGet(
+      `detailFull:${id}:${withCn}`,
+      ONE_DAY_MS,
+      async () => {
+        const token = await getValidToken()
+        const detail = await getSubjectFull(String(id), token ?? undefined, { withCn })
+        // 真实剧集写回本地缓存（供悬浮窗瞬时读取，下次打开不必再联网）
     try {
       if (detail.episodes?.length) await upsertEpisodes(String(id), detail.episodes)
     } catch (e) {
@@ -140,7 +176,9 @@ export function registerSubjectIpc(): void {
       console.warn('[subject:detailFull] 收编本地库失败（忽略，不影响本次展示）：', e)
     }
     return detail
-  })
+    }
+  )
+})
   // 本地优先：先返回离线/缓存详情（含 Archive 站点均分、角色、关联），不联网、瞬时。
   // 悬浮窗打开即调用，立即渲染，后续再 subject:detailFull 联网静默替换。
   ipcMain.handle('subject:detailLocal', async (_e, id: number) => {
@@ -152,16 +190,22 @@ export function registerSubjectIpc(): void {
     return getCachedEpisodes(providerSubjectId)
   })
   // 单独补全角色列表中文名（悬浮窗首屏 withCn=false 后调用），结构与 detailFull.characters 一致。
+  // 缓存 1 天：同一作品角色中文名短期内不变，避免重复高并发查询。
   ipcMain.handle('subject:characters', async (_e, id: number) => {
     if (!id) throw new Error('缺少作品 id')
-    const token = await getValidToken()
-    return getSubjectCharacters(String(id), token ?? undefined, { withCn: true })
+    return cachedGet(`characters:${id}`, ONE_DAY_MS, async () => {
+      const token = await getValidToken()
+      return getSubjectCharacters(String(id), token ?? undefined, { withCn: true })
+    })
   })
   // 取作品制作人员（staff：作者/导演/原画/制作公司 等），供制作信息按名匹配后跳转人物卡。
+  // 缓存 1 天：制作人员列表基本不变。
   ipcMain.handle('subject:persons', async (_e, id: number) => {
     if (!id) throw new Error('缺少作品 id')
-    const token = await getValidToken()
-    return getSubjectStaff(String(id), token ?? undefined)
+    return cachedGet(`persons:${id}`, ONE_DAY_MS, async () => {
+      const token = await getValidToken()
+      return getSubjectStaff(String(id), token ?? undefined)
+    })
   })
   /** 读某作品本地收藏与逐集进度（供着色 / 拉取回退）。查看不自动建收藏。 */
   async function readLocalProgress(
