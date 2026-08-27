@@ -52,14 +52,21 @@ jobs:
       - name: Publish release (draft → latest, or prerelease for beta)
         shell: pwsh
         run: |
-          $rel = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$($env:GITHUB_REF_NAME)" --jq '.id'
+          # draft release 在 releases/tags/{tag} 端点返回 404，必须从列表按 tag_name 取 id
+          $rel = gh api "repos/$env:GITHUB_REPOSITORY/releases?per_page=100" --jq ".[]|select(.tag_name=='$env:GITHUB_REF_NAME')|.id"
+          if (-not $rel) { throw "release id not found for $env:GITHUB_REF_NAME" }
           $isBeta = $env:GITHUB_REF_NAME -match '-beta'
           if ($isBeta) {
             # Beta：作为预发布，且不抢占稳定版 Latest（避免把测试版推给所有稳定版用户）
-            gh api -X PATCH "repos/$env:GITHUB_REPOSITORY/releases/$rel" -F draft=false -F "name=$($env:GITHUB_REF_NAME)" -F prerelease=true
+            $body = "{`"draft`":false,`"prerelease`":true,`"name`":`"$env:GITHUB_REF_NAME`"}"
           } else {
-            gh api -X PATCH "repos/$env:GITHUB_REPOSITORY/releases/$rel" -F draft=false -F "name=$($env:GITHUB_REF_NAME)"
-            gh release edit ${{ github.ref_name }} --latest
+            $body = "{`"draft`":false,`"name`":`"$env:GITHUB_REF_NAME`"}"
+          }
+          # 必须用 JSON 文件体发送真实布尔值；-F 会把 false 当成字符串（非空即真），导致 draft 无法取消
+          $body | Out-File -Encoding ascii "$env:RUNNER_TEMP\rel.json" -NoNewline
+          gh api -X PATCH "repos/$env:GITHUB_REPOSITORY/releases/$rel" --input "$env:RUNNER_TEMP\rel.json"
+          if (-not $isBeta) {
+            gh release edit $env:GITHUB_REF_NAME --latest
           }
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
