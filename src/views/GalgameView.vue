@@ -13,8 +13,10 @@ import StatusTabs from '@/components/StatusTabs.vue'
 import CoverImage from '@/components/CoverImage.vue'
 import SynopsisBox from '@/components/SynopsisBox.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import PaginationBar from '@/components/PaginationBar.vue'
 import DetailAnchors, { type AnchorItem } from '@/components/DetailAnchors.vue'
 import { useSearchOverlay } from '@/composables/searchOverlay'
+import { usePagination } from '@/composables/usePagination'
 import { useContextMenu } from '@/composables/useContextMenu'
 import { buildCardMenu } from '@/composables/useCardContextMenu'
 import { useSettingsStore } from '@/stores/settings'
@@ -96,6 +98,13 @@ let stopMeta: (() => void) | undefined
 // 当前选中的收藏状态（3=在玩 2=玩过 1=想玩 4=搁置 5=抛弃）
 const activeStatus = ref<number>(3)
 const currentLabel = computed(() => statusLabel(CAT, activeStatus.value))
+
+// 分页：每页 100 张（总数 ≤100 不显示分页条）。切状态回第一页；翻页后列表滚回顶部。
+const { page, totalPages, paged: pagedList, show: showPager, reset: resetPage } = usePagination(() => playing.value)
+watch(activeStatus, resetPage)
+watch(page, () => {
+  document.querySelector<HTMLElement>('.content')?.scrollTo({ top: 0 })
+})
 const purchase = ref<{ platform: string; price: number; currency: string }>({
   platform: '',
   price: 0,
@@ -362,7 +371,7 @@ onUnmounted(() => {
       <StatusTabs v-model="activeStatus" category="galgame" />
       <div class="grid">
         <div
-          v-for="r in playing"
+          v-for="r in pagedList"
           :key="r.collectionId"
           class="card watching"
           role="button"
@@ -394,6 +403,7 @@ onUnmounted(() => {
           <button class="btn btn--primary btn--sm" @click="openSearch()">搜索添加</button>
         </EmptyState>
       </div>
+      <PaginationBar v-if="showPager" v-model:page="page" :total-pages="totalPages" />
     </div>
   </div>
 </template>

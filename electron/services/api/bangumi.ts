@@ -4,6 +4,7 @@ import { getArchiveSubjectDates } from '../archive/archive.service'
 import { dbg } from '../debugLog'
 import { tagError, codeForStatus } from '../errors'
 import { cachedGet, ONE_DAY_MS } from './requestCache'
+import { extractP1SubjectId } from './timeline'
 
 const API_BASE = 'https://api.bgm.tv/v0'
 const LEGACY_BASE = 'https://api.bgm.tv'
@@ -1061,6 +1062,32 @@ export async function getP1UserTimeline(
     return parseActivityTime(list[0])
   } catch {
     return null
+  }
+}
+
+/** C' 定向刷新：取最近若干条动态，解析出「哪部作品」有活动（subjectId + 秒级时间）。失败返回 []。 */
+export async function getP1UserRecentActivity(
+  username: string,
+  token: string,
+  limit = 20
+): Promise<Array<{ subjectId: number; ts: number }>> {
+  try {
+    const url = `${P1_BASE}/users/${encodeURIComponent(username)}/timeline?limit=${limit}`
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
+    })
+    if (!res.ok) return []
+    const json = (await res.json()) as any
+    const list: any[] = Array.isArray(json) ? json : json?.data ?? []
+    const out: Array<{ subjectId: number; ts: number }> = []
+    for (const raw of list) {
+      const sid = extractP1SubjectId(raw)
+      if (!sid) continue
+      out.push({ subjectId: sid, ts: parseActivityTime(raw) ?? 0 })
+    }
+    return out
+  } catch {
+    return []
   }
 }
 

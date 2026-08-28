@@ -150,6 +150,14 @@ onUnmounted(() => {
     <ContextMenu />
     <!-- 首次关闭行为选择窗（主进程触发） -->
     <CloseBehaviorDialog />
+    <!-- 缩放边缘遮罩：拖拽缩放期间盖住右/下缘同色遮罩，遮挡合成层滞后露出的旧内容（重影），
+         松手即隐藏。FLIP 动画照常运行，仅边缘条在拖拽时被遮住不可见。 -->
+    <div class="resize-masks" aria-hidden="true">
+      <span class="rm rm-top"></span>
+      <span class="rm rm-bottom"></span>
+      <span class="rm rm-left"></span>
+      <span class="rm rm-right"></span>
+    </div>
   </div>
 </template>
 

@@ -106,6 +106,31 @@ function formatRelative(tsSec: number): string {
   return new Date(tsSec * 1000).toLocaleDateString('zh-CN')
 }
 
+/** 从 p1 活动项里抽作品 id（供 C' 定向刷新定位「哪几部」有新活动）。无法解析返回 null。 */
+export function extractP1SubjectId(raw: any): number | null {
+  const memo = raw?.memo ?? {}
+  let subject: any = null
+  if (memo?.progress) {
+    const p = memo.progress
+    if (p?.single) subject = p.single.subject
+    else if (p?.bulk) subject = p.bulk.subject
+  } else if (memo?.collection) {
+    const c = memo.collection
+    subject =
+      c.subject ??
+      c.collect?.subject ??
+      c.wish?.subject ??
+      c.do?.subject ??
+      c.onHold?.subject ??
+      c.drop?.subject ??
+      null
+  } else {
+    subject = raw?.subject ?? memo?.subject
+  }
+  const sid = Number(subject?.id ?? raw?.subjectID ?? raw?.subject_id)
+  return sid || null
+}
+
 /**
  * 把单条 p1 活动规范化为现有 TimelineItem（字段形状与 HTML 版一致，前端零改动）。
  * p1 真实结构：顶层 { id, uid, cat, type, memo }，实体藏在 memo 里：

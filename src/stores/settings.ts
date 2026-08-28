@@ -14,10 +14,11 @@ export const useSettingsStore = defineStore('settings', () => {
   // 自动清理过期缓存开关：每月静默删除半年前未刷新的辅助缓存，默认开启
   const autoCacheClean = ref(true)
   const theme = ref<ThemePref>('dark')
-  // GPU 加速开关：默认关闭（与历史行为一致，避免 Windows 缩放重影）。
+  // GPU 加速开关：默认开启（2026-08-27 用户要求：多卡片 FLIP 动画在纯软件渲染下卡顿，
+  // 开 GPU 让合成走显卡）。代价是 Windows 缩放窗口的重影会回来（此前默认关闭即为去重影）。
   // 注意：这是启动期设置，改完后必须重启应用（main.ts 在 app.ready 前据此决定是否
   // 调用 disableHardwareAcceleration）才生效。
-  const gpuAcceleration = ref(false)
+  const gpuAcceleration = ref(true)
   // 界面缩放系数（浏览器式 zoom，1 = 100%）。作用于整个渲染窗口，实时生效、无需重启。
   // 默认 1；持久化到 settings 表 uiScale 键，启动入口（src/main.ts）按其重新应用。
   const uiScale = ref(1)

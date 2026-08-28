@@ -353,7 +353,7 @@ async function toggleGridAnim() {
 }
 
 // ---------- GPU 加速（启动期设置，需重启生效） ----------
-const gpuLocal = ref(false)
+const gpuLocal = ref(true)
 const gpuNeedsRestart = ref(false)
 async function toggleGpu() {
   const next = !gpuLocal.value

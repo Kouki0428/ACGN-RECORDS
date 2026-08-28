@@ -5,6 +5,7 @@ import EpisodeGrid from '@/components/EpisodeGrid.vue'
 import ProgressEditor from '@/components/ProgressEditor.vue'
 import EllipsisTitle from '@/components/EllipsisTitle.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import PaginationBar from '@/components/PaginationBar.vue'
 import TrendingDrawer from '@/components/TrendingDrawer.vue'
 import { dbClient } from '@/services/dbClient'
 import { animeClient } from '@/services/animeClient'
@@ -20,6 +21,7 @@ import { buildCardMenu } from '@/composables/useCardContextMenu'
 import { useToast } from '@/composables/useToast'
 import { parseAppError } from '@/utils/appError'
 import { useGridResizeFlip } from '@/composables/useGridResizeFlip'
+import { usePagination } from '@/composables/usePagination'
 import type { AnimeDetail, EpisodeMarkPayload } from '@shared/types'
 import type { EpisodeCell } from '@/components/EpisodeGrid.vue'
 
@@ -98,6 +100,13 @@ interface HomeCard {
 
 const cards = ref<HomeCard[]>([])
 const loading = ref(false)
+
+// 分页：每页 100 张（总数 ≤100 不显示分页条）。切分类 tab 回第一页；翻页后列表滚回顶部。
+const { page, totalPages, paged: pagedCards, show: showPager, reset: resetPage } = usePagination(() => cards.value)
+watch(activeTab, resetPage)
+watch(page, () => {
+  document.querySelector<HTMLElement>('.content')?.scrollTo({ top: 0 })
+})
 
 // 由 AnimeDetail 派生集数格子（与动画详情页完全一致，含真实集号/已看/想看/播出着色）
 function buildEpCells(d: AnimeDetail): EpisodeCell[] {
@@ -218,30 +227,55 @@ async function loadTab(cat: CatKey, progressPids?: Array<string | number> | null
         ? cards.value.filter((c) => progressPids.some((p) => String(p) === String(c.providerSubjectId)))
         : cards.value
     void refreshRemoteProgress(subset)
+    void sweepRemoteCollections()
   } finally {
     loading.value = false
   }
 }
 
 // 逐卡强制拉取 Bangumi 单集标记并就地合并（并发 8；失败静默跳过，不影响本地数据）。
-// 合并发生实际变化的卡：① 置顶到列表最前（最后标记排最前）；② 回写 local_updated_at
-// 保持下次全量加载的排序一致。仅动排序时间戳，不标 dirty（远端已是权威，无需上传）。
+// 合并发生实际变化的卡：自愈 ep_status（MAX 防倒退）。⚠️ 不再写 local_updated_at=now()：
+// 排序时间必须等于「真实操作时间」（远端 updated_at，由巡检回填），而非「应用发现的时刻」，
+// 否则与 bgm 网页（按实际操作时间排序）的顺序不一致。
 async function refreshRemoteProgress(list: HomeCard[]) {
   if (!auth.status.loggedIn) return // 未登录：无远端可拉，避免匿名请求打限流
   // C' 全局短路：自上次拉取后 Bangumi 无新标记（p1 timeline 第一行时间未变）则整批跳过，0 请求
   let needRefresh = true
   try { needRefresh = await subjectClient.shouldRefreshProgress() } catch { needRefresh = true }
   if (!needRefresh) return
-  const targets = list.filter(
+  // 定向：timeline 每条动态带着「是哪部作品」——解析出有新活动的作品 id，只拉这几部
+  // （1+K 请求而非整批 N；K 通常 1~3）。null=无法定向（异常/未登录）退化为整批；
+  // []=首页动态确认无相关作品变化 → 0 卡拉取，时钟照常推进。
+  let since = 0
+  try {
+    since = await subjectClient.getLastPullAt()
+  } catch {
+    since = 0
+  }
+  let activeIds: number[] | null = null
+  try {
+    activeIds = await subjectClient.getRecentActivitySubjects(since, 20)
+  } catch {
+    activeIds = null
+  }
+  const allTargets = list.filter(
     (c) => c.providerSubjectId && /^\d+$/.test(String(c.providerSubjectId))
   )
-  if (!targets.length) return
+  if (!allTargets.length) return
+  const targetSet = activeIds != null ? new Set(activeIds.map(Number)) : null
+  const targets =
+    targetSet == null ? allTargets : allTargets.filter((c) => targetSet.has(Number(c.providerSubjectId)))
   const bumps: Promise<unknown>[] = []
   await mapLimit(targets, 8, async (c) => {
     try {
       const res = await subjectClient.pullEpisodeProgress(String(c.providerSubjectId), {
-        force: false,
-        reconcile: false
+        // C' 闸门已开（检测到远端有新活动）且本卡在定向名单里才会走到这里：必须 force 联网。
+        // 之前 force:false 时「本地已有标记」的单卡短路直接回本地数据，网页端新标记进不了主页。
+        // 请求量由「timeline 定向（只拉变化的那几部）+ C' 节流」双重兜底，不会整批泛滥。
+        // skeleton:false：主页已有本地剧集骨架，跳过抓取（每卡省 2 请求）。
+        force: true,
+        reconcile: false,
+        skeleton: false
       })
       const prog = res.progress as Record<
         number,
@@ -272,13 +306,10 @@ async function refreshRemoteProgress(list: HomeCard[]) {
       const staleProgress =
         c.epStatus != null && watchedCount > (c.epStatus ?? 0)
       if ((changed || staleProgress) && c.collectionId != null) {
-        // 排序时间戳 + ep_status 自愈（MAX 防止把网页端更高进度覆盖回去）；
-        // 不标 dirty：这些字段远端已权威，纯本地镜像与排序用途
         bumps.push(
           dbClient
             .run(
-              `UPDATE collections SET local_updated_at = strftime('%s','now'),
-                 ep_status = MAX(COALESCE(ep_status,0), ?)
+              `UPDATE collections SET ep_status = MAX(COALESCE(ep_status, 0), ?)
                WHERE id = ?`,
               [watchedCount, c.collectionId]
             )
@@ -292,25 +323,146 @@ async function refreshRemoteProgress(list: HomeCard[]) {
   })
   // 标记本次进度拉取完成（用于 C' 全局短路的 lastPullAt 时钟）
   await subjectClient.markProgressPulled().catch(() => {})
-  // 等时间戳/ep_status 自愈写库完成，再做确定性重排（避免读到旧值）
+  // 等自愈写库完成，再按数据库真实 local_updated_at 重排（避免读到旧值）
   await Promise.all(bumps)
-  // —— 确定性兜底重排：直接按数据库真实时间戳对当前卡片降序排列，不依赖逐格变化检测 ——
+  await resortCardsByLocalTime()
+}
+
+// —— 确定性重排：直接按数据库 local_updated_at 对当前卡片降序排列 ——
+async function resortCardsByLocalTime() {
   try {
     const ids = cards.value.map((x) => x.collectionId).filter((x): x is number => x != null)
-    if (ids.length) {
-      const rows = await dbClient.query<{ id: number; ts: number }>(
-        `SELECT id, local_updated_at AS ts FROM collections WHERE id IN (${ids
-          .map(() => '?')
-          .join(',')})`,
-        ids
-      )
-      const tsMap = new Map(rows.map((r) => [r.id, Number(r.ts) || 0]))
-      cards.value = [...cards.value].sort(
-        (a, b) => (tsMap.get(b.collectionId) ?? 0) - (tsMap.get(a.collectionId) ?? 0)
-      )
-    }
+    if (!ids.length) return
+    const rows = await dbClient.query<{ id: number; ts: number }>(
+      `SELECT id, local_updated_at AS ts FROM collections WHERE id IN (${ids
+        .map(() => '?')
+        .join(',')})`,
+      ids
+    )
+    const tsMap = new Map(rows.map((r) => [r.id, Number(r.ts) || 0]))
+    cards.value = [...cards.value].sort(
+      (a, b) => (tsMap.get(b.collectionId) ?? 0) - (tsMap.get(a.collectionId) ?? 0)
+    )
   } catch {
     /* 重排失败不影响已更新的着色 */
+  }
+}
+
+// —— 远端巡检：对比「最近有活动」的第 1 页收藏（1 请求/轮，60s 节流，与轮询同频）——
+// C'/timeline 只能看到「新增标记」；取消标记不写动态，但会把收藏顶到列表前排，
+// 且 ep_status/vol_status/status/rate 随之变化。拉回这一页逐字段比对，不一致的：
+// ① 动画/书籍 ep_status 不一致 → 定向拉完整标记集对账（reconcile 清掉已取消的格子）
+// ② 标量字段以远端为准直接回写本地（0 附加请求；dirty 行跳过，离线本地优先）
+const SWEEP_MIN_INTERVAL_MS = 60 * 1000
+let lastSweepAt = 0
+let sweepBusy = false
+async function sweepRemoteCollections() {
+  if (!auth.status.loggedIn || sweepBusy) return
+  const now = Date.now()
+  if (now - lastSweepAt < SWEEP_MIN_INTERVAL_MS) return
+  lastSweepAt = now
+  sweepBusy = true
+  try {
+    const items = await window.acgn.sync.listRecentCollections(30)
+    if (!items.length) return
+    const pids = items.map((r) => r.providerSubjectId)
+    const rows = await dbClient.query<{
+      pid: string
+      id: number
+      status: number
+      rating: number | null
+      epStatus: number
+      volStatus: number
+      ts: number
+      dirty: number
+      category: string
+    }>(
+      `SELECT s.provider_subject_id AS pid, c.id AS id, c.status AS status,
+              c.rating AS rating, c.ep_status AS epStatus, c.vol_status AS volStatus,
+              c.local_updated_at AS ts,
+              c.dirty AS dirty, s.category AS category
+       FROM collections c JOIN subjects s ON s.id = c.subject_id
+       WHERE s.provider_subject_id IN (${pids.map(() => '?').join(',')})`,
+      pids
+    )
+    const localByPid = new Map(rows.map((r) => [String(r.pid), r]))
+    const cardByPid = new Map(cards.value.map((c) => [String(c.providerSubjectId), c]))
+    const norm = (v: number | null | undefined) => v ?? 0
+    const bumps: Promise<unknown>[] = []
+    for (const r of items) {
+      if (!r.providerSubjectId) continue
+      const local = localByPid.get(r.providerSubjectId)
+      if (!local || local.dirty === 1) continue // 本地无收藏 / 有离线未上传改动：本地优先
+      const epDrift = norm(local.epStatus) !== r.epStatus
+      // 排序时间回填：远端真实操作时间比本地新 → 对齐 bgm 网页顺序（网页按操作时间排）
+      const staleOrder = r.updatedAt > norm(local.ts)
+      const changed =
+        local.status !== r.status ||
+        norm(local.rating) !== norm(r.rate) ||
+        epDrift ||
+        norm(local.volStatus) !== r.volStatus ||
+        staleOrder
+      if (!changed) continue
+      // ① 动画/书籍的格子着色来自逐集标记表：ep_status 有出入时定向拉完整标记集对账
+      if (
+        epDrift &&
+        (local.category === 'anime' || local.category === 'light_novel' || local.category === 'manga')
+      ) {
+        try {
+          const res = await subjectClient.pullEpisodeProgress(r.providerSubjectId, {
+            force: true,
+            reconcile: true,
+            skeleton: false
+          })
+          const card = cardByPid.get(r.providerSubjectId)
+          const prog = res.progress
+          if (card?.epCells && prog) {
+            const hasMarks = Object.keys(prog).length > 0
+            for (const cell of card.epCells) {
+              const p = prog[cell.id]
+              if (p) {
+                cell.watched = !!p.watched
+                cell.want = !!p.want
+                cell.dropped = !!p.dropped
+              } else if (!hasMarks) {
+                // 远端一条标记都没有 = 全部取消：整卡清空着色
+                cell.watched = false
+                cell.want = false
+                cell.dropped = false
+              }
+            }
+          }
+        } catch {
+          /* 拉取失败：标量仍按远端回写 */
+        }
+      }
+      // ② 标量以远端为准回写（非 dirty 行远端权威；含取消导致的计数回落与排序时间回填）
+      bumps.push(
+        dbClient
+          .run(
+            `UPDATE collections SET status = ?, rating = ?, ep_status = ?, vol_status = ?,
+                    local_updated_at = MAX(COALESCE(local_updated_at, 0), ?)
+             WHERE id = ?`,
+            [r.status, r.rate, r.epStatus, r.volStatus, r.updatedAt, local.id]
+          )
+          .catch(() => {})
+      )
+      // ③ 当前 tab 的卡片就地同步显示
+      const card = cardByPid.get(r.providerSubjectId)
+      if (card) {
+        card.status = r.status
+        card.rating = r.rate
+        card.epStatus = r.epStatus
+        card.volStatus = r.volStatus
+      }
+    }
+    await Promise.all(bumps)
+    // 排序时间回填后按真实操作时间重排（与 bgm 网页顺序一致）
+    await resortCardsByLocalTime()
+  } catch {
+    /* 网络异常：跳过本轮巡检 */
+  } finally {
+    sweepBusy = false
   }
 }
 
@@ -444,14 +596,16 @@ onMounted(() => {
 let liveTimer: number | null = null
 function startLiveRefresh() {
   if (liveTimer !== null) return
-  liveTimer = window.setInterval(() => {
-    if (document.hidden || activeTab.value !== 'anime' || loading.value) return
-    void refreshRemoteProgress(cards.value)
+  liveTimer =   window.setInterval(() => {
+    if (document.hidden || loading.value) return
+    if (activeTab.value === 'anime') void refreshRemoteProgress(cards.value)
+    void sweepRemoteCollections()
   }, 60000)
 }
 function onVisChange() {
-  if (document.hidden || !auth.status.loggedIn || activeTab.value !== 'anime') return
-  void refreshRemoteProgress(cards.value)
+  if (document.hidden || !auth.status.loggedIn) return
+  if (activeTab.value === 'anime') void refreshRemoteProgress(cards.value)
+  void sweepRemoteCollections()
 }
 document.addEventListener('visibilitychange', onVisChange)
 
@@ -494,7 +648,7 @@ onUnmounted(() => {
     />
     <div v-else class="home-cards" :class="{ 'is-switching': loading }">
       <div
-        v-for="c in displayCards"
+        v-for="c in pagedCards"
         :key="c.subjectId"
         class="hcard"
         role="button"
@@ -574,6 +728,9 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- 分页：每页 100 张，总数 ≤100 时隐藏 -->
+    <PaginationBar v-if="showPager" v-model:page="page" :total-pages="totalPages" />
 
     <!-- 右侧热门讨论抽屉：点击右缘手柄向左展开（覆盖式，不挤压卡片网格） -->
     <TrendingDrawer />

@@ -79,18 +79,17 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
   let observeRaf = 0 // onObserve 合并 rAF（每帧最多一次）
   let flipRaf = 0 // tick rAF
   let cleanupTimer = 0 // 宽松兜底（仅防极端挂起）
+  let resizingTimer = 0 // 缩放边缘遮罩显隐（body.resizing）的防抖
   let reduceMotion = false
   let savedOverflow: string | null = null // 动画期间临时解除网格容器裁切时保存的原 overflow
   let scrollEl: HTMLElement | null = null // 滚动容器（长列表 .content），动画期间锁定其滚动
-  let lockedScrollTop = 0 // 动画开始时记录的 scrollTop，锁定期间保持不变
+  let anchorRatio = 0 // 锚定的相对滚动位置（scrollTop/maxScroll，0~1）：动画前后保持不变
+  let lastRoAt = 0 // 上次观察事件时间（区分新一轮缩放手势）
   let scrollLockCleanup: (() => void) | null = null // 解除滚动锁定的清理函数
 
   // 基线：上一帧「自然布局」矩形（crossing 时的 First 来源） + 当前稳定列数。
   let lastRects = new Map<HTMLElement, DOMRect>()
   let lastCols = -1
-  // 自然布局缓存：列数不变时复用，避免 tick/同列期每帧强制重排（关 GPU 合成器仍流畅的关键）。
-  let cachedNatural = new Map<HTMLElement, DOMRect>()
-  let cachedCols = -1
 
   // 动画状态（位置追向模型）
   let animActive = false
@@ -128,6 +127,15 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
   // 测量「自然」矩形：清零卡片 transform → 一次 reflow → 读各卡真实矩形。
   // 调用方须在同步块内立即重新设置 transform，避免画出「未变换」的中间态。
   function measureNatural(cs: HTMLElement[]): Map<HTMLElement, DOMRect> {
+    // 测量期临时锁住网格当前高度：清样式后的自然布局可能比钉住态矮 → scrollHeight 缩短 →
+    // 页面底部（scrollTop 顶格）被浏览器钳制 scrollTop，随后滚动锁又拉回 = 上下弹跳根源。
+    // 锁住则 scrollHeight 恒定、钳制不会发生，rects 在正确坐标系读取；读完立即恢复（不驻留）。
+    const g = gridEl()
+    let gh: string | null = null
+    if (g) {
+      gh = g.style.height
+      g.style.height = `${g.offsetHeight}px`
+    }
     for (const c of cs) {
       if (!c.isConnected) continue
       c.style.transform = ''
@@ -136,26 +144,8 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
     void document.body.offsetHeight // 强制 reflow，使自然布局落盘
     const m = new Map<HTMLElement, DOMRect>()
     for (const c of cs) if (c.isConnected) m.set(c, c.getBoundingClientRect())
+    if (g) g.style.height = gh ?? ''
     return m
-  }
-
-  // 仅读取当前视觉矩形（不清除 transform，无 style 写入 → 强制 layout 但远比 measureNatural 便宜）。
-  // 用于「同列连续拖拽」期的基线更新：卡片随浏览器原生 resize，这里只同步记录当前几何，不跑 FLIP。
-  function readRects(cs: HTMLElement[]): Map<HTMLElement, DOMRect> {
-    const m = new Map<HTMLElement, DOMRect>()
-    for (const c of cs) if (c.isConnected) m.set(c, c.getBoundingClientRect())
-    return m
-  }
-
-  // 带列数缓存的自然矩形：列数不变直接复用，仅在跨断点（列数变化）时重新强制一次 reflow。
-  // tick 与 onObserve 跨列分支据此拿到「当前自然布局」，稳定期内零重排 → CPU 合成下流畅。
-  function refreshNatural(cs: HTMLElement[]): Map<HTMLElement, DOMRect> {
-    const cols = naturalCols()
-    if (cols !== cachedCols) {
-      cachedNatural = measureNatural(cs)
-      cachedCols = cols
-    }
-    return cachedNatural
   }
 
   // 某元素是否可纵向滚动（作为滚动锚定容器）
@@ -215,8 +205,8 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
     const natural = measureNatural(cs)
     lastRects = natural
     lastCols = naturalCols()
-    cachedNatural = natural
-    cachedCols = lastCols
+    // 收尾：把滑条最终钉回手势开始时的百分比（此时布局已定型，比例不再变化）
+    reanchorScroll()
   }
 
   // 宽松兜底：仅在极端未收敛时强制落位（届时已≈收敛 → 无跳）；拖拽中 natural 持续变化不会到点（自然跟手）。
@@ -233,7 +223,6 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
   function lockScroll() {
     const el = scrollEl
     if (!el || scrollLockCleanup) return
-    lockedScrollTop = el.scrollTop
     const preventWheel = (e: WheelEvent) => e.preventDefault()
     const preventTouch = (e: TouchEvent) => e.preventDefault()
     const preventKeys = (e: KeyboardEvent) => {
@@ -241,10 +230,10 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
         'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)
       if (block) e.preventDefault()
     }
-    // 兜底：万一仍发生滚动（惯性/程序触发），拉回锁定位置（钳制到可滚动范围，避免缩短时死循环）
+    // 兜底：万一仍发生滚动（惯性/程序触发），拉回比例锚定位置（0~1 × 当前可滚范围）
     const onScroll = () => {
       const maxS = Math.max(0, el.scrollHeight - el.clientHeight)
-      const target = Math.min(lockedScrollTop, maxS)
+      const target = Math.round(anchorRatio * maxS)
       if (Math.abs(el.scrollTop - target) > 0.5) el.scrollTop = target
     }
     el.addEventListener('wheel', preventWheel, { passive: false, capture: true })
@@ -259,6 +248,15 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
     }
   }
 
+  // 比例锚定：把滚动条收敛到「本轮缩放手势开始时的相对位置」（scrollTop/maxScroll 恒定）。
+  // 40% → 40%；页面底部(100%) → 跟随底部；内容增高/缩短全程平滑单调，不上下弹跳。
+  function reanchorScroll() {
+    if (!scrollEl) return
+    const maxS = Math.max(0, scrollEl.scrollHeight - scrollEl.clientHeight)
+    const want = Math.round(anchorRatio * maxS)
+    if (Math.abs(scrollEl.scrollTop - want) > 0.5) scrollEl.scrollTop = want
+  }
+
   // 单一 tick：卡片位置(transform)逐帧惯性追向「当前自然布局」。
   // 网格始终自然(auto-fill) → 卡片永远在正确宽度/高度（EpisodeGrid 不会换行爆炸），列数变几次都不乱飞。
   // 动画期间滚动已锁定（见 onObserve 的 lockScroll），本 tick 不操纵 scrollTop。
@@ -269,7 +267,7 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
       finish()
       return
     }
-    const natural = refreshNatural(cs) // 列数不变时复用缓存，稳定拖拽期零每帧强制重排
+    const natural = measureNatural(cs) // 清零 transform 后测量的「自然」矩形（当前 scrollTop 下）
     const vh = window.innerHeight
 
     // 动画期间滚动已锁定（见 onObserve 的 lockScroll），scrollTop 不变，无需锚定/平移。
@@ -319,6 +317,10 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
     }
     visRects = next
 
+    // 帧末比例锚定：宽度写回后内容高度变了，渲染前把滚动条收敛回手势开始时的百分比，
+    // 每帧绘制位置确定 → 消除「浏览器钳制↔滚动锁拉回」的上下弹跳。
+    reanchorScroll()
+
     // 收敛即落位
     if (maxDiff < CONVERGE) {
       finish()
@@ -341,12 +343,12 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
       return
     }
 
+    const natural = measureNatural(cs)
     const cols = naturalCols()
 
     if (cols === lastCols || lastCols === -1) {
-      // 同列数（或无基线）：让浏览器原生 resize 卡片（零每帧强制重排），
-      // 仅同步记录当前几何作为下次 crossing 的 First 起点。
-      lastRects = readRects(cs)
+      // 同列数（或无基线）：持续记录「上一帧自然布局」
+      lastRects = natural
       lastCols = cols
       return
     }
@@ -354,13 +356,10 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
     // 关闭动画（用户开关 / 系统 reduce-motion）：直接跟随自然流，无 FLIP、无过渡。
     if (!settings.gridAnimEnabled || reduceMotion) {
       if (animActive) finish()
-      lastRects = readRects(cs)
+      lastRects = natural
       lastCols = cols
       return
     }
-
-    // 跨断点：以 lastRects(当前旧布局) 作起点、refreshNatural(新自然布局) 作目标 → 位置追向。
-    const natural = refreshNatural(cs) // 列数已变 → 重新测量一次
     const g = gridEl()
     if (g) {
       // 动画期间临时解除网格容器裁切（overflow:visible），让滑动出界的卡片完整可见，
@@ -405,11 +404,29 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
   }
 
   function schedule() {
+    // 手势起点检测：距上次观察事件 >200ms 视为新一轮缩放，记录当时的相对滚动位置；
+    // 此后整轮动画（含多次跨列）都按该百分比锚定，结束后滑条停在变化前的同一比例。
+    const now = performance.now()
+    if (!animActive && now - lastRoAt > 200) {
+      const el = scrollEl ?? resolveScrollEl()
+      if (el) {
+        const maxS = Math.max(0, el.scrollHeight - el.clientHeight)
+        anchorRatio = maxS > 0 ? el.scrollTop / maxS : 0
+      }
+    }
+    lastRoAt = now
     if (observeRaf) return
     observeRaf = requestAnimationFrame(() => {
       observeRaf = 0
       onObserve()
     })
+    // 缩放边缘遮罩（已按用户要求暂时关闭；恢复时取消下面注释即可）
+    // document.body.classList.add('resizing')
+    // if (resizingTimer) clearTimeout(resizingTimer)
+    // resizingTimer = window.setTimeout(() => {
+    //   resizingTimer = 0
+    //   document.body.classList.remove('resizing')
+    // }, 120)
   }
 
   function onMotionChange(e: MediaQueryListEvent) {
@@ -428,13 +445,10 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
     const cs = cards()
     lastRects = measureNatural(cs) // 首帧建立基线（卡片可能尚未加载，稍后由 MutationObserver 补全）
     lastCols = naturalCols()
-    cachedNatural = lastRects
-    cachedCols = lastCols
     ro = new ResizeObserver(() => schedule())
     ro.observe(container)
     // 卡片异步加载 / 切换 tab 后补全基线
     mo = new MutationObserver(() => {
-      cachedCols = -1 // 卡片增删使自然缓存失效，下次 refreshNatural 重新测量
       schedule()
     })
     mo.observe(container, { childList: true, subtree: true })
@@ -449,5 +463,10 @@ export function useGridResizeFlip(options?: GridResizeFlipOptions) {
       cancelAnimationFrame(observeRaf)
       observeRaf = 0
     }
+    if (resizingTimer) {
+      clearTimeout(resizingTimer)
+      resizingTimer = 0
+    }
+    document.body.classList.remove('resizing')
   })
 }

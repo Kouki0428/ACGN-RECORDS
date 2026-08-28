@@ -542,6 +542,17 @@ export interface AcgnApi {
         pullAll: () => Promise<SyncResult>;
         pullAllFull: () => Promise<SyncResult>;
         syncAll: () => Promise<SyncResult>;
+        /** 巡检：拉「最近有活动」的第 1 页远端收藏（1 请求），供主页比对 status/rate/ep_status/vol_status */
+        listRecentCollections: (limit?: number) => Promise<
+            Array<{
+                providerSubjectId: string;
+                status: number;
+                rate: number | null;
+                epStatus: number;
+                volStatus: number;
+                updatedAt: number;
+            }>
+        >;
     };
     subject: {
         /** 取 Bangumi 条目吐槽区中其它用户的吐槽（next p1 /subjects/{id}/comments，匿名可访问） */

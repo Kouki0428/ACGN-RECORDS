@@ -55,7 +55,7 @@ export const subjectClient = {
     }>,
   /** 从 Bangumi 拉取单集标记并合并/对比进本地（详情页 force+reconcile；悬浮窗缓存模式）。
    *  force 模式会同时返回真实剧集骨架 episodes，使首次打开即可即时显色。 */
-  pullEpisodeProgress: (providerSubjectId: string, opts?: { force?: boolean; reconcile?: boolean }) =>
+  pullEpisodeProgress: (providerSubjectId: string, opts?: { force?: boolean; reconcile?: boolean; skeleton?: boolean }) =>
     window.acgn.subject.pullEpisodeProgress(providerSubjectId, opts) as Promise<{
       collectionId: number | null
       progress: Record<number, EpisodeProgressState>
@@ -63,6 +63,9 @@ export const subjectClient = {
     }>,
   shouldRefreshProgress: () => window.acgn.subject.shouldRefreshProgress() as Promise<boolean>,
   markProgressPulled: () => window.acgn.subject.markProgressPulled() as Promise<void>,
+  getLastPullAt: () => window.acgn.subject.getLastPullAt() as Promise<number>,
+  getRecentActivitySubjects: (sinceSec: number, limit?: number) =>
+    window.acgn.subject.getRecentActivitySubjects(sinceSec, limit) as Promise<number[] | null>,
   /** 取某作品本地缓存的剧集（瞬时，不联网），悬浮窗打开时优先用于瞬时显示真实集号/标题 */
   getEpisodes: (providerSubjectId: string): Promise<SubjectFullEpisode[]> =>
     window.acgn.subject.getEpisodes(providerSubjectId)

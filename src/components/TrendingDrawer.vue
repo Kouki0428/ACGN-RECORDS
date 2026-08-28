@@ -2,11 +2,13 @@
 import { ref, onMounted } from 'vue'
 import { useEntityCard } from '@/composables/useEntityCard'
 import { useTopicBoard } from '@/composables/useTopicBoard'
+import { useSettingsStore } from '@/stores/settings'
 import { subjectClient } from '@/services/subjectClient'
 import type { BgmTopic } from '@shared/types'
 
 const entity = useEntityCard()
 const board = useTopicBoard()
+const settings = useSettingsStore()
 
 const open = ref(false)
 const topics = ref<BgmTopic[]>([])
@@ -84,7 +86,7 @@ function toggle() {
 
   <!-- 向左展开的边栏面板 -->
   <Transition name="td-slide">
-    <aside v-if="open" class="td-panel">
+    <aside v-if="open" class="td-panel" :class="{ glass: settings.immersiveGlow }">
       <header class="td-head">
         <h3>热门条目讨论</h3>
         <button class="td-refresh" type="button" title="刷新" @click="load(true)">
@@ -157,11 +159,14 @@ function toggle() {
 }
 /* 展开面板：覆盖在内容之上，向左滑入；不挤压卡片网格 */
 .td-panel {
+  /* 抽屉宽度提成变量：进出场用 right 位移（而非 transform）——Chromium 在 transform
+     过渡期间不渲染 backdrop-filter（玻璃要等动画结束才出现）；right 动画则全程有效 */
+  --td-w: min(340px, calc(100vw - 80px));
   position: fixed;
   right: 12px;
   top: 132px; /* 位于主页 subtabs 行下方，不遮住右上角的收起/展开手柄 */
   bottom: 16px;
-  width: min(340px, calc(100vw - 80px));
+  width: var(--td-w);
   z-index: 55;
   display: flex;
   flex-direction: column;
@@ -170,6 +175,34 @@ function toggle() {
   border-right: none;
   border-radius: 14px;
   box-shadow: -8px 0 30px rgba(0, 0, 0, 0.25);
+}
+/* ——「沉浸光感」开启时的液态玻璃面板（设置可关）——
+   面板浮在主页彩色海报卡之上，折射滤镜外再叠 blur 保证标题文字可读；
+   本体叠自上而下微透光 + 顶部内描边高光（与标题栏/悬浮窗同款光感） */
+.td-panel.glass {
+  isolation: isolate;
+  overflow: hidden;
+  border-color: transparent;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.06) 0%,
+      rgba(255, 255, 255, 0.02) 42%,
+      rgba(255, 255, 255, 0) 100%
+    ),
+    color-mix(in srgb, var(--bg-panel) 72%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    -8px 0 30px rgba(0, 0, 0, 0.25);
+}
+.td-panel.glass::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  z-index: -1;
+  border-radius: 14px;
+  backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(10px);
+  -webkit-backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(10px);
 }
 .td-head {
   display: flex;
@@ -294,14 +327,15 @@ function toggle() {
   border-radius: 999px;
   font-weight: 600;
 }
-/* 滑入动画 */
+/* 滑入动画：只动 right，不动 opacity —— opacity < 1 会把面板变成 backdrop root，
+   ::before 的 backdrop-filter 就采样不到背后的页面（玻璃整段消失、到位才出现）。
+   隐藏位 = 面板完全滑出右缘（宽 + 12px 余量再留 8px 缓冲） */
 .td-slide-enter-active,
 .td-slide-leave-active {
-  transition: transform .26s cubic-bezier(.2,.8,.2,1), opacity .22s ease;
+  transition: right .26s cubic-bezier(.2,.8,.2,1);
 }
 .td-slide-enter-from,
 .td-slide-leave-to {
-  transform: translateX(105%);
-  opacity: 0;
+  right: calc(var(--td-w) * -1 - 20px);
 }
 </style>

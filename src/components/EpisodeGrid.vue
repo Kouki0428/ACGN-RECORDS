@@ -4,6 +4,7 @@ import type { EpisodeMarkPayload } from '@shared/types'
 import { useEpisodeCommentModal } from '@/composables/useEpisodeCommentModal'
 import { useEntityCard } from '@/composables/useEntityCard'
 import { openGridId, nextGridUid } from '@/composables/episodeHoverState'
+import { useSettingsStore } from '@/stores/settings'
 
 export interface EpisodeCell {
   id: number
@@ -38,6 +39,8 @@ const props = defineProps<{
   subjectId?: string
 }>()
 const emit = defineEmits<{ (e: 'mark', payload: EpisodeMarkPayload): void }>()
+
+const settings = useSettingsStore()
 
 // 格子数量：优先用真实剧集数；否则 total；都没有视为 12 话
 const count = computed<number>(() => {
@@ -270,6 +273,21 @@ function onCardEnter() {
 function onCardLeave() {
   if (hasEnteredCard.value) closeCard()
 }
+// 沉浸光感「跟随色晕」（与快速跳转锚点条同款，事件委托在 .ep-status-row 上）：
+// 记录指针在按钮内的坐标（--mx/--my）驱动 ::after 径向渐变位置；进出经 tag-glow 类淡入淡出
+function onTagMove(e: MouseEvent) {
+  const tag = (e.target as HTMLElement).closest?.('.ep-status-tag') as HTMLElement | null
+  if (!tag) return
+  const r = tag.getBoundingClientRect()
+  tag.style.setProperty('--mx', `${e.clientX - r.left}px`)
+  tag.style.setProperty('--my', `${e.clientY - r.top}px`)
+}
+function onTagGlow(e: MouseEvent) {
+  ;(e.target as HTMLElement).closest?.('.ep-status-tag')?.classList.add('tag-glow')
+}
+function onTagUnglow(e: MouseEvent) {
+  ;(e.target as HTMLElement).closest?.('.ep-status-tag')?.classList.remove('tag-glow')
+}
 // 点击单集格子 → 打开「单集评论」（仅真实 Bangumi 单集 id > 0 且有 subjectId 时）。
 // 标记（看过/看到/想看/抛弃/撤销）仍由悬停卡片里的按钮触发，不丢功能。
 // 进入单集评论：先 setData 写入要展示的哪一集数据，再 entity.push('episode', ep.id) ——
@@ -417,7 +435,7 @@ onUnmounted(() => {
 
     <Teleport to="body">
       <div v-if="activeCell && openGridId === myGridId" class="ep-clip" :style="clipStyle">
-        <div ref="cardEl" class="ep-hover-card" :style="cardStyle" @mouseenter="onCardEnter" @mouseleave="onCardLeave">
+        <div ref="cardEl" class="ep-hover-card" :class="{ glass: settings.immersiveGlow }" :style="cardStyle" @mouseenter="onCardEnter" @mouseleave="onCardLeave">
         <button class="ep-close" type="button" title="关闭" aria-label="关闭" @click.stop="closeCard">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
             <line x1="6" y1="6" x2="18" y2="18" />
@@ -429,7 +447,7 @@ onUnmounted(() => {
           <span v-if="activeCell.epType === 1" class="ep-sp-tag">特别篇</span>
         </div>
         <div class="ep-title">{{ activeCell.title || ('第 ' + activeCell.epNumber + ' 话') }}</div>
-        <div class="ep-status-row">
+        <div class="ep-status-row" @mousemove="onTagMove" @mouseover="onTagGlow" @mouseout="onTagUnglow">
           <button class="ep-status-tag" :class="{ on: watchedOn }" type="button" @click.stop="markSingle('watched')">看过</button>
           <button class="ep-status-tag" type="button" @click.stop="markUpTo">看到</button>
           <button class="ep-status-tag" :class="{ on: wantOn }" type="button" @click.stop="markSingle('want')">想看</button>
@@ -559,13 +577,63 @@ onUnmounted(() => {
   animation: ep-pop 0.12s ease;
   pointer-events: auto;
 }
+/* ——「沉浸光感」开启时的液态玻璃覆盖（设置可关，与锚点条/标题栏同一设计语言）——
+   折射由全局 SVG 滤镜 liquid-glass-distortion 完成（feDisplacementMap 扰动背板像素 →
+   水波扭曲），叠加模糊与提饱和保证浮窗下格子色块不干扰文字。backdrop-filter 放在外扩
+   8px 的 ::before 上并被 overflow 裁掉：位移滤镜会把边缘像素拉出拉伸线，外扩裁剪保证
+   浮窗四周干净。面板本体叠自上而下的微透光（顶部更亮向下渐隐）+ 顶部内描边高光，
+   与标题栏的沉浸光感同款。 */
+.ep-hover-card.glass {
+  isolation: isolate;
+  overflow: hidden;
+  border-color: transparent;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.07) 0%,
+      rgba(255, 255, 255, 0.025) 42%,
+      rgba(255, 255, 255, 0) 100%
+    ),
+    color-mix(in srgb, var(--bg-panel) 72%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 8px 28px rgba(0, 0, 0, 0.5);
+}
+.ep-hover-card.glass::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  z-index: -1;
+  border-radius: 10px;
+  backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(6px);
+  -webkit-backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(6px);
+}
+/* 鼠标跟随的主题色光斑（与快速跳转锚点条同款）：径向渐变锚定在按钮内指针坐标
+   （--mx/--my 由 JS 经事件委托写入），进入按钮淡入、移出淡出；纯装饰不拦截点击 */
+.ep-hover-card.glass .ep-status-tag::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    60px circle at var(--mx, 50%) var(--my, 50%),
+    color-mix(in srgb, var(--accent) 42%, transparent),
+    transparent 68%
+  );
+  opacity: 0;
+  transition: opacity 0.28s ease;
+  pointer-events: none;
+}
+.ep-hover-card.glass .ep-status-tag.tag-glow::after {
+  opacity: 1;
+}
 @keyframes ep-pop {
+  /* 只动位移不动 opacity：opacity < 1 会把浮窗变成 backdrop root，
+     玻璃 ::before 的 backdrop-filter 采样失效（弹出的 0.12s 内无玻璃） */
   from {
-    opacity: 0;
     transform: translateY(-4px);
   }
   to {
-    opacity: 1;
     transform: translateY(0);
   }
 }
@@ -650,6 +718,46 @@ onUnmounted(() => {
   background: #d98b3a;
   color: #fff;
   border-color: #d98b3a;
+}
+/* ——「沉浸光感」开启时，标记按钮同样换液态玻璃（与锚点条 chip 同一设计语言）——
+   ::before 外扩 6px 承载折射滤镜（在浮窗玻璃面板上再叠一层水波），overflow 裁掉边缘拉伸线 */
+.ep-hover-card.glass .ep-status-tag {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  /* 玻璃化但保留发丝描边：纯透明边会让按钮边界融进面板，加 theme 化淡描边勾勒轮廓 */
+  border-color: color-mix(in srgb, var(--border) 90%, transparent);
+  background: color-mix(in srgb, #fff 10%, transparent);
+}
+.ep-hover-card.glass .ep-status-tag::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  z-index: -1;
+  border-radius: 999px;
+  backdrop-filter: url(#liquid-glass-distortion) saturate(1.5);
+  -webkit-backdrop-filter: url(#liquid-glass-distortion) saturate(1.5);
+}
+.ep-hover-card.glass .ep-status-tag:hover {
+  border-color: color-mix(in srgb, var(--accent-2) 55%, transparent);
+  color: var(--text);
+  background: color-mix(in srgb, #fff 18%, transparent);
+}
+/* 激活态保持实色强调填充（可辨识度优先），仅去边框融入玻璃 */
+.ep-hover-card.glass .ep-status-tag.on {
+  background: var(--accent);
+  color: #fff;
+  border-color: transparent;
+}
+/* 撤销钮：琥珀色调在玻璃下保持可辨 */
+.ep-hover-card.glass .ep-status-tag.ep-undo-tag {
+  border-color: color-mix(in srgb, #d98b3a 75%, transparent);
+  color: #d98b3a;
+}
+.ep-hover-card.glass .ep-status-tag.ep-undo-tag.on {
+  background: #d98b3a;
+  color: #fff;
+  border-color: transparent;
 }
 .ep-meta {
   display: flex;

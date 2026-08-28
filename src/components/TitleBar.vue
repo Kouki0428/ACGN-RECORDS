@@ -51,6 +51,8 @@ const { maximized, minimize, toggleMaximize, close } = useWindowChrome()
   position: relative;
   height: 32px;
   flex-shrink: 0;
+  /* 压过缩放边缘遮罩（z-index:30），让顶部遮罩条藏在标题栏后不可见 */
+  z-index: 50;
   user-select: none;
   overflow: hidden;
   /* 沉浸光感：底色叠一层自上而下的微透光，顶部更亮、向下渐隐 */

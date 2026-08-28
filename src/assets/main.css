@@ -258,6 +258,9 @@ body,
   padding: 18px 0;
   display: flex;
   flex-direction: column;
+  /* 压过缩放边缘遮罩（z-index:30），让左侧遮罩条藏在侧栏后不可见 */
+  position: relative;
+  z-index: 40;
   transition: width 0.32s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .sidebar.collapsed {
@@ -620,6 +623,50 @@ body,
 .content-inner {
   min-height: 100%;
   padding-right: 30px;
+}
+
+/* 缩放边缘遮罩层：默认隐藏，仅 body.resizing（拖拽缩放进行中）时出现。
+   四条固定边条用与页面完全相同的背景（var(--bg-grad) + background-attachment:fixed
+   对齐视口），盖住原生缩放时 GPU 合成层滞后 1-2 帧露出的旧内容（重影）。
+   z-index 置于内容(0)之上、固定侧栏(40)/标题栏(50)之下 —— 边条只遮内容区，
+   不遮固定栏；左/上条因被侧栏/标题栏覆盖而自然不可见。pointer-events:none 不挡交互。
+   FLIP 动画照常运行，只是边缘条在拖拽期间被遮住不可见。 */
+.resize-masks {
+  display: none;
+}
+body.resizing .resize-masks {
+  display: block;
+}
+.rm {
+  position: fixed;
+  z-index: 30;
+  pointer-events: none;
+  background: var(--bg-grad);
+  background-attachment: fixed;
+}
+.rm-top {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+}
+.rm-bottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+}
+.rm-left {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 64px;
+}
+.rm-right {
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 64px;
 }
 
 .content h1 {

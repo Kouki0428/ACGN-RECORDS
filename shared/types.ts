@@ -942,6 +942,20 @@ export interface AcgnApi {
     pullAll: () => Promise<SyncResult>
     pullAllFull: () => Promise<SyncResult>
     syncAll: () => Promise<SyncResult>
+    /**
+     * 巡检：拉「最近有活动」的第 1 页远端收藏（1 个请求），供主页比对
+     * status/rate/ep_status/vol_status 是否与远端一致（抓取取消标记等 timeline 看不见的变化）。
+     */
+    listRecentCollections: (limit?: number) => Promise<
+      Array<{
+        providerSubjectId: string
+        status: number
+        rate: number | null
+        epStatus: number
+        volStatus: number
+        updatedAt: number
+      }>
+    >
     /** 订阅同步引擎状态变化（侧栏同步指示灯）；返回取消订阅函数 */
     onStateChanged: (cb: (s: SyncEngineState) => void) => () => void
   }
@@ -995,10 +1009,11 @@ export interface AcgnApi {
      * 从 Bangumi 拉取该用户的单集标记并合并/对比进本地。
      * 未登录或拉取失败均回退本地进度；force=false 且本地已有标记时直接走缓存不联网（防限流）。
      * opts.force=true 强制重新联网（详情页/同步用）；opts.reconcile=true 与本地对比写入（Bangumi 权威）。
+     * opts.skeleton=false 时 force 拉取跳过「真实剧集骨架」抓取（主页增量刷新用，省 2N 请求）。
      */
     pullEpisodeProgress: (
       providerSubjectId: string,
-      opts?: { force?: boolean; reconcile?: boolean }
+      opts?: { force?: boolean; reconcile?: boolean; skeleton?: boolean }
     ) => Promise<{
       collectionId: number | null
       progress: Record<number, EpisodeProgressState>
@@ -1011,6 +1026,13 @@ export interface AcgnApi {
     shouldRefreshProgress: () => Promise<boolean>
     /** 标记一次进度拉取完成，刷新本地 lastPullAt 时钟（C' 用）。 */
     markProgressPulled: () => Promise<void>
+    /** 本地上次进度拉取时钟（C'），供定向刷新计算 since。 */
+    getLastPullAt: () => Promise<number>
+    /**
+     * 定向刷新：最近动态里晚于 sinceSec 的作品 id（memo 共享 timeline，不多发请求）。
+     * null = 无法定向（异常/未登录/解析失败，调用方退化为整批）；[] = 确认无相关变化。
+     */
+    getRecentActivitySubjects: (sinceSec: number, limit?: number) => Promise<number[] | null>
     /** 读某作品本地缓存的剧集（瞬时，不联网），悬浮窗打开时优先用于瞬时显示真实集号/标题 */
     getEpisodes: (providerSubjectId: string) => Promise<SubjectFullEpisode[]>
   }

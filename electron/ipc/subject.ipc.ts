@@ -32,7 +32,7 @@ import { importSubject, saveSubjectRatingDistribution } from '../services/db/rep
 import { getCachedEpisodes, upsertEpisodes } from '../services/db/repositories/episodesCache.repository'
 import { cacheCharacters, cacheRelations } from '../services/db/repositories/subjectExtra.repository'
 import { getSubjectDetailLocal } from '../services/subjectDetailLocal'
-import { shouldRefreshProgress, markProgressPulled } from '../services/progressGuard'
+import { shouldRefreshProgress, markProgressPulled, getLastPullAt, getRecentActivitySubjects } from '../services/progressGuard'
 import { saveArchiveScore } from '../services/archive/archive.service'
 import { resolveScore } from '../services/subjectScore'
 import type { EpisodeProgressState, Subject, SubjectFullEpisode } from '../../shared/types'
@@ -291,14 +291,18 @@ export function registerSubjectIpc(): void {
           // 远端无任何单集标记：全量同步(reconcile)时清空本地以对齐 Bangumi；
           // 详情页(soft reconcile)不强制清空，避免抹掉离线本地标记。
           if (opts?.reconcile) await clearAllEpisodeProgress(colId)
-          // force 模式仍抓取真实剧集骨架（即便无单集标记），保证首次打开能显示真实集号
-          const episodes = opts?.force ? await fetchEpisodesSafe(providerSubjectId) : []
+          // force 模式仍抓取真实剧集骨架（即便无单集标记），保证首次打开能显示真实集号；
+          // skeleton=false（主页增量刷新）跳过，省 2 请求/卡
+          const episodes =
+            opts?.force && opts?.skeleton !== false ? await fetchEpisodesSafe(providerSubjectId) : []
           return { collectionId: colId, progress: await listProgressFull(colId), episodes }
         }
         if (opts?.reconcile) await reconcileRemoteEpisodeProgress(colId, marks)
         else await applyRemoteEpisodeProgress(colId, marks)
-        // force 模式抓取真实剧集骨架，与进度一起返回（首次打开本地缓存为空时也能即时显色）
-        const episodes = opts?.force ? await fetchEpisodesSafe(providerSubjectId) : []
+        // force 模式抓取真实剧集骨架，与进度一起返回（首次打开本地缓存为空时也能即时显色）；
+        // skeleton=false（主页增量刷新）跳过骨架抓取（每卡 2 请求），只拉单集标记
+        const episodes =
+          opts?.force && opts?.skeleton !== false ? await fetchEpisodesSafe(providerSubjectId) : []
         return { collectionId: colId, progress: await listProgressFull(colId), episodes }
       } catch (e) {
         console.warn('[subject:pullEpisodeProgress] 拉取失败（回退本地）：', e)
@@ -312,4 +316,11 @@ export function registerSubjectIpc(): void {
   ipcMain.handle('subject:markProgressPulled', async () => {
     markProgressPulled()
   })
+  // C' 定向刷新：本地上次拉取时钟 + 最近动态里「哪几部」有新活动（memo 共享，不多发请求）。
+  ipcMain.handle('subject:getLastPullAt', async () => getLastPullAt())
+  ipcMain.handle(
+    'subject:getRecentActivitySubjects',
+    async (_e, sinceSec: number, limit?: number) =>
+      getRecentActivitySubjects(Number(sinceSec) || 0, limit ? Number(limit) : 20)
+  )
 }

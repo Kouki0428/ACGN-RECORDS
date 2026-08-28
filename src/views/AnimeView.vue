@@ -11,8 +11,10 @@ import StatusTabs from '@/components/StatusTabs.vue'
 import CoverImage from '@/components/CoverImage.vue'
 import SynopsisBox from '@/components/SynopsisBox.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import PaginationBar from '@/components/PaginationBar.vue'
 import DetailAnchors, { type AnchorItem } from '@/components/DetailAnchors.vue'
 import { useSearchOverlay } from '@/composables/searchOverlay'
+import { usePagination } from '@/composables/usePagination'
 import { useContextMenu } from '@/composables/useContextMenu'
 import { buildCardMenu } from '@/composables/useCardContextMenu'
 import { useSettingsStore } from '@/stores/settings'
@@ -90,6 +92,14 @@ let stopMeta: (() => void) | undefined
 // 当前选中的收藏状态（Bangumi：3=在看 2=看过 1=想看 4=搁置 5=抛弃）
 const activeStatus = ref<number>(3)
 const currentLabel = computed(() => statusLabel('anime', activeStatus.value))
+
+// 分页：每页 100 张（总数 ≤100 不显示分页条），压低大收藏的 DOM 规模。
+// 切状态回第一页；翻页后列表滚回顶部。
+const { page, totalPages, paged: pagedList, show: showPager, reset: resetPage } = usePagination(() => watching.value)
+watch(activeStatus, resetPage)
+watch(page, () => {
+  document.querySelector<HTMLElement>('.content')?.scrollTo({ top: 0 })
+})
 
 // 由详情派生：剧集网格（含已看/想看状态）。
 // 以 Bangumi 真实剧集为骨架（真实集号/标题/首播/时长），进度键统一用 Bangumi 剧集 id
@@ -334,7 +344,7 @@ onUnmounted(() => {
       <StatusTabs v-model="activeStatus" category="anime" />
       <div class="grid">
         <div
-          v-for="w in watching"
+          v-for="w in pagedList"
           :key="w.collectionId"
           class="card watching"
           role="button"
@@ -366,6 +376,7 @@ onUnmounted(() => {
           <button class="btn btn--primary btn--sm" @click="openSearch()">搜索添加</button>
         </EmptyState>
       </div>
+      <PaginationBar v-if="showPager" v-model:page="page" :total-pages="totalPages" />
     </div>
   </div>
 </template>

@@ -131,6 +131,17 @@ const api: AcgnApi = {
     pullAll: () => ipcRenderer.invoke('sync:pullAll'),
     pullAllFull: () => ipcRenderer.invoke('sync:pullAllFull'),
     syncAll: () => ipcRenderer.invoke('sync:syncAll'),
+    listRecentCollections: (limit?: number) =>
+      ipcRenderer.invoke('sync:listRecentCollections', limit) as Promise<
+        Array<{
+          providerSubjectId: string
+          status: number
+          rate: number | null
+          epStatus: number
+          volStatus: number
+          updatedAt: number
+        }>
+      >,
     onStateChanged: (cb: (s: unknown) => void) => {
       const h = (_e: unknown, s: unknown) => cb(s)
       ipcRenderer.on('sync:stateChanged', h)
@@ -168,7 +179,7 @@ const api: AcgnApi = {
         collectionId: number | null
         progress: Record<number, EpisodeProgressState>
       }>,
-  pullEpisodeProgress: (providerSubjectId: string, opts?: { force?: boolean; reconcile?: boolean }) =>
+  pullEpisodeProgress: (providerSubjectId: string, opts?: { force?: boolean; reconcile?: boolean; skeleton?: boolean }) =>
     ipcRenderer.invoke('subject:pullEpisodeProgress', providerSubjectId, opts) as Promise<{
       collectionId: number | null
       progress: Record<number, EpisodeProgressState>
@@ -178,6 +189,11 @@ const api: AcgnApi = {
     ipcRenderer.invoke('subject:shouldRefreshProgress') as Promise<boolean>,
   markProgressPulled: () =>
     ipcRenderer.invoke('subject:markProgressPulled') as Promise<void>,
+  getLastPullAt: () => ipcRenderer.invoke('subject:getLastPullAt') as Promise<number>,
+  getRecentActivitySubjects: (sinceSec: number, limit?: number) =>
+    ipcRenderer.invoke('subject:getRecentActivitySubjects', sinceSec, limit) as Promise<
+      number[] | null
+    >,
     getEpisodes: (providerSubjectId: string) =>
       ipcRenderer.invoke('subject:getEpisodes', providerSubjectId) as Promise<SubjectFullEpisode[]>
   },

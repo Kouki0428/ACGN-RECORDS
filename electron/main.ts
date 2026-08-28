@@ -127,15 +127,15 @@ function dbHasUserData(dbPath: string): boolean {  try {
   }
 }
 
-// GPU 加速开关（设置项 gpuAcceleration；默认关闭，与历史行为一致）。
-// 关闭硬件加速：修复 Windows 上拖动缩放窗口时「上一帧画面残留在新画面之后」的 GPU 合成重影
-// （三图层：实时主场景 / 旧帧重影 / 窗口黑底）。软件渲染每个 resize 事件都会整窗同步重绘，
-// 不再保留上一帧的独立合成层，重影彻底消失。
-// 代价：CSS 动画改为 CPU 合成（卡片 FLIP / 主题擦除仍可正常播放，仅更费 CPU，体感无差）；
-// 搜索遮罩的 `backdrop-filter` 毛玻璃可能退化为半透明纯色（仍可用，只是不再模糊）。
-// 仅在设置里显式开启 GPU 加速（gpuAcceleration = '1'）时才保留硬件加速。
+// GPU 加速开关（设置项 gpuAcceleration；默认开启，2026-08-27 用户要求：多卡片 FLIP 动画
+// 在纯软件渲染下卡顿，开 GPU 让合成走显卡）。
+// 代价：Windows 上拖动缩放窗口会重新出现「上一帧画面残留在新画面之后」的 GPU 合成重影
+// （三图层：实时主场景 / 旧帧重影 / 窗口黑底）——此前默认关闭即为去重影；软件渲染每个
+// resize 事件整窗同步重绘、无独立合成层，重影消失但 CSS 动画改 CPU 合成、多卡片吃力。
+// 仅在设置里显式关闭（gpuAcceleration = '0'）时才禁用硬件加速。
 // 注意：disableHardwareAcceleration 必须在 app.ready 之前调用，故用同步只读方式读该设置键
-// （不能用异步 getDb()，否则可能晚于 ready）。文件不存在时按“关闭”处理（安全默认）。
+// （不能用异步 getDb()，否则可能晚于 ready）。键不存在 / 库文件尚未创建（首启）时按「开启」处理
+// （与 Chromium 上游默认一致）。
 function isGpuAccelerationEnabled(): boolean {
   try {
     const require = createRequire(import.meta.url)
@@ -146,9 +146,9 @@ function isGpuAccelerationEnabled(): boolean {
       .prepare('SELECT value FROM settings WHERE key = ?')
       .get('gpuAcceleration') as { value: string } | undefined
     db.close()
-    return row?.value === '1'
+    return row?.value !== '0'
   } catch {
-    return false
+    return true
   }
 }
 
