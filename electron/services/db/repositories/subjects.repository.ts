@@ -278,6 +278,63 @@ export async function backfillSubjectNsfw(): Promise<void> {
 }
 
 /**
+ * 按 provider_subject_id 批量查 NSFW 标记，返回 { providerSubjectId: boolean }。
+ * 数据源优先离线 Archive（arc_subjects.nsfw，官方权威），缺失的条目再回退主库 subjects.nsfw
+ * （主库值来自启动回填 / 搜索与详情 upsert）。搜索卡片与「最近打开」封面模糊用。
+ */
+export async function getSubjectNsfwByIds(providerSubjectIds: number[]): Promise<Record<string, boolean>> {
+  const ids = [...new Set(providerSubjectIds.map((x) => Number(x)).filter((x) => Number.isFinite(x) && x > 0))]
+  const out: Record<string, boolean> = {}
+  if (!ids.length) return out
+  try {
+    const { app } = electron
+    const arcPath = join(app.getPath('userData'), 'bangumi-archive', 'bangumi-archive.db')
+    const Database = (await import('better-sqlite3')).default
+    if (existsSync(arcPath)) {
+      const arc = new Database(arcPath, { readonly: true, fileMustExist: true })
+      try {
+        for (let i = 0; i < ids.length; i += 500) {
+          const chunk = ids.slice(i, i + 500)
+          const ph = chunk.map(() => '?').join(',')
+          const arcRows = arc
+            .prepare(`SELECT id, nsfw FROM arc_subjects WHERE id IN (${ph})`)
+            .all(...chunk) as { id: number; nsfw: number }[]
+          for (const a of arcRows) {
+            if (a.nsfw) out[String(a.id)] = true
+          }
+        }
+      } finally {
+        arc.close()
+      }
+    }
+  } catch (e) {
+    console.warn('[nsfw] Archive 批量查询失败（回退主库）：', e)
+  }
+  // 存档未命中（或未下载）的 id：回退主库 subjects.nsfw
+  const missing = ids.filter((x) => !(String(x) in out))
+  if (missing.length) {
+    try {
+      const db = await getDb()
+      for (let i = 0; i < missing.length; i += 500) {
+        const chunk = missing.slice(i, i + 500)
+        const ph = chunk.map(() => '?').join(',')
+        const rows = db
+          .prepare(
+            `SELECT provider_subject_id, nsfw FROM subjects WHERE provider = 'bangumi' AND provider_subject_id IN (${ph})`
+          )
+          .all(...chunk.map(String)) as { provider_subject_id: string; nsfw: number }[]
+        for (const r of rows) {
+          if (r.nsfw) out[String(r.provider_subject_id)] = true
+        }
+      }
+    } catch (e) {
+      console.warn('[nsfw] 主库批量查询失败（忽略）：', e)
+    }
+  }
+  return out
+}
+
+/**
  * 从离线 Archive 库批量读取书籍的 platform(code) + tags，用于本地书籍细分（免联网）。
  * Archive platform code：1001=漫画，1002=轻小说；其余（文库/单行本等）不强行映射，交给 tag 计数兜底。
  */

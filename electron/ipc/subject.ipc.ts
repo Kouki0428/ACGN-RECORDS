@@ -28,6 +28,7 @@ import {
   clearAllEpisodeProgress
 } from '../services/db/repositories/episode_progress.repository'
 import { getOrCreateCollection, ensureLocalAccount } from '../services/db/repositories/collections.repository'
+import { getSubjectNsfwByIds } from '../services/db/repositories/subjects.repository'
 import { importSubject, saveSubjectRatingDistribution } from '../services/db/repositories/subjects.repository'
 import { getCachedEpisodes, upsertEpisodes } from '../services/db/repositories/episodesCache.repository'
 import { cacheCharacters, cacheRelations } from '../services/db/repositories/subjectExtra.repository'
@@ -323,4 +324,6 @@ export function registerSubjectIpc(): void {
     async (_e, sinceSec: number, limit?: number) =>
       getRecentActivitySubjects(Number(sinceSec) || 0, limit ? Number(limit) : 20)
   )
+  // 批量查 NSFW 标记（存档优先/主库兜底）：搜索结果与「最近打开」封面的模糊用。
+  ipcMain.handle('subject:nsfwBatch', (_e, ids: number[]) => getSubjectNsfwByIds(ids))
 }

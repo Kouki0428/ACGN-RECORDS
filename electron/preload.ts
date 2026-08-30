@@ -198,8 +198,10 @@ const api: AcgnApi = {
     ipcRenderer.invoke('subject:getRecentActivitySubjects', sinceSec, limit) as Promise<
       number[] | null
     >,
-    getEpisodes: (providerSubjectId: string) =>
-      ipcRenderer.invoke('subject:getEpisodes', providerSubjectId) as Promise<SubjectFullEpisode[]>
+  nsfwBatch: (ids: number[]) =>
+    ipcRenderer.invoke('subject:nsfwBatch', ids) as Promise<Record<string, boolean>>,
+  getEpisodes: (providerSubjectId: string) =>
+    ipcRenderer.invoke('subject:getEpisodes', providerSubjectId) as Promise<SubjectFullEpisode[]>
   },
   episode: {
     getDetail: (episodeId: number) =>

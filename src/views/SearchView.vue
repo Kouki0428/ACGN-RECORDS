@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { apiClient } from '@/services/apiClient'
 import { animeClient } from '@/services/animeClient'
 import { collectionClient } from '@/services/collectionClient'
+import { subjectClient } from '@/services/subjectClient'
 import type { Subject, Category, SearchQuery, SearchResultItem } from '@shared/types'
 import CoverImage from '@/components/CoverImage.vue'
 import { useSettingsStore } from '@/stores/settings'
@@ -42,9 +43,21 @@ async function doSearch(q: string) {
   failed.value = ''
   try {
     const list = await apiClient.search({ keyword: kw, domain: 'subject', subjectType: 'all' })
-    results.value = list
+    const subs = list
       .filter((r): r is Extract<SearchResultItem, { kind: 'subject' }> => r.kind === 'subject')
       .map((r) => r.subject)
+    results.value = subs
+    const ids = subs.map((s) => Number(s.providerSubjectId)).filter((x) => Number.isFinite(x) && x > 0)
+    if (ids.length) {
+      subjectClient
+        .nsfwBatch(ids)
+        .then((map) => {
+          for (const s of results.value) {
+            if (map[String(s.providerSubjectId)]) s.nsfw = true
+          }
+        })
+        .catch(() => {})
+    }
   } catch (e) {
     failed.value = '检索失败：' + (e instanceof Error ? e.message : String(e))
     results.value = []

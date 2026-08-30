@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, nextTick, computed } from 'vue'
 import { apiClient } from '@/services/apiClient'
+import { subjectClient } from '@/services/subjectClient'
 import { useAuthStore } from '@/stores/auth'
 import ResultCollectButton from '@/components/ResultCollectButton.vue'
 import type { Subject, Category, SearchQuery, SearchResultItem } from '@shared/types'
@@ -28,6 +29,21 @@ const { isOpen, close: rawClose } = useSearchOverlay()
 const z = useModalZ(isOpen)
 const entity = useEntityCard()
 const { searchHistory, recentSubjects, pushSearchTerm, removeSearchTerm, clearSearchHistory, clearRecentSubjects } = useRecent()
+// 「最近打开」的 NSFW 标记缓存：按 id 从主库/存档批量查询（旧记录可能缺 nsfw 字段）
+const recentNsfw = ref<Record<string, boolean>>({})
+async function refreshRecentNsfw() {
+  const ids = recentSubjects.value.map((s) => s.id).filter((x) => Number.isFinite(x) && x > 0)
+  if (!ids.length) {
+    recentNsfw.value = {}
+    return
+  }
+  try {
+    recentNsfw.value = await subjectClient.nsfwBatch(ids)
+  } catch {
+    /* 查询失败则仅依赖记录自带的 nsfw，静默 */
+  }
+}
+watch(recentSubjects, refreshRecentNsfw, { immediate: true })
 // 实体卡（角色/CV/作品）是否正叠在搜索之上。是的话搜索遮罩变「透明基底」：
 // 不再关闭、只隐藏自身卡片内容，让实体卡干净地叠在上面；关闭实体卡时底层搜索自然显现，
 // 从而「关闭实体卡 → 回到搜索」天然成立，无需 returnTo 重开（避免偶发全部关闭）。
@@ -155,6 +171,25 @@ async function doSearch() {
     // 丢弃过期请求的结果：仅采用「最后一次」搜索的返回，杜绝条/人串台。
     if (seq !== searchSeq) return
     results.value = res
+    // 搜索结果补 NSFW 标记（存档/主库兜底，避免列表接口/旧数据缺该字段导致不模糊）
+    const subjIds = res
+      .filter((r): r is Extract<SearchResultItem, { kind: 'subject' }> => r.kind === 'subject')
+      .map((r) => Number(r.subject.providerSubjectId))
+      .filter((x) => Number.isFinite(x) && x > 0)
+    if (subjIds.length) {
+      subjectClient
+        .nsfwBatch(subjIds)
+        .then((map) => {
+          if (seq !== searchSeq) return
+          for (const r of results.value) {
+            if (r.kind === 'subject') {
+              const id = String(r.subject.providerSubjectId)
+              if (map[id]) r.subject.nsfw = true
+            }
+          }
+        })
+        .catch(() => {})
+    }
     pushSearchTerm(q)
     // 新一次搜索（含切换 domain / 切换二级分类）从第一页开始；条目/人物各自独立页码。
     if (domain.value === 'subject') subjectPage.value = 1
@@ -363,7 +398,7 @@ watch(isOpen, async (v) => {
                     :title="s.title"
                     @click="entity.openInstant('subject', s.id)"
                   >
-                    <img v-if="s.image" :src="proxyImg(s.image)" :class="{ 'cover-blur': !settings.showNsfw && s.nsfw }" :alt="s.title" loading="lazy" />
+                    <img v-if="s.image" :src="proxyImg(s.image)" :class="{ 'cover-blur': !settings.showNsfw && (s.nsfw || recentNsfw[s.id]) }" :alt="s.title" loading="lazy" />
                     <span v-else class="recent-empty">无封面</span>
                     <span class="recent-title">{{ s.title }}</span>
                   </button>

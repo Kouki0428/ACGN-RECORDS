@@ -68,5 +68,8 @@ export const subjectClient = {
     window.acgn.subject.getRecentActivitySubjects(sinceSec, limit) as Promise<number[] | null>,
   /** 取某作品本地缓存的剧集（瞬时，不联网），悬浮窗打开时优先用于瞬时显示真实集号/标题 */
   getEpisodes: (providerSubjectId: string): Promise<SubjectFullEpisode[]> =>
-    window.acgn.subject.getEpisodes(providerSubjectId)
+    window.acgn.subject.getEpisodes(providerSubjectId),
+  /** 批量查 NSFW 标记（存档优先/主库兜底），搜索结果与最近打开封面模糊用 */
+  nsfwBatch: (ids: number[]): Promise<Record<string, boolean>> =>
+    window.acgn.subject.nsfwBatch(ids)
 }

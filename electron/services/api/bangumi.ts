@@ -1644,7 +1644,8 @@ export async function getSubjectFull(
     total_episodes: typeof raw.eps === 'number' ? raw.eps : raw.total_episodes ?? null,
     total_volumes: typeof raw.volumes === 'number' ? raw.volumes : raw.total_volumes ?? null,
     air_date: raw.air_date ?? null,
-    series: typeof raw.series === 'boolean' ? raw.series : null
+    series: typeof raw.series === 'boolean' ? raw.series : null,
+    nsfw: !!raw.nsfw
   }
 
   return { kind: 'subject', subject, characters, relations, episodes }
