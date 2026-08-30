@@ -102,6 +102,8 @@ export const useSettingsStore = defineStore('settings', () => {
   // 圆角档位（仅本机存储）：无 / 小 / 默认 / 大；写入 <html data-radius>，
   // 由 main.css 覆盖全局 --radius / --radius-sm。默认 默认（=基线，不加属性也行）
   const cornerRadius = ref<'none' | 'small' | 'default' | 'large'>('default')
+  // 界面操作音效静音开关（如开关切换的咔嗒声），默认不静音
+  const muteUiSound = ref(false)
 
   async function load() {
     if (initialized) return
@@ -176,6 +178,7 @@ export const useSettingsStore = defineStore('settings', () => {
         cornerRadius.value = (r.value as 'none' | 'small' | 'default' | 'large') || 'default'
         document.documentElement.dataset.radius = cornerRadius.value
       }
+      if (r.key === 'muteUiSound') muteUiSound.value = r.value === '1'
     }
     setSchedule(scheduleLight.value, scheduleDark.value)
     // 若持久化的偏好是「定时」，需在时段载入后重新解析一次（循环内的首次 applyTheme
@@ -273,6 +276,7 @@ export const useSettingsStore = defineStore('settings', () => {
       cornerRadius.value = (value as 'none' | 'small' | 'default' | 'large') || 'default'
       document.documentElement.dataset.radius = cornerRadius.value
     }
+    if (key === 'muteUiSound') muteUiSound.value = value === '1'
   }
 
   // 仅在遮罩已盖住屏幕时调用：更新按钮高亮（不写库、不触发 applyTheme），
@@ -281,5 +285,5 @@ export const useSettingsStore = defineStore('settings', () => {
     theme.value = v
   }
 
-  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, mode, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, auxColor, darkPreset, lightPreset, detailBanner, characterBanner, immersiveGlow, anchorBarEnabled, cardScale, showCharacters, showVolumes, showRelations, showTopics, showTucao, showGallery, showPurchase, closeBehavior, scheduleLight, scheduleDark, cornerRadius, load, set, commitTheme }
+  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, mode, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, auxColor, darkPreset, lightPreset, detailBanner, characterBanner, immersiveGlow, anchorBarEnabled, cardScale, showCharacters, showVolumes, showRelations, showTopics, showTucao, showGallery, showPurchase, closeBehavior, scheduleLight, scheduleDark, cornerRadius, muteUiSound, load, set, commitTheme }
 })

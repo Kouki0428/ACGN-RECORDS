@@ -1,5 +1,7 @@
 // 极简 UI 音效：Web Audio 实时合成短促「咔嗒」声，无需音频资源文件。
 // 任何时刻调用都安全（未就绪 / 失败静默忽略，不影响功能）。
+import { useSettingsStore } from '@/stores/settings'
+
 let ctx: AudioContext | null = null
 
 function getCtx(): AudioContext | null {
@@ -18,8 +20,10 @@ function getCtx(): AudioContext | null {
   }
 }
 
-/** 播放一个短促柔和的「咔嗒」声；high=true 音调略高（用于开启），false 偏低（用于关闭） */
+/** 播放一个短促柔和的「咔嗒」声；high=true 音调略高（用于开启），false 偏低（用于关闭）。
+ *  设置中开启「静音」后不再发声。 */
 export function playToggleClick(high = true) {
+  if (useSettingsStore().muteUiSound) return
   const ac = getCtx()
   if (!ac) return
   try {

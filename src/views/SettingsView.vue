@@ -12,6 +12,7 @@ import { applyUiScale } from '@/scale'
 import type { ArchiveMeta, ArchiveProgress, CacheStats, NetworkStatsResult } from '@shared/types'
 import { CHANGELOG } from '@/constants/changelog'
 import ToggleSwitch from '@/components/ToggleSwitch.vue'
+import { playToggleClick } from '@/utils/uiSound'
 
 const auth = useAuthStore()
 const settings = useSettingsStore()
@@ -322,6 +323,12 @@ async function toggleArchiveAutoUpdate() {
 
 async function toggleAutoCacheClean() {
   await settings.set('autoCacheClean', settings.autoCacheClean ? '0' : '1')
+}
+
+// 界面音效静音：await 落库后再决定是否播一声确认（开启静音这次不响，取消静音响一声）
+async function onToggleMute(v: boolean) {
+  await settings.set('muteUiSound', v ? '1' : '0')
+  if (!v) playToggleClick(true)
 }
 
 // ---------- 外观 / 主题 ----------
@@ -1099,6 +1106,10 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
       <label class="progress-editor">
         <ToggleSwitch :model-value="settings.immersiveGlow" @update:model-value="(v: boolean) => settings.set('immersiveGlow', v ? '1' : '0')" />
         沉浸光感
+      </label>
+      <label class="progress-editor">
+        <ToggleSwitch :model-value="settings.muteUiSound" @update:model-value="onToggleMute" />
+        静音（关闭界面操作音效）
       </label>
     </section>
 
