@@ -53,19 +53,26 @@ jobs:
         shell: pwsh
         run: |
           # draft release 在 releases/tags/{tag} 端点返回 404，必须从列表按 tag_name 取 id。
-          # 注意：jq 字符串必须用双引号，单引号非法；这里用 jq 的 env.VAR 读取环境变量，
-          # 避免 PowerShell 双重引号转义问题。
+          # 注意：jq 字符串必须用双引号，单引号非法；这里用 jq 的 env.VAR 读取环境变量。
           $rel = gh api "repos/$env:GITHUB_REPOSITORY/releases?per_page=100" --jq ".[]|select(.tag_name==env.GITHUB_REF_NAME)|.id"
           if (-not $rel) { throw "release id not found for $env:GITHUB_REF_NAME" }
-          $isBeta = $env:GITHUB_REF_NAME -match '-beta'
-          if ($isBeta) {
-            # Beta：作为预发布，且不抢占稳定版 Latest（避免把测试版推给所有稳定版用户）
-            $body = "{`"draft`":false,`"prerelease`":true,`"name`":`"$env:GITHUB_REF_NAME`"}"
-          } else {
-            $body = "{`"draft`":false,`"name`":`"$env:GITHUB_REF_NAME`"}"
+
+          # 从根 CHANGELOG.md 提取当前版本的更新说明作为 Release 正文（从 "## vX.Y.Z" 到下一个 "## " 为止）
+          $notes = $null
+          $clPath = "$env:GITHUB_WORKSPACE/CHANGELOG.md"
+          if (Test-Path $clPath) {
+            $cl = Get-Content $clPath -Raw -Encoding utf8
+            $m = [regex]::Match($cl, "(?m)^## $([regex]::Escape($env:GITHUB_REF_NAME))\r?\n(.*?)(?=^## |\z)", 'Singleline')
+            $notes = if ($m.Success) { $m.Groups[1].Value.Trim() } else { $null }
           }
-          # 必须用 JSON 文件体发送真实布尔值；-F 会把 false 当成字符串（非空即真），导致 draft 无法取消
-          $body | Out-File -Encoding ascii "$env:RUNNER_TEMP\rel.json" -NoNewline
+
+          $isBeta = $env:GITHUB_REF_NAME -match '-beta'
+          $props = @{ draft = $false; name = "$env:GITHUB_REF_NAME" }
+          if ($isBeta) { $props.prerelease = $true }
+          if ($notes) { $props.body = $notes }
+          # 用 ConvertTo-Json 构造真实布尔值 + 含换行/中文的正文，避免字符串拼接转义问题。
+          # 必须用 JSON 文件体发送真实布尔值；-F 会把 false 当成字符串（非空即真），导致 draft 无法取消。
+          $props | ConvertTo-Json -Depth 3 | Out-File -Encoding utf8 "$env:RUNNER_TEMP\rel.json" -NoNewline
           gh api -X PATCH "repos/$env:GITHUB_REPOSITORY/releases/$rel" --input "$env:RUNNER_TEMP\rel.json"
           if (-not $isBeta) {
             gh release edit $env:GITHUB_REF_NAME --latest
