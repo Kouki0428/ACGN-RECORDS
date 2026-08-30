@@ -410,12 +410,14 @@ const lightPresets = [
   { value: 'moss', label: '苔藓' }
 ]
 
-// 圆角档位（无 / 小 / 默认 / 大）
+// 圆角档位（无 / 微 / 小 / 默认 / 大 / 特大）
 const radiusOptions = [
   { value: 'none', label: '无' },
+  { value: 'tiny', label: '微' },
   { value: 'small', label: '小' },
   { value: 'default', label: '默认' },
-  { value: 'large', label: '大' }
+  { value: 'large', label: '大' },
+  { value: 'xlarge', label: '特大' }
 ]
 
 // 强调色预设（'' = 默认粉，由「默认」按钮处理）
