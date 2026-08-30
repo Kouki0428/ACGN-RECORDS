@@ -132,6 +132,7 @@ function onSpinEnd() {
         :key="item.to"
         :to="item.to"
         :title="item.label"
+        class="nav-link"
         :class="{ 'router-link-active': route.path === item.to }"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">

@@ -1,5 +1,6 @@
 import { ref, computed, nextTick } from 'vue'
 import type { SubjectCharacter } from '@shared/types'
+import { playPop } from '@/utils/uiSound'
 
 /** 实体/作品卡片类型：角色 / 人物（CV） / 作品 / 单集评论 / 标签作品列表 / 讨论板 */
 export type CardKind = 'character' | 'person' | 'subject' | 'episode' | 'tag' | 'topic'
@@ -59,6 +60,7 @@ export function useEntityCard() {
      * 从外部（详情页 / 搜索结果 / 角色卡出演作品）打开：重置历史为单条。
      */
     open: (kind: CardKind, id: number, siblings: SubjectCharacter[] = []) => {
+      playPop()
       instantOpen.value = false
       navDir.value = 'forward'
       const s = { kind, id, siblings }
@@ -71,6 +73,7 @@ export function useEntityCard() {
      * 标签本身无 Bangumi id，固定 0。
      */
     openTag: (tag: string) => {
+      playPop()
       instantOpen.value = false
       navDir.value = 'forward'
       const s = { kind: 'tag', id: 0, siblings: [], tag } as CardState
@@ -85,6 +88,7 @@ export function useEntityCard() {
      * 挂载后由 EntitySubjectCard 复位 instantOpen，故仅影响本次进入。
      */
     openInstant: (kind: CardKind, id: number, siblings: SubjectCharacter[] = []) => {
+      playPop()
       instantOpen.value = true
       navDir.value = 'forward'
       const s = { kind, id, siblings }
@@ -106,6 +110,7 @@ export function useEntityCard() {
     push: (kind: CardKind, id: number, siblings: SubjectCharacter[] = []) => {
       // 与栈顶相同则忽略（避免重复压入自己）
       if (idx.value >= 0 && stack[idx.value] && stack[idx.value].kind === kind && stack[idx.value].id === id) return
+      playPop()
       navDir.value = 'forward'
       const s = { kind, id, siblings }
       stack = stack.slice(0, idx.value + 1)

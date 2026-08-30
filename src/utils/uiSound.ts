@@ -85,7 +85,7 @@ export function installClickSound() {
 function onDocClick(e: MouseEvent) {
   const target = e.target as Element | null
   const el = target?.closest?.(
-    '[data-sound], .back-btn, .btn, .seg-item, .tc-page-btn, .card, .tc-item'
+    '[data-sound], .back-btn, .btn, .seg-item, .tc-page-btn, .sg-card, .collapse-btn, .nav-search, .nav-link, .nav-gear, .nav-sync, .sp-btn'
   )
   if (!el) return
   const ds = el.getAttribute?.('data-sound')
@@ -93,7 +93,9 @@ function onDocClick(e: MouseEvent) {
     play(ds)
     return
   }
-  if (el.classList.contains('back-btn')) {
+  if (el.classList.contains('nav-search')) {
+    playPop()
+  } else if (el.classList.contains('back-btn')) {
     playClose()
   } else if (
     el.classList.contains('btn--primary') ||
@@ -101,8 +103,6 @@ function onDocClick(e: MouseEvent) {
     el.classList.contains('btn--danger')
   ) {
     playConfirm()
-  } else if (el.classList.contains('card') || el.classList.contains('tc-item')) {
-    playPop()
   } else {
     playClick()
   }
