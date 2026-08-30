@@ -102,8 +102,8 @@ export const useSettingsStore = defineStore('settings', () => {
   // 圆角档位（仅本机存储）：无 / 小 / 默认 / 大；写入 <html data-radius>，
   // 由 main.css 覆盖全局 --radius / --radius-sm。默认 默认（=基线，不加属性也行）
   const cornerRadius = ref<'none' | 'small' | 'default' | 'large'>('default')
-  // 界面操作音效总开关（如开关切换的咔嗒声），默认开启
-  const uiSound = ref(true)
+  // 界面操作音效总开关（如开关切换的咔嗒声），默认关闭
+  const uiSound = ref(false)
 
   async function load() {
     if (initialized) return
