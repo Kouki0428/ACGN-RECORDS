@@ -11,6 +11,7 @@ import { applyTheme, type ThemePref } from '@/theme'
 import { applyUiScale } from '@/scale'
 import type { ArchiveMeta, ArchiveProgress, CacheStats, NetworkStatsResult } from '@shared/types'
 import { CHANGELOG } from '@/constants/changelog'
+import ToggleSwitch from '@/components/ToggleSwitch.vue'
 
 const auth = useAuthStore()
 const settings = useSettingsStore()
@@ -794,11 +795,11 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
 
       <hr class="divider" />
       <label class="progress-editor">
-        <input type="checkbox" :checked="settings.autoSync" @change="toggleAutoSync" />
+        <ToggleSwitch :model-value="settings.autoSync" @update:model-value="toggleAutoSync" />
         自动同步进度到 Bangumi（每天）
       </label>
       <label class="progress-editor">
-        <input type="checkbox" :checked="settings.autoFullPull" @change="toggleAutoFullPull" />
+        <ToggleSwitch :model-value="settings.autoFullPull" @update:model-value="toggleAutoFullPull" />
         自动全量拉取从 Bangumi（每月）
       </label>
     </section>
@@ -1076,19 +1077,19 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
 
       <hr class="divider" />
       <label class="progress-editor">
-        <input type="checkbox" :checked="settings.detailBanner" @change="settings.set('detailBanner', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
+        <ToggleSwitch :model-value="settings.detailBanner" @update:model-value="(v: boolean) => settings.set('detailBanner', v ? '1' : '0')" />
         作品详情页封面横幅背景（模糊放大的封面作装饰）
       </label>
       <label class="progress-editor">
-        <input type="checkbox" :checked="settings.characterBanner" @change="settings.set('characterBanner', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
+        <ToggleSwitch :model-value="settings.characterBanner" @update:model-value="(v: boolean) => settings.set('characterBanner', v ? '1' : '0')" />
         人物详情卡横幅背景（角色/CV 模糊放大的立绘作装饰）
       </label>
       <label class="progress-editor">
-        <input type="checkbox" :checked="settings.anchorBarEnabled" @change="settings.set('anchorBarEnabled', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
+        <ToggleSwitch :model-value="settings.anchorBarEnabled" @update:model-value="(v: boolean) => settings.set('anchorBarEnabled', v ? '1' : '0')" />
         快捷跳转栏（详情页与作品悬浮窗顶部的锚点导航）
       </label>
       <label class="progress-editor">
-        <input type="checkbox" :checked="settings.immersiveGlow" @change="settings.set('immersiveGlow', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
+        <ToggleSwitch :model-value="settings.immersiveGlow" @update:model-value="(v: boolean) => settings.set('immersiveGlow', v ? '1' : '0')" />
         沉浸光感
       </label>
     </section>
@@ -1098,31 +1099,31 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
       <h2>作品栏区块</h2>
       <p class="hint" style="margin: 0 0 6px">控制详情页与悬浮窗中各区块的显示。</p>
       <label class="progress-editor">
-        <input type="checkbox" :checked="settings.showCharacters" @change="settings.set('showCharacters', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
+        <ToggleSwitch :model-value="settings.showCharacters" @update:model-value="(v: boolean) => settings.set('showCharacters', v ? '1' : '0')" />
         角色
       </label>
       <label class="progress-editor">
-        <input type="checkbox" :checked="settings.showVolumes" @change="settings.set('showVolumes', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
+        <ToggleSwitch :model-value="settings.showVolumes" @update:model-value="(v: boolean) => settings.set('showVolumes', v ? '1' : '0')" />
         单行本
       </label>
       <label class="progress-editor">
-        <input type="checkbox" :checked="settings.showRelations" @change="settings.set('showRelations', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
+        <ToggleSwitch :model-value="settings.showRelations" @update:model-value="(v: boolean) => settings.set('showRelations', v ? '1' : '0')" />
         关联条目
       </label>
       <label class="progress-editor">
-        <input type="checkbox" :checked="settings.showTopics" @change="settings.set('showTopics', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
+        <ToggleSwitch :model-value="settings.showTopics" @update:model-value="(v: boolean) => settings.set('showTopics', v ? '1' : '0')" />
         讨论版
       </label>
       <label class="progress-editor">
-        <input type="checkbox" :checked="settings.showTucao" @change="settings.set('showTucao', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
+        <ToggleSwitch :model-value="settings.showTucao" @update:model-value="(v: boolean) => settings.set('showTucao', v ? '1' : '0')" />
         吐槽箱
       </label>
       <label class="progress-editor">
-        <input type="checkbox" :checked="settings.showGallery" @change="settings.set('showGallery', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
+        <ToggleSwitch :model-value="settings.showGallery" @update:model-value="(v: boolean) => settings.set('showGallery', v ? '1' : '0')" />
         游戏画廊（仅 Galgame）
       </label>
       <label class="progress-editor">
-        <input type="checkbox" :checked="settings.showPurchase" @change="settings.set('showPurchase', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
+        <ToggleSwitch :model-value="settings.showPurchase" @update:model-value="(v: boolean) => settings.set('showPurchase', v ? '1' : '0')" />
         购买信息（仅 Galgame）
       </label>
     </section>
@@ -1131,7 +1132,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
     <section class="panel">
       <h2>性能</h2>
       <label class="progress-editor">
-        <input type="checkbox" :checked="gpuLocal" @change="toggleGpu" />
+        <ToggleSwitch :model-value="gpuLocal" @update:model-value="toggleGpu" />
         启用 GPU 硬件加速
       </label>
       <p class="hint">
@@ -1149,7 +1150,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
       <p class="hint">控制主页 / 长列表卡片在窗口缩放、侧栏收起导致列数变化时的重排过渡。</p>
       <div class="anim-control">
         <label class="progress-editor">
-          <input type="checkbox" :checked="settings.gridAnimEnabled" @change="toggleGridAnim" />
+          <ToggleSwitch :model-value="settings.gridAnimEnabled" @update:model-value="toggleGridAnim" />
           卡片重排动画（窗口缩放 / 侧栏收起导致列数变化时）
         </label>
         <div class="scale-control" :class="{ disabled: !settings.gridAnimEnabled }">
@@ -1189,7 +1190,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
       </p>
 
       <label class="progress-editor">
-        <input type="checkbox" :checked="settings.archiveAutoUpdate" @change="toggleArchiveAutoUpdate" />
+        <ToggleSwitch :model-value="settings.archiveAutoUpdate" @update:model-value="toggleArchiveAutoUpdate" />
         每 30 天自动更新离线数据库
       </label>
 
@@ -1265,7 +1266,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
       <p v-else class="hint">正在统计缓存…</p>
 
       <label class="progress-editor" style="margin-top: 14px">
-        <input type="checkbox" :checked="settings.autoCacheClean" @change="toggleAutoCacheClean" />
+        <ToggleSwitch :model-value="settings.autoCacheClean" @update:model-value="toggleAutoCacheClean" />
         自动清理过期缓存（每月，删除半年未更新的辅助缓存）
       </label>
       <p class="hint">
@@ -1368,7 +1369,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
       <!-- 关闭行为 -->
       <hr class="divider" />
       <label class="progress-editor">
-        <input type="checkbox" :checked="settings.closeBehavior === 'minimize'" @change="settings.set('closeBehavior', ($event.target as HTMLInputElement).checked ? 'minimize' : 'exit')" />
+        <ToggleSwitch :model-value="settings.closeBehavior === 'minimize'" @update:model-value="(v: boolean) => settings.set('closeBehavior', v ? 'minimize' : 'exit')" />
         关闭按钮最小化到托盘（后台同步继续；从托盘菜单可真正退出）
       </label>
     </section>
