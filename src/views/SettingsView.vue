@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue'
+import { onMounted, onBeforeUnmount, ref, computed, watch, type Directive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useSettingsStore } from '@/stores/settings'
@@ -338,6 +338,40 @@ const themeOptions: { value: ThemePref; label: string }[] = [
   { value: 'system', label: '跟随系统' },
   { value: 'scheduled', label: '定时' }
 ]
+
+// 选择栏选中背景滑动动画：给 .seg 容器挂 v-seg-thumb，
+// 在容器内注入一个绝对定位的滑块背景，切换选中项时平滑移动到新项（支持跨行）。
+const vSegThumb: Directive<HTMLElement> = {
+  mounted(el) {
+    const thumb = document.createElement('span')
+    thumb.className = 'seg-thumb'
+    el.appendChild(thumb)
+    ;(el as HTMLElement & { __segThumb?: HTMLElement }).__segThumb = thumb
+    // 首次定位不播放过渡（避免页面打开时从左上角滑过来）
+    thumb.style.transition = 'none'
+    syncSegThumb(el)
+    void thumb.offsetWidth
+    thumb.style.transition = ''
+  },
+  updated(el) {
+    syncSegThumb(el)
+  }
+}
+function syncSegThumb(seg: HTMLElement) {
+  const thumb = (seg as HTMLElement & { __segThumb?: HTMLElement }).__segThumb
+  if (!thumb) return
+  const active = seg.querySelector<HTMLElement>('.seg-item.active')
+  if (!active) {
+    thumb.style.opacity = '0'
+    return
+  }
+  const segRect = seg.getBoundingClientRect()
+  const r = active.getBoundingClientRect()
+  thumb.style.opacity = '1'
+  thumb.style.width = `${r.width}px`
+  thumb.style.height = `${r.height}px`
+  thumb.style.transform = `translate(${r.left - segRect.left}px, ${r.top - segRect.top}px)`
+}
 
 // 深色风格预设（深色主题下的皮肤）
 const darkPresets = [
@@ -889,7 +923,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
     <section class="panel">
       <h2>主题与色彩</h2>
       <p class="hint">选择界面主题。“跟随系统”随操作系统自动切换；“定时”按下方时段自动切换。</p>
-      <div class="seg">
+      <div class="seg" v-seg-thumb>
         <button
           v-for="opt in themeOptions"
           :key="opt.value"
@@ -917,7 +951,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
       <!-- 主题风格预设（深/浅各自一套，切换主题时分别生效） -->
       <hr class="divider" />
       <p class="hint">深色风格——切换到深色主题时的外观。</p>
-      <div class="seg">
+      <div class="seg" v-seg-thumb>
         <button
           v-for="p in darkPresets"
           :key="p.value"
@@ -930,7 +964,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         </button>
       </div>
       <p class="hint" style="margin-top: 12px">浅色风格——切换到浅色主题时的外观。</p>
-      <div class="seg">
+      <div class="seg" v-seg-thumb>
         <button
           v-for="p in lightPresets"
           :key="p.value"
@@ -1018,7 +1052,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
       <p class="hint">界面整体缩放与详情页装饰元素。</p>
       <hr class="divider" />
       <p class="hint">圆角：控制卡片、面板、按钮等圆角大小（胶囊 / 圆形不受影响）。</p>
-      <div class="seg">
+      <div class="seg" v-seg-thumb>
         <button
           v-for="r in radiusOptions"
           :key="r.value"
@@ -1045,7 +1079,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
           :style="{ '--pct': rangePct(Math.round(uiScaleLocal * 100), 50, 200) }"
           @input="onScaleInput"
         />
-        <div class="seg scale-presets">
+        <div class="seg scale-presets" v-seg-thumb>
           <button
             v-for="p in scalePresets"
             :key="p"
@@ -1076,7 +1110,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
           :style="{ '--pct': rangePct(Math.round(cardSizeLocal * 100), 75, 150) }"
           @input="onCardSizeInput"
         />
-        <div class="seg scale-presets">
+        <div class="seg scale-presets" v-seg-thumb>
           <button
             v-for="p in cardSizePresets"
             :key="p"
@@ -1523,6 +1557,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
   font-size: 13px;
 }
 .seg {
+  position: relative;
   display: inline-flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -1531,7 +1566,28 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
   background: var(--bg-elev);
   border-radius: var(--radius-sm);
 }
+/* 选中背景滑块：v-seg-thumb 指令注入，absolute 跟随 active 项位置，切换时平滑滑动 */
+.seg-thumb {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  box-shadow: var(--shadow-soft);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+  transition:
+    transform 0.28s cubic-bezier(0.2, 0.8, 0.3, 1),
+    width 0.28s cubic-bezier(0.2, 0.8, 0.3, 1),
+    height 0.28s cubic-bezier(0.2, 0.8, 0.3, 1),
+    opacity 0.2s ease;
+}
 .seg-item {
+  position: relative;
+  z-index: 1;
   padding: 7px 16px;
   border: none;
   background: transparent;
@@ -1539,15 +1595,14 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
   font-size: 13px;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: color 0.15s;
 }
 .seg-item:hover {
   color: var(--text);
 }
 .seg-item.active {
-  background: var(--accent);
+  background: transparent;
   color: #fff;
-  box-shadow: var(--shadow-soft);
 }
 .scale-control {
   margin-top: 14px;
