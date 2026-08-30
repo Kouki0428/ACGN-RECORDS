@@ -73,16 +73,18 @@ export async function loadSubjectMeta(subject: any): Promise<{
       const mergedMeta = meta && meta.length ? meta : arc.meta
       const mergedMetaTags = metaTags && metaTags.length ? metaTags : arc.metaTags
       const mergedRating = rating != null ? rating : arc.rating
+      const nsfw = subject?.nsfw ? true : !!arc.nsfw
       // 写回本地 subjects 列：下次 detailLocal（首屏）即可直接读到，无需重复读 Archive / 联网
       try {
         const db = await getDb()
         db.prepare(
-          'UPDATE subjects SET tags = ?, infobox = ?, meta_tags = ?, rating = ? WHERE id = ?'
+          'UPDATE subjects SET tags = ?, infobox = ?, meta_tags = ?, rating = ?, nsfw = ? WHERE id = ?'
         ).run(
           JSON.stringify(mergedTags ?? []),
           JSON.stringify(mergedMeta ?? []),
           JSON.stringify(mergedMetaTags ?? []),
           mergedRating ?? null,
+          nsfw ? 1 : 0,
           subject.id
         )
       } catch (e) {
@@ -129,12 +131,14 @@ export async function refreshSubjectMeta(
     const parsed = parseSubjectMeta(detail)
     const bgmRating = typeof detail?.rating?.score === 'number' ? detail.rating.score : null
     const mergedRating = bgmRating ?? subject.rating ?? null
+    const nsfw = subject?.nsfw ? true : !!detail?.nsfw
     const db = await getDb()
-    db.prepare('UPDATE subjects SET tags = ?, infobox = ?, meta_tags = ?, rating = ? WHERE id = ?').run(
+    db.prepare('UPDATE subjects SET tags = ?, infobox = ?, meta_tags = ?, rating = ?, nsfw = ? WHERE id = ?').run(
       JSON.stringify(parsed.tags),
       JSON.stringify(parsed.meta),
       JSON.stringify(parsed.metaTags ?? []),
       mergedRating,
+      nsfw ? 1 : 0,
       subject.id
     )
 

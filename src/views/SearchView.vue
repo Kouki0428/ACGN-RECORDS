@@ -6,7 +6,9 @@ import { animeClient } from '@/services/animeClient'
 import { collectionClient } from '@/services/collectionClient'
 import type { Subject, Category, SearchQuery, SearchResultItem } from '@shared/types'
 import CoverImage from '@/components/CoverImage.vue'
+import { useSettingsStore } from '@/stores/settings'
 
+const settings = useSettingsStore()
 const route = useRoute()
 const router = useRouter()
 
@@ -89,7 +91,7 @@ async function add(subject: Subject) {
 
     <div v-else class="grid">
       <div v-for="s in results" :key="s.provider + ':' + s.providerSubjectId" class="card">
-        <CoverImage :src="s.imageUrl" :alt="s.title" class="card-cover" />
+        <CoverImage :src="s.imageUrl" :alt="s.title" class="card-cover" :class="{ 'cover-blur': !settings.showNsfw && s.nsfw }" />
         <div class="title">{{ s.titleCn || s.title }}</div>
         <span class="cat-badge" :class="'cat-' + s.category">{{ CAT_LABELS[s.category] }}</span>
         <button

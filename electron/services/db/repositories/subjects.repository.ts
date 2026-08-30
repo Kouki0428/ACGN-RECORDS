@@ -12,15 +12,17 @@ export async function upsertSubject(subject: Subject): Promise<void> {
   const tagsJson = subject.tags ? JSON.stringify(subject.tags) : null
   const metaJson = subject.meta ? JSON.stringify(subject.meta) : null
   const seriesVal = subject.series === true ? 1 : subject.series === false ? 0 : null
+  const nsfwVal = subject.nsfw === true ? 1 : 0
   db.prepare(
     `INSERT INTO subjects
-       (provider, provider_subject_id, category, title, title_cn, summary, image_url, air_date, total_episodes, total_volumes, series, rating, raw_json, tags, infobox, updated_at)
-     VALUES (@provider, @providerSubjectId, @category, @title, @titleCn, @summary, @imageUrl, @airDate, @totalEpisodes, @totalVolumes, @series, @rating, @rawJson, @tags, @infobox, strftime('%s','now'))
+       (provider, provider_subject_id, category, title, title_cn, summary, image_url, air_date, total_episodes, total_volumes, series, rating, raw_json, tags, infobox, nsfw, updated_at)
+     VALUES (@provider, @providerSubjectId, @category, @title, @titleCn, @summary, @imageUrl, @airDate, @totalEpisodes, @totalVolumes, @series, @rating, @rawJson, @tags, @infobox, @nsfw, strftime('%s','now'))
      ON CONFLICT(provider, provider_subject_id) DO UPDATE SET
        title=excluded.title, title_cn=excluded.title_cn, summary=excluded.summary,
        image_url=excluded.image_url, air_date=excluded.air_date,
        total_episodes=excluded.total_episodes, total_volumes=excluded.total_volumes, series=excluded.series,
        rating=excluded.rating, raw_json=excluded.raw_json, tags=excluded.tags, infobox=excluded.infobox,
+       nsfw=excluded.nsfw,
        updated_at=strftime('%s','now')`
   ).run({
     provider: subject.provider,
@@ -37,7 +39,8 @@ export async function upsertSubject(subject: Subject): Promise<void> {
     rating: subject.rating ?? null,
     rawJson: null,
     tags: tagsJson,
-    infobox: metaJson
+    infobox: metaJson,
+    nsfw: nsfwVal
   })
 }
 
@@ -59,6 +62,7 @@ export async function importSubject(subject: Subject): Promise<number> {
   const db = await getDb()
   const tagsJson = subject.tags ? JSON.stringify(subject.tags) : null
   const metaJson = subject.meta ? JSON.stringify(subject.meta) : null
+  const nsfwVal = subject.nsfw === true ? 1 : 0
   const existing = db
     .prepare('SELECT id FROM subjects WHERE provider = ? AND provider_subject_id = ?')
     .get(subject.provider, subject.providerSubjectId) as { id: number } | undefined
@@ -67,7 +71,7 @@ export async function importSubject(subject: Subject): Promise<number> {
     db.prepare(
       `UPDATE subjects
        SET title=?, title_cn=?, summary=?, image_url=?, air_date=?,
-           total_episodes=?, total_volumes=?, series=?, rating=?, category=?, tags=?, infobox=?, updated_at=strftime('%s','now')
+           total_episodes=?, total_volumes=?, series=?, rating=?, category=?, tags=?, infobox=?, nsfw=?, updated_at=strftime('%s','now')
        WHERE id=?`
     ).run(
       subject.title,
@@ -82,6 +86,7 @@ export async function importSubject(subject: Subject): Promise<number> {
       subject.category,
       tagsJson,
       metaJson,
+      nsfwVal,
       existing.id
     )
     return existing.id
@@ -89,8 +94,8 @@ export async function importSubject(subject: Subject): Promise<number> {
   const res = db
     .prepare(
       `INSERT INTO subjects
-         (provider, provider_subject_id, category, title, title_cn, summary, image_url, air_date, total_episodes, total_volumes, series, rating, raw_json, tags, infobox, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, strftime('%s','now'))`
+         (provider, provider_subject_id, category, title, title_cn, summary, image_url, air_date, total_episodes, total_volumes, series, rating, raw_json, tags, infobox, nsfw, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, strftime('%s','now'))`
     )
     .run(
       subject.provider,
@@ -106,7 +111,8 @@ export async function importSubject(subject: Subject): Promise<number> {
       seriesVal,
       subject.rating ?? null,
       tagsJson,
-      metaJson
+      metaJson,
+      nsfwVal
     )
   return Number(res.lastInsertRowid)
 }

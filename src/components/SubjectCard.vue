@@ -488,7 +488,7 @@ async function load() {
         shownProviderId.value = id
         // 记录最近浏览（搜索浮层「最近打开」入口的数据源）：标题取中文优先
         const s = full.subject
-        if (s) pushRecentSubject(id, s.title_cn || s.title || '', s.image_url ?? null)
+        if (s) pushRecentSubject(id, s.title_cn || s.title || '', s.image_url ?? null, s.nsfw)
       }
       await scrollTopOnce()
       // 本地缺详情（detailLocal 为空）导致上面未提前加载进度/收藏时，此处补加载（仍本地，秒级）

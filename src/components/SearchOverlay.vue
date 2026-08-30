@@ -9,7 +9,9 @@ import { useSearchOverlay } from '@/composables/searchOverlay'
 import { useModalZ } from '@/composables/useModalZ'
 import { useEntityCard } from '@/composables/useEntityCard'
 import { useRecent } from '@/composables/useRecent'
+import { useSettingsStore } from '@/stores/settings'
 
+const settings = useSettingsStore()
 const auth = useAuthStore()
 // 未登录时不允许搜人物（v0 角色/人物检索需令牌，匿名返回空），显示登录入口而非模糊报错
 const personNeedsLogin = computed(() => domain.value === 'person' && !auth.status.loggedIn)
@@ -361,7 +363,7 @@ watch(isOpen, async (v) => {
                     :title="s.title"
                     @click="entity.openInstant('subject', s.id)"
                   >
-                    <img v-if="s.image" :src="proxyImg(s.image)" :alt="s.title" loading="lazy" />
+                    <img v-if="s.image" :src="proxyImg(s.image)" :class="{ 'cover-blur': !settings.showNsfw && s.nsfw }" :alt="s.title" loading="lazy" />
                     <span v-else class="recent-empty">无封面</span>
                     <span class="recent-title">{{ s.title }}</span>
                   </button>
@@ -377,7 +379,7 @@ watch(isOpen, async (v) => {
             <div v-for="r in pagedResults" :key="keyOf(r)" class="rcard" @click="onResultClick(r)">
               <template v-if="r.kind === 'subject'">
                 <div class="r-avatar">
-                  <img v-if="r.subject.imageUrl" :src="proxyImg(r.subject.imageUrl)" :alt="r.subject.title" />
+                  <img v-if="r.subject.imageUrl" :src="proxyImg(r.subject.imageUrl)" :class="{ 'cover-blur': !settings.showNsfw && r.subject.nsfw }" :alt="r.subject.title" />
                   <span v-else class="r-avatar--empty">无封面</span>
                 </div>
                 <div class="rtitle">{{ r.subject.titleCn || r.subject.title }}</div>

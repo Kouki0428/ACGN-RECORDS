@@ -14,6 +14,8 @@ export interface RecentSubject {
   title: string
   image: string | null
   at: number
+  /** 是否 R18（来源：打开该作品时 local detail 的 nsfw；旧记录可能缺失） */
+  nsfw?: boolean
 }
 
 function loadJson<T>(key: string, fallback: T): T {
@@ -59,10 +61,10 @@ function clearSearchHistory() {
 }
 
 /** 记录一次作品浏览（按 id 去重置顶，最多 MAX_SUBJECTS 部） */
-function pushRecentSubject(id: number, title: string, image: string | null) {
+function pushRecentSubject(id: number, title: string, image: string | null, nsfw?: boolean) {
   if (!Number.isFinite(id) || id <= 0) return
   const rest = recentSubjects.value.filter((x) => x.id !== id)
-  const next = [{ id, title, image: image ?? null, at: Date.now() }, ...rest].slice(0, MAX_SUBJECTS)
+  const next = [{ id, title, image: image ?? null, at: Date.now(), nsfw: !!nsfw }, ...rest].slice(0, MAX_SUBJECTS)
   recentSubjects.value = next
   saveJson(SUBJECT_KEY, next)
 }

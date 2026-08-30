@@ -267,12 +267,12 @@ function cleanWikiValue(v: string): string {
  */
 export async function getArchiveSubjectMeta(
   bangumiId: number
-): Promise<{ tags: SubjectTag[]; meta: SubjectMeta[]; rating: number | null; metaTags: string[] } | null> {
+): Promise<{ tags: SubjectTag[]; meta: SubjectMeta[]; rating: number | null; metaTags: string[]; nsfw: boolean } | null> {
   try {
     const db = await getArchiveDb()
     if (!tableExists(db, 'arc_subjects')) return null
     const row = db
-      .prepare('SELECT tags, infobox, score, meta_tags FROM arc_subjects WHERE id = ?')
+      .prepare('SELECT tags, infobox, score, meta_tags, nsfw FROM arc_subjects WHERE id = ?')
       .get(Number(bangumiId)) as any
     if (!row) return null
     const tags: SubjectTag[] = []
@@ -298,7 +298,7 @@ export async function getArchiveSubjectMeta(
     } catch {
       /* ignore */
     }
-    return { tags, meta, rating, metaTags }
+    return { tags, meta, rating, metaTags, nsfw: !!row.nsfw }
   } catch (e) {
     console.warn('[archive] getArchiveSubjectMeta 失败（忽略）：', e)
     return null

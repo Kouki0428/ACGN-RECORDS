@@ -1256,12 +1256,18 @@ body,
   display: block;
 }
 /* NSFW 封面模糊：设置「显示 NSFW」关闭时对 R18 作品封面打码（点击放大仍看原图）。
-   用更高优先级同时覆盖卡片的 hover 放大/提亮，避免悬停时模糊被顶掉。 */
+   用更高优先级同时覆盖卡片的 hover 放大/提亮，避免悬停时模糊被顶掉。
+   clip-path 圆角裁剪：把 blur 的溢出限制在封面圆角内（参考画廊容器的 overflow:hidden）。 */
 .cover-blur,
 .cover-blur:hover,
 .card:hover .card-cover.cover-blur,
 .card:hover .card-cover.cover-blur:hover {
   filter: blur(9px) brightness(0.7);
+  clip-path: inset(0 round var(--radius-sm));
+}
+.detail__poster.cover-blur,
+.detail__poster.cover-blur:hover {
+  clip-path: inset(0 round var(--radius));
 }
 /* 作品封面统一组件（CoverImage）在列表卡片里的尺寸类：有图 / 无封面占位共用 */
 .card-cover {

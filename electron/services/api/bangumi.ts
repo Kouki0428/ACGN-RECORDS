@@ -1157,7 +1157,8 @@ export function toSubject(raw: any, category: Category): Subject {
     rating,
     totalEpisodes: raw.eps ?? raw.total_episodes,
     totalVolumes: raw.volumes ?? raw.total_volumes,
-    series: typeof raw.series === 'boolean' ? raw.series : undefined
+    series: typeof raw.series === 'boolean' ? raw.series : undefined,
+    nsfw: !!raw.nsfw
   }
 }
 
