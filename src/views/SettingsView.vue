@@ -1524,6 +1524,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
 }
 .seg {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 6px;
   margin-top: 12px;
   padding: 4px;
