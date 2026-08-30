@@ -85,7 +85,7 @@ export function installClickSound() {
 function onDocClick(e: MouseEvent) {
   const target = e.target as Element | null
   const el = target?.closest?.(
-    '[data-sound], .back-btn, .btn, .seg-item, .tc-page-btn, .sg-card, .collapse-btn, .nav-search, .nav-link, .nav-gear, .nav-sync, .sp-btn'
+    '[data-sound], .back-btn, .btn, .seg-item, .tc-page-btn, .sg-card, .collapse-btn, .nav-search, .nav-link, .nav-gear, .nav-sync, .sp-btn, .close, .col-close, .ec-close, .ep-close, .gg-lb-close, .img-lightbox-close'
   )
   if (!el) return
   const ds = el.getAttribute?.('data-sound')
@@ -93,7 +93,16 @@ function onDocClick(e: MouseEvent) {
     play(ds)
     return
   }
-  if (el.classList.contains('nav-search')) {
+  if (
+    el.classList.contains('close') ||
+    el.classList.contains('col-close') ||
+    el.classList.contains('ec-close') ||
+    el.classList.contains('ep-close') ||
+    el.classList.contains('gg-lb-close') ||
+    el.classList.contains('img-lightbox-close')
+  ) {
+    playClose()
+  } else if (el.classList.contains('nav-search')) {
     playPop()
   } else if (el.classList.contains('back-btn')) {
     playClose()

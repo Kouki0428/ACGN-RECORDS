@@ -47,7 +47,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
 
 <template>
   <Transition name="overlay" :disabled="instantOpen">
-    <div v-if="isOpen" class="esc-overlay" :style="{ zIndex: z }" @click="close">
+    <div v-if="isOpen" class="esc-overlay" :style="{ zIndex: z }" data-sound="close" @click="close">
       <!-- 单一 overlay 容器内按 state.kind 切换 body：
            角色/CV(/null) → EntityCard；作品 → SubjectCard；单集评论 → EpisodeCommentModal。
            在同一条导航栈里 角色↔CV↔作品↔单集评论 互跳时，外层 overlay 始终不卸载，
