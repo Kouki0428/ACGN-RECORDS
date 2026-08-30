@@ -21,9 +21,9 @@ function getCtx(): AudioContext | null {
 }
 
 /** 播放一个短促柔和的「咔嗒」声；high=true 音调略高（用于开启），false 偏低（用于关闭）。
- *  设置中开启「静音」后不再发声。 */
+ *  设置中「音效」总开关关闭后不再发声。 */
 export function playToggleClick(high = true) {
-  if (useSettingsStore().muteUiSound) return
+  if (!useSettingsStore().uiSound) return
   const ac = getCtx()
   if (!ac) return
   try {

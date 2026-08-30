@@ -5,12 +5,14 @@ const props = defineProps<{
   modelValue: boolean
   disabled?: boolean
   ariaLabel?: string
+  /** 静默模式：自身不播切换音效，由调用方自行控制发声时机 */
+  silent?: boolean
 }>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
 
 function onToggle() {
   const next = !props.modelValue
-  playToggleClick(next)
+  if (!props.silent) playToggleClick(next)
   emit('update:modelValue', next)
 }
 </script>

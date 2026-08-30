@@ -325,10 +325,10 @@ async function toggleAutoCacheClean() {
   await settings.set('autoCacheClean', settings.autoCacheClean ? '0' : '1')
 }
 
-// 界面音效静音：await 落库后再决定是否播一声确认（开启静音这次不响，取消静音响一声）
-async function onToggleMute(v: boolean) {
-  await settings.set('muteUiSound', v ? '1' : '0')
-  if (!v) playToggleClick(true)
+// 音效总开关：开启（v=true）时播一声确认，关闭时静默（开关自身 init silent 不发声）
+async function onToggleSound(v: boolean) {
+  await settings.set('uiSound', v ? '1' : '0')
+  if (v) playToggleClick(true)
 }
 
 // ---------- 外观 / 主题 ----------
@@ -1107,10 +1107,6 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         <ToggleSwitch :model-value="settings.immersiveGlow" @update:model-value="(v: boolean) => settings.set('immersiveGlow', v ? '1' : '0')" />
         沉浸光感
       </label>
-      <label class="progress-editor">
-        <ToggleSwitch :model-value="settings.muteUiSound" @update:model-value="onToggleMute" />
-        静音（关闭界面操作音效）
-      </label>
     </section>
 
     <!-- 作品栏区块 -->
@@ -1195,6 +1191,16 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
           <p class="hint">左快右慢；关闭上方开关即瞬间重排、无过渡。</p>
         </div>
       </div>
+    </section>
+
+    <!-- 声音 -->
+    <section class="panel">
+      <h2>声音</h2>
+      <p class="hint">界面操作音效（如开关切换的咔嗒声）。</p>
+      <label class="progress-editor">
+        <ToggleSwitch :model-value="settings.uiSound" :silent="true" @update:model-value="onToggleSound" />
+        音效
+      </label>
     </section>
 
       </template>
