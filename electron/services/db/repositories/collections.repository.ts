@@ -75,12 +75,13 @@ export async function updateVolStatus(collectionId: number, volStatus: number): 
 }
 
 /** 仅本地更新已看集数（不标记 dirty，不触发同步）。Galgame 路线数用，进度纯本地。
- *  同样刷新 local_updated_at：路线数编辑也是一次「标记」，列表应随之置顶。 */
+ *  同样刷新 local_updated_at：路线数编辑也是一次「标记」，列表应随之置顶。
+ *  值未变化时不更新时间戳（避免 RouteEditor 挂载只读时把作品顶到最前）。 */
 export async function updateEpStatusLocal(collectionId: number, epStatus: number): Promise<void> {
   const db = await getDb()
   db.prepare(
-    'UPDATE collections SET ep_status = ?, local_updated_at = strftime(\'%s\',\'now\') WHERE id = ?'
-  ).run(epStatus, collectionId)
+    "UPDATE collections SET ep_status = ?, local_updated_at = strftime('%s','now') WHERE id = ? AND (ep_status IS NULL OR ep_status <> ?)"
+  ).run(epStatus, collectionId, epStatus)
 }
 
 /** 仅本地更新已读卷数（不标记 dirty，不触发同步）。同样刷新时间戳。 */

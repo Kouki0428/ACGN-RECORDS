@@ -57,6 +57,25 @@ const lb = ref<{ open: boolean; index: number }>({ open: false, index: 0 })
 const lbLoaded = ref(false)
 const lbUrl = computed(() => currentImages.value[lb.value.index]?.url ?? '')
 
+// ---------- 缩略图加载兜底 ----------
+// 记录「缩略图加载失败」的图片：key 为 img.url（原图）。失败时回退到真实图；
+// 真实图也失败则视为死链，显示占位块（避免破图空洞）。
+const thumbFailed = ref<Set<string>>(new Set())
+const imgDead = ref<Set<string>>(new Set())
+function onThumbError(img: GameGalleryImage) {
+  if (thumbFailed.value.has(img.url)) {
+    imgDead.value = new Set(imgDead.value).add(img.url) // 缩略图与原图都失败 → 死链
+    thumbFailed.value = new Set(thumbFailed.value)
+  } else if (img.thumb) {
+    thumbFailed.value = new Set(thumbFailed.value).add(img.url) // 缩略图失败 → 换原图重试
+  } else {
+    imgDead.value = new Set(imgDead.value).add(img.url) // 无缩略图且原图失败 → 死链
+  }
+}
+function thumbUrlOf(img: GameGalleryImage): string {
+  return thumbFailed.value.has(img.url) ? img.url : img.thumb || img.url
+}
+
 function open(i: number) {
   if (!currentImages.value.length) return
   lb.value = { open: true, index: i }
@@ -118,10 +137,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         v-for="(img, i) in currentImages"
         :key="i"
         class="gg-thumb"
-        :class="{ nsfw: img.nsfw && !showR18 }"
+        :class="{ nsfw: img.nsfw && !showR18, dead: imgDead.has(img.url) }"
         @click="open(i)"
       >
-        <img :src="img.thumb || img.url" :alt="img.caption" loading="lazy" />
+        <img v-if="imgDead.has(img.url)" src="" :alt="img.caption" class="gg-dead" />
+        <img v-else :src="thumbUrlOf(img)" :alt="img.caption" loading="lazy" @error="onThumbError(img)" />
         <div v-if="img.nsfw && !showR18" class="gg-mask">R18</div>
       </div>
     </div>

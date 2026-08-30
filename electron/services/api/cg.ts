@@ -20,6 +20,18 @@ const UA = VNDB_UA
 const STEAM_WORKER_BASE = 'https://bangumi-steam-gallery.ry.mk'
 const SOURCE_TIMEOUT_MS = 10000
 const DLSITE_IMAGE_TIMEOUT_MS = 4000
+/** 三源并装抓取的整体预算：任一源拖太久直接以「已拿到的」返回，避免画廊一直转圈 */
+const GALLERY_FETCH_BUDGET_MS = 15000
+/** DLsite 探测整体预算：逐张 HEAD 太慢时提前放弃，避免长时间转圈 */
+const DLSITE_PROBE_BUDGET_MS = 9000
+
+/** 给 Promise 加整体超时：超时返回 fallback（不 abort 底层请求，但上层不再等待） */
+function withBudget<T>(p: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), timeoutMs))
+  ])
+}
 
 // ---------- 从 URL 抽取各类 id（与组件正则一致） ----------
 
@@ -124,10 +136,13 @@ async function dlsiteImageExists(url: string): Promise<boolean> {
 }
 
 /** 仅探测样例 CG（_img_smp{n}），不含主封面图。
- *  顺序探测：先试 _img_smpa{n}，失败回退 _img_smp{n}；遇到连续缺失即停止（与组件一致）。 */
+ *  顺序探测：先试 _img_smpa{n}，失败回退 _img_smp{n}；遇到连续缺失即停止（与组件一致）。
+ *  受 DLSITE_PROBE_BUDGET_MS 整体时间预算约束：达到预算立刻返回已探测到的，避免长期转圈。 */
 async function probeDlsiteImages(id: string): Promise<GameGalleryImage[]> {
   const out: GameGalleryImage[] = []
+  const start = Date.now()
   for (let n = 1; n <= 20; n++) {
+    if (Date.now() - start > DLSITE_PROBE_BUDGET_MS) break
     let url = buildDlsiteImageUrl(id, `_img_smpa${n}.webp`)
     if (!(await dlsiteImageExists(url))) {
       url = buildDlsiteImageUrl(id, `_img_smp${n}.webp`)
@@ -293,13 +308,21 @@ export async function getGalleryForSubject(
   let steamId = links.steam || (localId != null ? await getExt(localId, 'steam') : null)
 
   if (!vndbId && (subj?.title || subj?.title_cn)) {
-    // VNDB 标题多为原名（日文/英文），优先用原名，其次中文名，提高命中率
+    // VNDB 标题多为原名（日文/英文），优先用原名，其次中文名，提高命中率。
+    // 只采用「精确命中」（title / alttitle 与候选完全一致）的结果，错配不再串到别的游戏；
+    // 无精确命中则跳过（不落首条模糊结果，避免把错误 id 固化进外链）。
     const candidates = [subj?.title, subj?.title_cn].filter(Boolean) as string[]
     for (const q of candidates) {
       try {
         const hits = await searchVndb(q, vndbToken)
-        if (hits.length) {
-          vndbId = String(hits[0].id)
+        const ql = q.toLowerCase()
+        const exact = hits.find((h: any) => {
+          const t = String(h?.title ?? '').toLowerCase()
+          const a = String(h?.alttitle ?? '').toLowerCase()
+          return t === ql || a === ql
+        })
+        if (exact != null) {
+          vndbId = String(exact.id)
           if (localId != null) await saveExternalLink(localId, 'vndb', vndbId)
           break
         }
@@ -311,26 +334,32 @@ export async function getGalleryForSubject(
   if (!dlsiteId && title) {
     const id = await searchDlsiteByTitle(title)
     if (id) {
+      // 标题兜底检索结果仅当次使用，不持久化——避免误配的外链被固化后每次串图
       dlsiteId = id
-      if (localId != null) await saveExternalLink(localId, 'dlsite', id)
     }
   }
   if (!steamId && title) {
     const id = await searchSteamByTitle(title)
     if (id) {
+      // 同上：标题兜底仅当次，不持久化
       steamId = id
-      if (localId != null) await saveExternalLink(localId, 'steam', id)
     }
   }
 
-  // 3) 并行抓取三个来源（各自容错，单源失败不影响其它）
-  const [vndb, dlsite, steam] = await Promise.all([
-    vndbId
-      ? fetchVndbScreenshots(vndbId, vndbToken)
-      : Promise.resolve({ images: [] as GameGalleryImage[], rating: undefined, ratingCount: undefined }),
-    dlsiteId ? probeDlsiteImages(dlsiteId) : Promise.resolve([] as GameGalleryImage[]),
-    steamId ? fetchSteamScreenshots(steamId) : Promise.resolve([] as GameGalleryImage[])
-  ])
+  // 3) 并行抓取三个来源（各自容错，单源失败不影响其它；整体受 GALLERY_FETCH_BUDGET_MS 预算约束，
+  //    任一向拖太久时直接以「已拿到的」返回，避免画廊长期转圈）
+  const emptyVndb = Promise.resolve({ images: [] as GameGalleryImage[], rating: undefined, ratingCount: undefined })
+  const [vndb, dlsite, steam] = await withBudget(
+    Promise.all([
+      vndbId
+        ? fetchVndbScreenshots(vndbId, vndbToken)
+        : emptyVndb,
+      dlsiteId ? probeDlsiteImages(dlsiteId) : Promise.resolve([] as GameGalleryImage[]),
+      steamId ? fetchSteamScreenshots(steamId) : Promise.resolve([] as GameGalleryImage[])
+    ]),
+    GALLERY_FETCH_BUDGET_MS,
+    [{ images: [] as GameGalleryImage[], rating: undefined, ratingCount: undefined }, [] as GameGalleryImage[], [] as GameGalleryImage[]]
+  )
 
   // 写回 VNDB 评分（Galgame 区展示 + 离线缓存），仅当有值时更新
   if (vndb.rating != null && localId != null) {
