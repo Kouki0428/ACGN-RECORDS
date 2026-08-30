@@ -133,6 +133,9 @@ async function add(subject: Subject) {
 async function openDetail(subjectId: number) {
   // 新导航使「前进」历史失效
   lastDetail.value = null
+  // 立即清空画廊（含在途结果的丢弃依据），避免切作品时闪现上一个作品的画廊
+  gallery.value = null
+  galleryNote.value = ''
   // 本地优先：立即展示已缓存的评分/标签/制作信息（不等待联网）
   const local = await collectionClient.detailLocal(subjectId)
   selected.value = local
@@ -167,13 +170,18 @@ async function openDetail(subjectId: number) {
   }
 }
 
-/** 加载游戏画廊：force=true 时重新联网抓取（从 Bangumi infobox 取 VNDB/DLsite/Steam 真实外链） */
+/** 加载游戏画廊：force=true 时重新联网抓取（从 Bangumi infobox 取 VNDB/DLsite/Steam 真实外链）。
+ *  带竞态守卫：请求发出后若目标作品 id 已切换则丢弃结果，避免旧作品画廊覆盖新作品。 */
 async function loadGallery(force: boolean) {
-  if (!selected.value?.subject?.provider_subject_id) return
+  const pid = selected.value?.subject?.provider_subject_id
+  if (!pid) return
   galleryLoading.value = true
   galleryNote.value = ''
   try {
-    gallery.value = await apiClient.gallery(selected.value.subject.provider_subject_id, force)
+    const g = await apiClient.gallery(pid, force)
+    // 竞态守卫：异步返回时若已切到别的作品，丢弃本次结果（openDetail 已清空 gallery）
+    if (selected.value?.subject?.provider_subject_id !== pid) return
+    gallery.value = g
     const total =
       (gallery.value?.vndb.length ?? 0) +
       (gallery.value?.dlsite.length ?? 0) +
@@ -182,9 +190,10 @@ async function loadGallery(force: boolean) {
       galleryNote.value = '该作暂无可显示的 CG / 截图（可能未在 Bangumi 维基登记对应外链）。'
     }
   } catch (e) {
+    if (selected.value?.subject?.provider_subject_id !== pid) return
     galleryNote.value = '抓取失败：' + (e instanceof Error ? e.message : String(e))
   } finally {
-    galleryLoading.value = false
+    if (selected.value?.subject?.provider_subject_id === pid) galleryLoading.value = false
   }
 }
 

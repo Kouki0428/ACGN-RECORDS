@@ -5,6 +5,7 @@ import { setSubjectVndbRating, findCached } from '../db/repositories/subjects.re
 import { getSetting } from '../db/repositories/settings.repository'
 import { getVnScreenshots, searchVndb, VNDB_UA } from './vndb'
 import { getSubjectDetail } from './bangumi'
+import { getArchiveRawInfo } from '../archive/archive.service'
 
 const UA = VNDB_UA
 
@@ -84,6 +85,25 @@ export function parseBangumiInfoboxLinks(infobox: any): {
   return { vndb, dlsite, steam }
 }
 
+/** 从任意文本（如离线 Archive 的 raw infobox 或网页 HTML）提取 VNDB / DLsite / Steam 外链。
+ *  对齐网页插件「扫描 infobox 内 href 链接」的做法，作为在线解析失败的离线兜底。 */
+export function parseLinksFromText(text: string): {
+  vndb: string | null
+  dlsite: string | null
+  steam: string | null
+} {
+  const out = { vndb: null as string | null, dlsite: null as string | null, steam: null as string | null }
+  if (!text) return out
+  const urls = text.match(/https?:\/\/[^\s"'<>\]\[|\\]+/gi) ?? []
+  for (const u of urls) {
+    if (!out.vndb) out.vndb = extractVndbId(u)
+    if (!out.dlsite) out.dlsite = extractDlsiteId(u)
+    if (!out.steam) out.steam = extractSteamAppId(u)
+    if (out.vndb && out.dlsite && out.steam) break
+  }
+  return out
+}
+
 // ---------- VNDB 截图（主力图源） ----------
 
 async function fetchVndbScreenshots(
@@ -91,7 +111,11 @@ async function fetchVndbScreenshots(
   token?: string
 ): Promise<{ images: GameGalleryImage[]; rating?: number; ratingCount?: number }> {
   try {
-    const { shots, rating, ratingCount } = await getVnScreenshots(vndbId, token)
+    const { shots, rating, ratingCount } = await withBudget(
+      getVnScreenshots(vndbId, token),
+      SOURCE_TIMEOUT_MS,
+      { shots: [], rating: undefined, ratingCount: undefined }
+    )
     return {
       images: shots.map((s) => ({ url: s.url, thumb: s.thumb, caption: 'CG', nsfw: s.nsfw })),
       rating,
@@ -135,12 +159,16 @@ async function dlsiteImageExists(url: string): Promise<boolean> {
   }
 }
 
-/** 仅探测样例 CG（_img_smp{n}），不含主封面图。
- *  顺序探测：先试 _img_smpa{n}，失败回退 _img_smp{n}；遇到连续缺失即停止（与组件一致）。
+/** 仅探测样例 CG（_img_smp{n}）+ 主封面（_img_main）。
+ *  （参考网页插件：先探测主封面 _img_main，再顺序试 _img_smpa{n}/_img_smp{n}，连续缺失即停止。）
  *  受 DLSITE_PROBE_BUDGET_MS 整体时间预算约束：达到预算立刻返回已探测到的，避免长期转圈。 */
 async function probeDlsiteImages(id: string): Promise<GameGalleryImage[]> {
   const out: GameGalleryImage[] = []
   const start = Date.now()
+  // ① 主封面图（插件第一张即 _img_main；仅商店样例图缺失时也能拿到封面）
+  const mainUrl = buildDlsiteImageUrl(id, '_img_main.webp')
+  if (await dlsiteImageExists(mainUrl)) out.push({ url: mainUrl, caption: 'CG' })
+  // ② 样例图顺序探测（_img_smpa{n} / _img_smp{n}，连续缺失即停止）
   for (let n = 1; n <= 20; n++) {
     if (Date.now() - start > DLSITE_PROBE_BUDGET_MS) break
     let url = buildDlsiteImageUrl(id, `_img_smpa${n}.webp`)
@@ -198,9 +226,15 @@ async function fetchSteamAppDetails(appId: string): Promise<GameGalleryImage[]> 
 }
 
 async function fetchSteamScreenshots(appId: string): Promise<GameGalleryImage[]> {
-  const viaWorker = await fetchSteamViaWorker(appId)
-  if (viaWorker && viaWorker.length) return viaWorker
-  return fetchSteamAppDetails(appId)
+  return withBudget(
+    (async () => {
+      const viaWorker = await fetchSteamViaWorker(appId)
+      if (viaWorker && viaWorker.length) return viaWorker
+      return fetchSteamAppDetails(appId)
+    })(),
+    SOURCE_TIMEOUT_MS,
+    [] as GameGalleryImage[]
+  )
 }
 
 // ---------- 标题兜底检索（外链缺失时尽量补全） ----------
@@ -300,6 +334,24 @@ export async function getGalleryForSubject(
     }
   } catch (e) {
     console.warn('[cg] 解析 Bangumi infobox 外链失败（回退已有/检索）：', e)
+  }
+  // 在线 infobox 未取到（限流/网络/无外链）→ 离线 Archive raw infobox 兜底：
+  // 与网页插件「直接读页面 infobox 里的链接」等价，避免离线/限流时整栏抓取不到。
+  if (!links.vndb && !links.dlsite && !links.steam) {
+    try {
+      const raw = await getArchiveRawInfo(Number(providerId))
+      const offline = parseLinksFromText(raw ?? '')
+      if (offline.vndb || offline.dlsite || offline.steam) {
+        links = { ...links, ...offline }
+        if (localId != null) {
+          if (links.vndb) await saveExternalLink(localId, 'vndb', links.vndb)
+          if (links.dlsite) await saveExternalLink(localId, 'dlsite', links.dlsite)
+          if (links.steam) await saveExternalLink(localId, 'steam', links.steam)
+        }
+      }
+    } catch (e) {
+      console.warn('[cg] 离线 Archive infobox 外链提取失败（忽略）：', e)
+    }
   }
 
   // 2) 缺失的来源：先用已存外链，再按标题兜底检索

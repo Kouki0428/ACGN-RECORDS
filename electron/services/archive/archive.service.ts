@@ -305,6 +305,21 @@ export async function getArchiveSubjectMeta(
   }
 }
 
+/** 取离线 Archive 原始 infobox 文本（wiki 源码），供画廊等场景离线提取外链兜底。无记录返回 null。 */
+export async function getArchiveRawInfo(bangumiId: number): Promise<string | null> {
+  try {
+    const db = await getArchiveDb()
+    if (!tableExists(db, 'arc_subjects')) return null
+    const row = db
+      .prepare('SELECT infobox FROM arc_subjects WHERE id = ?')
+      .get(Number(bangumiId)) as { infobox?: string | null } | undefined
+    return row?.infobox ? String(row.infobox) : null
+  } catch (e) {
+    console.warn('[archive] getArchiveRawInfo 失败（忽略）：', e)
+    return null
+  }
+}
+
 function addColumnIfMissing(db: any, table: string, column: string, type: string): void {
   const info = db.prepare(`PRAGMA table_info(${table})`).all() as any[]
   if (!info.some((c: any) => c.name === column)) {
