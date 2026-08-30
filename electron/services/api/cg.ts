@@ -325,7 +325,8 @@ export async function getGalleryForSubject(
   // 1) 优先从 Bangumi 条目 infobox 取真实外链（对齐组件）
   let links = { vndb: null as string | null, dlsite: null as string | null, steam: null as string | null }
   try {
-    const detail = await getSubjectDetail(providerId)
+    // bgm api 不可达时 safeFetch 会逐策略等待，这里再加 10s 预算，避免画廊被卡住几十秒才降级
+    const detail = await withBudget(getSubjectDetail(providerId), SOURCE_TIMEOUT_MS, null as any)
     links = parseBangumiInfoboxLinks(detail?.infobox)
     if (localId != null) {
       if (links.vndb) await saveExternalLink(localId, 'vndb', links.vndb)
@@ -361,12 +362,14 @@ export async function getGalleryForSubject(
 
   if (!vndbId && (subj?.title || subj?.title_cn)) {
     // VNDB 标题多为原名（日文/英文），优先用原名，其次中文名，提高命中率。
-    // 只采用「精确命中」（title / alttitle 与候选完全一致）的结果，错配不再串到别的游戏；
-    // 无精确命中则跳过（不落首条模糊结果，避免把错误 id 固化进外链）。
+    // - 精确命中（title / alttitle 与候选完全一致）→ 可信，持久化外链（防串图固化）；
+    // - 未精确命中 → 用首个结果的 id「仅当次使用、不持久化」，保证中文译名作品也能出 CG；
+    //   （此前只允许精确命中，导致“变态监狱/超次元恋人”这类译名对不上 VNDB 原名的作品整栏空白）
     const candidates = [subj?.title, subj?.title_cn].filter(Boolean) as string[]
-    for (const q of candidates) {
+    outer: for (const q of candidates) {
       try {
         const hits = await searchVndb(q, vndbToken)
+        if (!hits.length) continue
         const ql = q.toLowerCase()
         const exact = hits.find((h: any) => {
           const t = String(h?.title ?? '').toLowerCase()
@@ -376,8 +379,11 @@ export async function getGalleryForSubject(
         if (exact != null) {
           vndbId = String(exact.id)
           if (localId != null) await saveExternalLink(localId, 'vndb', vndbId)
-          break
+          break outer
         }
+        // 无精确命中：首个结果当次使用，不持久化（避免把不确定的 id 固化）
+        vndbId = String(hits[0].id)
+        break outer
       } catch {
         /* ignore */
       }
