@@ -1449,6 +1449,7 @@ body,
   background: var(--bg-elev);
   box-shadow: var(--shadow-soft);
   border: 1px solid var(--border);
+  cursor: zoom-in;
 }
 .detail__body {
   flex: 1;

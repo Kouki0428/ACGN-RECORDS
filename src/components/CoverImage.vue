@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, useAttrs } from 'vue'
+import { ref, onMounted, useAttrs, computed } from 'vue'
 import { proxyImg } from '@/utils/imgProxy'
 
 // 单根（运行时只会渲染 img 或 div 之一），关闭自动继承 class 便于手动合并尺寸类
@@ -12,6 +12,11 @@ const props = defineProps<{
 }>()
 
 const attrs = useAttrs()
+// 透传非 class 的属性（含 @click 等事件监听），便于外部在封面上挂载点击行为（如点击放大）
+const restAttrs = computed(() => {
+  const { class: _class, ...rest } = attrs
+  return rest
+})
 
 // blur-up：图片未就绪时半透明 + 底色微光，onload 后淡入（缓存命中时 complete 直接就绪，无闪烁）
 const loaded = ref(false)
@@ -30,6 +35,7 @@ onMounted(() => {
     loading="lazy"
     decoding="async"
     :class="[attrs.class, 'cover-media', { 'is-loaded': loaded }]"
+    v-bind="restAttrs"
     @load="loaded = true"
   />
   <div

@@ -19,6 +19,9 @@ import { useContextMenu } from '@/composables/useContextMenu'
 import { buildCardMenu } from '@/composables/useCardContextMenu'
 import { useSettingsStore } from '@/stores/settings'
 import { proxyImg } from '@/utils/imgProxy'
+import { useImagePreview } from '@/composables/useImagePreview'
+
+const { openImage } = useImagePreview()
 import { animeClient } from '@/services/animeClient'
 import { subjectClient } from '@/services/subjectClient'
 import type { Subject, AnimeDetail, AnimeWatchingItem, EpisodeMarkPayload } from '@shared/types'
@@ -308,11 +311,12 @@ onUnmounted(() => {
       <div class="detail" :class="{ glow: settings.immersiveGlow }">
       <div v-if="settings.detailBanner && selected.subject.image_url" class="detail-banner" :style="{ backgroundImage: `url(${proxyImg(selected.subject.image_url)})` }"></div>
       <div class="detail__main" data-anchor="overview">
-        <CoverImage
-          :src="selected.subject.image_url"
-          :alt="selected.subject.title"
-          class="detail__poster"
-        />
+          <CoverImage
+            :src="selected.subject.image_url"
+            :alt="selected.subject.title"
+            class="detail__poster"
+            @click="openImage(proxyImg(selected.subject.image_url), selected.subject.title)"
+          />
         <div class="detail__body">
           <h2>{{ selected.subject.title_cn || selected.subject.title }}</h2>
           <CollectionBar
