@@ -313,7 +313,7 @@ onMounted(async () => {
   transition: border-color 0.15s, transform 0.12s;
 }
 .tc-item:hover {
-  border-color: var(--accent-2, #5b9dff);
+  border-color: var(--accent-aux, #5b9dff);
   transform: translateY(-1px);
 }
 :root[data-theme="light"] .tc-item {
@@ -363,7 +363,7 @@ onMounted(async () => {
 }
 .tc-verb {
   font-weight: 700;
-  color: var(--accent-2, #5b9dff);
+  color: var(--accent-aux, #5b9dff);
 }
 .tc-action-rest {
   color: var(--text);
@@ -459,7 +459,7 @@ onMounted(async () => {
   transition: border-color 0.15s;
 }
 .tc-page-btn:hover:not(:disabled) {
-  border-color: var(--accent-2, #5b9dff);
+  border-color: var(--accent-aux, #5b9dff);
 }
 .tc-page-btn:disabled {
   opacity: 0.45;
