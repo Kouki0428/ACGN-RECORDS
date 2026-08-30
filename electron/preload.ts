@@ -297,6 +297,5 @@ const api: AcgnApi = {
       ipcRenderer.invoke('window:set-bounds', bounds)
   }
 }
-}
 
 contextBridge.exposeInMainWorld('acgn', api)
