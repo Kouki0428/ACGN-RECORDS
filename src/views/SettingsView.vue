@@ -1028,18 +1028,16 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
           <span>界面缩放</span>
           <span class="scale-val">{{ Math.round(uiScaleLocal * 100) }}%</span>
         </div>
-        <div class="scale-scrub" :style="{ '--pct': rangePct(Math.round(uiScaleLocal * 100), 50, 200) }">
-          <input
-            class="scale-range"
-            type="range"
-            min="50"
-            max="200"
-            step="5"
-            :value="Math.round(uiScaleLocal * 100)"
-            @input="onScaleInput"
-          />
-          <span class="scale-bubble">{{ Math.round(uiScaleLocal * 100) }}%</span>
-        </div>
+        <input
+          class="scale-range"
+          type="range"
+          min="50"
+          max="200"
+          step="5"
+          :value="Math.round(uiScaleLocal * 100)"
+          :style="{ '--pct': rangePct(Math.round(uiScaleLocal * 100), 50, 200) }"
+          @input="onScaleInput"
+        />
         <div class="seg scale-presets">
           <button
             v-for="p in scalePresets"
@@ -1061,18 +1059,16 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
           <span>主页卡片大小</span>
           <span class="scale-val">{{ Math.round(cardSizeLocal * 100) }}%</span>
         </div>
-        <div class="scale-scrub" :style="{ '--pct': rangePct(Math.round(cardSizeLocal * 100), 75, 150) }">
-          <input
-            class="scale-range"
-            type="range"
-            min="75"
-            max="150"
-            step="5"
-            :value="Math.round(cardSizeLocal * 100)"
-            @input="onCardSizeInput"
-          />
-          <span class="scale-bubble">{{ Math.round(cardSizeLocal * 100) }}%</span>
-        </div>
+        <input
+          class="scale-range"
+          type="range"
+          min="75"
+          max="150"
+          step="5"
+          :value="Math.round(cardSizeLocal * 100)"
+          :style="{ '--pct': rangePct(Math.round(cardSizeLocal * 100), 75, 150) }"
+          @input="onCardSizeInput"
+        />
         <div class="seg scale-presets">
           <button
             v-for="p in cardSizePresets"
@@ -1170,19 +1166,17 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
             <span>动画速度</span>
             <span class="scale-val">{{ Math.round(gridAnimSpeedLocal * 100) }}%</span>
           </div>
-          <div class="scale-scrub" :style="{ '--pct': rangePct(gridAnimSpeedLocal, 0, 1) }">
-            <input
-              class="scale-range"
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              :value="gridAnimSpeedLocal"
-              :disabled="!settings.gridAnimEnabled"
-              @input="onAnimSpeedInput"
-            />
-            <span class="scale-bubble">{{ Math.round(gridAnimSpeedLocal * 100) }}%</span>
-          </div>
+          <input
+            class="scale-range"
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            :value="gridAnimSpeedLocal"
+            :style="{ '--pct': rangePct(gridAnimSpeedLocal, 0, 1) }"
+            :disabled="!settings.gridAnimEnabled"
+            @input="onAnimSpeedInput"
+          />
           <div class="scale-ends">
             <span>快</span>
             <span>慢</span>
@@ -1553,56 +1547,46 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
-.scale-scrub {
-  position: relative;
-  margin: 18px 6px 4px;
-}
 .scale-range {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
   height: 6px;
-  margin: 0;
+  margin: 10px 0 4px;
   border-radius: 999px;
   background: var(--bg-elev);
-  background-image: linear-gradient(var(--bg-elev), var(--bg-deep));
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.22);
   outline: none;
   cursor: pointer;
 }
-/* WebKit：渐变填充已走过的区间（--pct 由 JS 写入，覆盖在轨道底色上） */
+/* WebKit：用 input 自身当轨道，渐变填充已走过的区间（--pct 由 JS 按滑块值写入） */
 .scale-range::-webkit-slider-runnable-track {
   height: 6px;
   border-radius: 999px;
   background: linear-gradient(
     to right,
     var(--accent) var(--pct, 0%),
-    transparent var(--pct, 0%)
+    var(--bg-elev) var(--pct, 0%)
   );
+  transition: background 0.12s;
 }
 .scale-range::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 18px;
-  height: 18px;
-  margin-top: -6px;
+  width: 16px;
+  height: 16px;
+  margin-top: -5px;
   border-radius: 50%;
-  border: 1px solid rgba(0, 0, 0, 0.18);
-  background: linear-gradient(#fff, #e8ecf4);
-  box-shadow:
-    0 2px 6px rgba(0, 0, 0, 0.35),
-    0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  border: none;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
   cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition: transform 0.12s;
 }
 .scale-range::-webkit-slider-thumb:hover {
-  transform: scale(1.1);
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.4),
-    0 0 0 5px color-mix(in srgb, var(--accent) 32%, transparent);
+  transform: scale(1.12);
 }
 .scale-range:active::-webkit-slider-thumb {
-  transform: scale(1.18);
+  transform: scale(1.2);
 }
 /* Firefox */
 .scale-range::-moz-range-track {
@@ -1618,48 +1602,21 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
   background: var(--accent);
 }
 .scale-range::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border: 1px solid rgba(0, 0, 0, 0.18);
+  width: 16px;
+  height: 16px;
+  border: none;
   border-radius: 50%;
-  background: linear-gradient(#fff, #e8ecf4);
-  box-shadow:
-    0 2px 6px rgba(0, 0, 0, 0.35),
-    0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
   cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition: transform 0.12s;
 }
 .scale-range::-moz-range-thumb:hover {
-  transform: scale(1.1);
+  transform: scale(1.12);
 }
 .scale-range:focus-visible {
-  box-shadow:
-    inset 0 1px 2px rgba(0, 0, 0, 0.22),
-    0 0 0 2px var(--accent);
-}
-/* 数值气泡：悬停/拖拽时浮在滑块上方，跟随 --pct 移动 */
-.scale-bubble {
-  position: absolute;
-  bottom: calc(100% - 2px);
-  left: var(--pct, 0%);
-  padding: 2px 8px;
-  border-radius: 8px;
-  background: var(--bg-elev);
-  border: 1px solid var(--border);
-  color: var(--accent);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.5;
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transform: translateX(-50%) translateY(4px);
-  transition: opacity 0.15s ease, transform 0.15s ease;
-}
-.scale-scrub:hover .scale-bubble,
-.scale-scrub:focus-within .scale-bubble {
-  opacity: 1;
-  transform: translateX(-50%) translateY(-2px);
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 .scale-presets {
   margin-top: 8px;
