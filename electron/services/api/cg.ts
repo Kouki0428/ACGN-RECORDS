@@ -239,6 +239,15 @@ async function fetchSteamScreenshots(appId: string): Promise<GameGalleryImage[]>
 
 // ---------- 标题兜底检索（外链缺失时尽量补全） ----------
 
+/** 标题规范化：小写 + 去空白/标点，用于跨站标题比对（容忍 ・！？（） 全半角差异） */
+function normTitle(s: string): string {
+  return String(s)
+    .toLowerCase()
+    .replace(/[\s・·、，,。.．!！?？（）()【】\[\]「」『』:：/\\"'`~+＋-]+/g, '')
+}
+
+/** 按标题兜底检索 Steam：优先「规范化精确命中」；退而求其次「名称包含关系」（取最长的）；
+ *  都没有把握时返回 null（宁可不配 Steam，也不串到别的游戏）。 */
 async function searchSteamByTitle(query: string): Promise<string | null> {
   try {
     const url = `https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(
@@ -246,9 +255,17 @@ async function searchSteamByTitle(query: string): Promise<string | null> {
     )}&l=schinese&cc=CN`
     const res = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'application/json' } })
     if (!res.ok) return null
-    const json = (await res.json()) as { items?: { id?: number | string }[] }
-    const item = json.items?.[0]
-    return item?.id != null ? String(item.id) : null
+    const json = (await res.json()) as { items?: { id?: number | string; name?: string }[] }
+    const items = json.items ?? []
+    if (!items.length) return null
+    const qn = normTitle(query)
+    const exact = items.find((it) => it?.name && normTitle(it.name) === qn)
+    if (exact?.id != null) return String(exact.id)
+    const byContains = items
+      .filter((it) => it?.name && (normTitle(it.name).includes(qn) || qn.includes(normTitle(it.name))))
+      .sort((a, b) => normTitle(b.name ?? '').length - normTitle(a.name ?? '').length)
+    if (byContains[0]?.id != null) return String(byContains[0].id)
+    return null
   } catch {
     return null
   }
@@ -320,7 +337,6 @@ export async function getGalleryForSubject(
   }
 
   const vndbToken = (await getSetting('vndb_token')) || undefined
-  const title = subj?.title_cn || subj?.title
 
   // 1) 优先从 Bangumi 条目 infobox 取真实外链（对齐组件）
   let links = { vndb: null as string | null, dlsite: null as string | null, steam: null as string | null }
@@ -362,23 +378,18 @@ export async function getGalleryForSubject(
 
   if (!vndbId && (subj?.title || subj?.title_cn)) {
     // VNDB 标题多为原名（日文/英文），**优先用 Bangumi 的日文原名 subj.title 去匹配 VNDB 的 title**，
-    // 中文译名次之。匹配时做规范化（小写、去空白、去常见标点），容忍全半角/符号/后缀差异，
-    // 这样「变态监狱/超次元恋人」这类能靠日文原名精确命中 VNDB。
+    // 中文译名次之。匹配时做规范化（小写、去空白、去常见标点），容忍全半角/符号/后缀差异。
     // - 规范化后精确命中（title / alttitle 与候选一致）→ 可信，持久化外链（防串图固化）；
     // - 未精确命中 → 用首个结果 id「仅当次使用、不持久化」，保底出 CG（不把不确定 id 固化）。
-    const norm = (s: string) =>
-      String(s)
-        .toLowerCase()
-        .replace(/[\s・·、，,。.．!！?？（）()【】\[\]「」『』:：/\\"'`~-]+/g, '')
     const candidates = [subj?.title, subj?.title_cn].filter(Boolean) as string[]
     outer: for (const q of candidates) {
       try {
         const hits = await searchVndb(q, vndbToken)
         if (!hits.length) continue
-        const qn = norm(q)
+        const qn = normTitle(q)
         const exact = hits.find((h: any) => {
-          const t = norm(String(h?.title ?? ''))
-          const a = norm(String(h?.alttitle ?? ''))
+          const t = normTitle(String(h?.title ?? ''))
+          const a = normTitle(String(h?.alttitle ?? ''))
           return t === qn || (a !== '' && a === qn)
         })
         if (exact != null) {
@@ -394,18 +405,23 @@ export async function getGalleryForSubject(
       }
     }
   }
-  if (!dlsiteId && title) {
-    const id = await searchDlsiteByTitle(title)
-    if (id) {
-      // 标题兜底检索结果仅当次使用，不持久化——避免误配的外链被固化后每次串图
-      dlsiteId = id
+  // DLsite / Steam 标题兜底：优先用原文（subj.title），中文次之；结果仅当次使用、不持久化
+  if (!dlsiteId) {
+    for (const q of [subj?.title, subj?.title_cn].filter(Boolean) as string[]) {
+      const id = await searchDlsiteByTitle(q)
+      if (id) {
+        dlsiteId = id
+        break
+      }
     }
   }
-  if (!steamId && title) {
-    const id = await searchSteamByTitle(title)
-    if (id) {
-      // 同上：标题兜底仅当次，不持久化
-      steamId = id
+  if (!steamId) {
+    for (const q of [subj?.title, subj?.title_cn].filter(Boolean) as string[]) {
+      const id = await searchSteamByTitle(q)
+      if (id) {
+        steamId = id
+        break
+      }
     }
   }
 
