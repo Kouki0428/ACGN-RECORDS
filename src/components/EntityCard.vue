@@ -6,6 +6,7 @@ import { subjectClient } from '@/services/subjectClient'
 import { useEntityCard } from '@/composables/useEntityCard'
 import { useSearchOverlay } from '@/composables/searchOverlay'
 import { useImagePreview } from '@/composables/useImagePreview'
+import { useSettingsStore } from '@/stores/settings'
 
 // 注意：本组件现为「单一 overlay 容器」EntitySubjectCard 的内嵌 body（角色/CV），
 // 外层遮罩、层级(z-index)、Esc/背景点击关闭均由宿主统一管理，这里只负责面板内容。
@@ -28,6 +29,7 @@ function goBack() {
 const entity = ref<EntityDetail | null>(null)
 const loading = ref(false)
 const error = ref('')
+const settings = useSettingsStore()
 
 async function load() {
   const s = state.value
@@ -206,8 +208,13 @@ watch(
 </script>
 
 <template>
-  <div class="entity-card" @click.stop>
-    <div class="entity-head">
+    <div class="entity-card" @click.stop>
+      <div
+        v-if="settings.characterBanner && entity?.image"
+        class="detail-banner entity-banner"
+        :style="{ backgroundImage: `url(${proxyImg(entity.image)})` }"
+      ></div>
+      <div class="entity-head">
       <button class="entity-back back-btn" type="button" title="返回上级" aria-label="返回上级" @click="goBack">
         <svg class="back-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="12" x2="4" y2="12" /><polyline points="10,5 4,12 10,19" /></svg>
       </button>
@@ -389,9 +396,29 @@ watch(
   flex-direction: column;
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   overflow: hidden;
+  /* 横幅的定位上下文 + 独立层叠上下文：让 .entity-banner(z-index:-1) 只垫在本卡内容之下、不溢出到悬浮窗外 */
+  position: relative;
+  isolation: isolate;
+}
+/* 人物/角色横幅：复用 .detail-banner 的模糊/饱和/遮罩，但改为「内含」于圆角卡片（不溢出），
+   顶部不透明以便标题栏浮于光晕之上，向下渐隐 */
+.entity-banner {
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100%;
+  z-index: -1;
+  /* 复位页面横幅的 aspect-ratio，否则宽会被算成高度×2/3、左右铺不满 */
+  aspect-ratio: auto;
+  /* 覆盖整个悬浮窗：图片上缘对齐顶部、按原比例放大铺满、不变形；底部不渐隐 */
+  background-position: center top;
+  background-size: cover;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 100%);
 }
 .entity-head {
   display: flex;
@@ -431,8 +458,13 @@ watch(
   display: block;
 }
 .entity-head .close:hover {
-  background: var(--accent-2);
+  background: var(--accent);
   color: #fff;
+}
+.entity-head .close:active {
+  background: #ff3d77;
+  color: #fff;
+  transform: scale(0.94);
 }
 .entity-body {
   display: flex;
@@ -454,7 +486,7 @@ watch(
   height: auto;
   object-fit: contain;
   background: var(--bg-deep);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   display: block;
 }
 .entity-img--empty {
@@ -517,7 +549,7 @@ watch(
   color: var(--text);
   background: var(--bg-elev);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 4px 10px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -548,7 +580,7 @@ watch(
   align-items: center;
   gap: 8px;
   padding: 8px 4px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   text-align: left;
 }
 .work-btn {
@@ -557,8 +589,12 @@ watch(
   cursor: pointer;
   transition: background 0.15s ease;
 }
+/* 激活态用半透明底，让人物横幅透过来融为一体，而非用不透明实色块盖住横幅 */
 .work-btn:hover {
-  background: var(--bg-elev);
+  background: color-mix(in srgb, var(--bg-elev) 45%, transparent);
+}
+.work-btn:active {
+  background: color-mix(in srgb, var(--bg-elev) 65%, transparent);
 }
 /* 关联角色：角色名在左，CV 推到右侧 */
 .rel-row {
@@ -656,7 +692,7 @@ watch(
 .work-img {
   width: 48px;
   height: 66px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--bg-deep);
   flex-shrink: 0;
   display: block;

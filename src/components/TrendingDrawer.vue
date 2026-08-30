@@ -137,7 +137,7 @@ function toggle() {
   gap: 6px;
   padding: 7px 14px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   background: var(--bg-panel);
   color: var(--text-dim);
   font-size: 13px;
@@ -173,7 +173,7 @@ function toggle() {
   background: var(--bg-panel);
   border: 1px solid var(--border);
   border-right: none;
-  border-radius: 14px;
+  border-radius: var(--radius);
   box-shadow: -8px 0 30px rgba(0, 0, 0, 0.25);
 }
 /* ——「沉浸光感」开启时的液态玻璃面板（设置可关）——
@@ -200,7 +200,7 @@ function toggle() {
   position: absolute;
   inset: -8px;
   z-index: -1;
-  border-radius: 14px;
+  border-radius: var(--radius);
   backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(10px);
   -webkit-backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(10px);
 }
@@ -253,7 +253,7 @@ function toggle() {
   display: flex;
   gap: 10px;
   padding: 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   transition: background .15s;
 }
 .td-item:hover { background: var(--bg-elev); }
@@ -263,7 +263,7 @@ function toggle() {
   border: none;
   background: none;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   line-height: 0;
 }
@@ -271,7 +271,7 @@ function toggle() {
   width: 40px;
   height: 53px;
   object-fit: cover;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--bg-elev);
 }
 .td-cover--empty { display: inline-block; }
@@ -324,7 +324,7 @@ function toggle() {
   background: color-mix(in srgb, var(--accent) 12%, transparent);
   color: var(--accent);
   padding: 0 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   font-weight: 600;
 }
 /* 滑入动画：只动 right，不动 opacity —— opacity < 1 会把面板变成 backdrop root，

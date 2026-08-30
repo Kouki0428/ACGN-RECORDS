@@ -140,7 +140,7 @@ watch(() => props.subjectId, () => load())
   margin-top: 16px;
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 12px 14px;
 }
 .tb-head-row {
@@ -160,7 +160,7 @@ watch(() => props.subjectId, () => load())
   color: var(--accent);
   background: rgba(255, 92, 138, 0.1);
   border: none;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   padding: 3px 10px;
   cursor: pointer;
   transition: background .15s;
@@ -183,7 +183,7 @@ watch(() => props.subjectId, () => load())
   gap: 10px;
   background: var(--bg-elev);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 8px 12px;
   cursor: pointer;
   transition: border-color .15s;
@@ -219,7 +219,7 @@ watch(() => props.subjectId, () => load())
   background: rgba(255, 92, 138, 0.12);
   color: var(--accent);
   padding: 1px 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   font-weight: 600;
 }
 .topic-pager {
@@ -232,7 +232,7 @@ watch(() => props.subjectId, () => load())
 .topic-page-btn {
   font-size: 12px;
   padding: 4px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--bg-elev);
   color: var(--text);

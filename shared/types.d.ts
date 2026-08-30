@@ -620,10 +620,14 @@ export interface AcgnApi {
         isMaximized: () => Promise<boolean>;
         /** 订阅最大化状态变化（最大化/还原时主进程推送） */
         onMaximizedChange: (cb: (maximized: boolean) => void) => () => void;
+        /** 窗口聚焦/失焦通知（失焦时标题栏整体变暗） */
+        onActiveChange: (cb: (active: boolean) => void) => () => void;
         /** 取当前窗口位置与尺寸 */
         getBounds: () => Promise<{ x: number; y: number; width: number; height: number }>;
         /** 设置窗口位置与尺寸（用于边缘拖拽缩放） */
         setBounds: (bounds: { x: number; y: number; width: number; height: number }) => Promise<void>;
+        /** 自定义贴靠：把窗口吸附到当前显示器的半屏 / 四象限 / 最大化 */
+        snap: (zone: 'left' | 'right' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'maximize') => Promise<void>;
     };
 }
 /** 时间胶囊里涉及的作品引用（单条目 1 个，多条目如「想读 X、Y 2 本书」为多个） */

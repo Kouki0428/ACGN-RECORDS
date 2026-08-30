@@ -133,7 +133,7 @@ watch(
   border: 1px solid var(--border);
   background: var(--bg-elev);
   color: var(--text);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -161,7 +161,7 @@ watch(
 .col-del {
   padding: 4px 12px;
   font-size: 12px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   border: 1px solid var(--border);
   background: var(--bg-elev);

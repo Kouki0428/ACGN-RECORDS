@@ -209,7 +209,7 @@ function mergeCn(patch: any[]) {
 .rel-cover {
   width: 86px;
   aspect-ratio: 1 / 1;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--bg-elev, #1c2230);
   border: 1px solid var(--border, #2a3342);

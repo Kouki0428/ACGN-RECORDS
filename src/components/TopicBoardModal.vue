@@ -471,7 +471,7 @@ function onTaKey(e: KeyboardEvent) {
   flex-direction: column;
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   overflow: hidden;
   position: relative;
@@ -489,7 +489,7 @@ function onTaKey(e: KeyboardEvent) {
   font-weight: 700;
   color: var(--accent);
   background: rgba(255, 92, 138, 0.12);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 2px 8px;
   align-self: center;
 }
@@ -508,7 +508,8 @@ function onTaKey(e: KeyboardEvent) {
   transition: background 0.15s ease, color 0.15s ease;
 }
 .ec-close svg { width: 16px; height: 16px; display: block; }
-.ec-close:hover { background: var(--accent-2); color: #fff; }
+.ec-close:hover { background: var(--accent); color: #fff; }
+.ec-close:active { background: #ff3d77; color: #fff; transform: scale(0.94); }
 .tb-placeholder {
   padding: 24px 16px;
   text-align: center;
@@ -530,7 +531,7 @@ function onTaKey(e: KeyboardEvent) {
 .tb-op {
   background: var(--bg-elev);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius);
   margin: 10px 16px 0;
   padding: 12px;
 }
@@ -539,7 +540,7 @@ function onTaKey(e: KeyboardEvent) {
   line-height: 16px;
   color: #fff;
   background: var(--accent-2);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 0 5px;
 }
 .tb-op-content { font-size: 14px; }
@@ -656,7 +657,7 @@ function onTaKey(e: KeyboardEvent) {
   margin: 10px 16px 0;
   background: var(--bg-elev);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius);
 }
 .ec-avatar {
   width: 38px;
@@ -684,7 +685,7 @@ function onTaKey(e: KeyboardEvent) {
   color: var(--text);
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   outline: none;
   font-family: inherit;
 }
@@ -699,7 +700,7 @@ function onTaKey(e: KeyboardEvent) {
   color: var(--text);
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -719,7 +720,7 @@ function onTaKey(e: KeyboardEvent) {
   padding: 8px;
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   box-shadow: var(--shadow);
 }
 .ec-smiley-item {
@@ -727,7 +728,7 @@ function onTaKey(e: KeyboardEvent) {
   height: 28px;
   object-fit: contain;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   justify-self: center;
 }
 .ec-smiley-item:hover { background: var(--bg-elev); }
@@ -743,7 +744,7 @@ function onTaKey(e: KeyboardEvent) {
   font-size: 14px;
   font-weight: 600;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--accent-2);
   color: #fff;
   cursor: pointer;
@@ -759,7 +760,7 @@ function onTaKey(e: KeyboardEvent) {
   background: transparent;
   border: none;
   padding: 4px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -776,7 +777,7 @@ function onTaKey(e: KeyboardEvent) {
   color: var(--text-dim);
   background: transparent;
   border: none;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: color 0.15s ease, background 0.15s ease;
 }
@@ -818,7 +819,7 @@ function onTaKey(e: KeyboardEvent) {
   font-size: 13px;
   font-weight: 600;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--bg-elev);
   color: var(--text-dim);
   cursor: pointer;

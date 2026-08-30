@@ -116,7 +116,7 @@ async function add(subject: Subject) {
   align-self: flex-start;
   margin: 2px 0 8px;
   padding: 2px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   font-size: 12px;
   font-weight: 600;
   color: #fff;

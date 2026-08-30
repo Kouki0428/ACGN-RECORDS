@@ -87,7 +87,7 @@ onUnmounted(() => {
   padding: 5px;
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   box-shadow: var(--shadow);
   user-select: none;
 }
@@ -101,7 +101,7 @@ onUnmounted(() => {
   color: var(--text);
   background: transparent;
   border: none;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   text-align: left;
   transition: background var(--dur-fast) ease;

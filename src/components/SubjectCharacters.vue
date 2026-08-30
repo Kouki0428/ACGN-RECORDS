@@ -246,7 +246,7 @@ watch(
 .ch-avatar {
   width: 86px;
   aspect-ratio: 3 / 4;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--bg-elev, #1c2230);
   border: 1px solid var(--border, #2a3342);
@@ -281,7 +281,7 @@ watch(
 .ch-badge {
   margin-top: 3px;
   padding: 1px 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.08);
   color: var(--text-dim, #8b94a3);
   font-size: 10px;
@@ -305,7 +305,7 @@ watch(
   display: inline-block;
   vertical-align: middle;
   padding: 1px 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.08);
   color: var(--text-dim, #8b94a3);
   font-size: 10px;

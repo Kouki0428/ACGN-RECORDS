@@ -212,7 +212,7 @@ function onSpinEnd() {
   padding: 10px;
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius);
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
@@ -232,7 +232,7 @@ function onSpinEnd() {
   text-align: left;
   padding: 7px 10px;
   font-size: 13px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: none;
   background: transparent;
   color: var(--text);
@@ -249,6 +249,6 @@ function onSpinEnd() {
 .sp-settings {
   color: var(--text-dim);
   border-top: 1px solid var(--border-soft);
-  border-radius: 0 0 8px 8px;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
 }
 </style>

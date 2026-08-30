@@ -84,7 +84,7 @@ function meInReaction(rx: CommentReaction): boolean {
   background: color-mix(in srgb, var(--text-dim) 12%, var(--bg-elev));
   border: 1px solid var(--border);
   padding: 3px 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   user-select: none;
   transition: border-color 0.12s ease, background 0.12s ease;
@@ -115,7 +115,7 @@ function meInReaction(rx: CommentReaction): boolean {
   height: 18px;
   object-fit: contain;
   vertical-align: middle;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
 }
 .ec-rx-count {
   margin-left: 3px;
@@ -133,7 +133,7 @@ function meInReaction(rx: CommentReaction): boolean {
   width: max-content;
   max-width: min(280px, 80vw);
   padding: 7px 10px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--bg-elev);
   border: 1px solid var(--border);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);

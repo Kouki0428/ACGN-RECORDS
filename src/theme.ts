@@ -31,10 +31,32 @@ const NATIVE_BG: Record<string, string> = {
   'dark:oled': '#000000',
   'dark:pink': '#1a1216',
   'dark:ink': '#0e1411',
+  'dark:mint': '#0c1715',
+  'dark:galaxy': '#0e0d1a',
+  'dark:sunset': '#1a1110',
+  'dark:neon': '#0d0a14',
   'light:classic': '#f3f5f9',
   'light:pure': '#ffffff',
   'light:pink': '#fbf1f4',
-  'light:paper': '#f1f5ef'
+  'light:paper': '#f1f5ef',
+  'light:mint': '#eef6f3',
+  'light:galaxy': '#f1eefb',
+  'light:sunset': '#fdf1ea',
+  'light:neon': '#fbeefb',
+  'dark:ocean': '#0a1420',
+  'dark:rose': '#1a0e14',
+  'dark:forest': '#0c1510',
+  'dark:amber': '#1a1408',
+  'light:ocean': '#eaf2fb',
+  'light:rose': '#fdeef2',
+  'light:forest': '#eef6ee',
+  'light:amber': '#fdf6e9',
+  'dark:indigo': '#0a0e1a',
+  'dark:lava': '#1a0a0a',
+  'dark:moss': '#14130a',
+  'light:indigo': '#eaeefb',
+  'light:lava': '#fbf0ea',
+  'light:moss': '#f3f5ea'
 }
 
 // —— 定时切换时段（'HH:mm'，浅色起 ~ 深色起；支持跨午夜）——
@@ -108,11 +130,16 @@ export async function applyTheme(
   const target = resolve(pref)
 
   // 预设皮肤：按解析后的主题取对应（深/浅各一套）；classic 不写属性，走样式表默认。
-  // 注意写在同值早退之前——切换预设但主题未变时也要刷新皮肤属性
+  // 主题实际切换（light↔dark）时 data-preset 必须与 data-theme 在 swap 内原子生效：
+  // 若提前写入，旧帧（如浅色）会已带上新预设（如深色 oled）而提前变暗，揭示动画失真。
+  // 仅「预设变了但主题值未变」时立即刷新（同值早退分支仍要走皮肤属性更新）。
   const pv = presets[target]
   const presetAttr = pv !== 'classic' ? pv : ''
-  if (presetAttr) root.dataset.preset = presetAttr
-  else delete root.dataset.preset
+  const themeChanging = !isFirst && target !== root.dataset.theme
+  if (!themeChanging) {
+    if (presetAttr) root.dataset.preset = presetAttr
+    else delete root.dataset.preset
+  }
   try {
     localStorage.setItem('acgn-preset-resolved', presetAttr)
   } catch {
@@ -157,6 +184,9 @@ export async function applyTheme(
 
   const swap = () => {
     onCovered?.()
+    // 与 data-theme 同帧原子切换预设，保证旧帧保持旧预设、新帧才是新预设
+    if (presetAttr) root.dataset.preset = presetAttr
+    else delete root.dataset.preset
     root.dataset.theme = target
     getMql()
     syncNativeBg()

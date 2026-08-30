@@ -1,8 +1,8 @@
 ﻿import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { dbClient } from '@/services/dbClient'
 import { applyTheme, setThemePreset, setSchedule, type ThemePref } from '@/theme'
-import { applyAccent } from '@/utils/accent'
+import { applyAccent, applyAux } from '@/utils/accent'
 import { applyCardScale } from '@/scale'
 
 export const useSettingsStore = defineStore('settings', () => {
@@ -35,13 +35,51 @@ export const useSettingsStore = defineStore('settings', () => {
   const vndbToken = ref('')
   // 手动代理（用于 api.bgm.tv 直连超时的网络环境，如 Clash/v2ray 地址）
   const proxy = ref('')
-  // 自定义强调色（'' = 默认粉）。写入 :root 的 --accent / --accent-grad，全局派生换色
-  const accentColor = ref('')
+  // —— 强调/辅助色：深、浅各存一套（accentColorDark/Light、auxColorDark/Light）——
+  // 旧版单键 accentColor / auxColor 读取时兼容迁移到两套；切换主题时自动应用当前模式那套。
+  const accentDark = ref('')
+  const accentLight = ref('')
+  const auxDark = ref('')
+  const auxLight = ref('')
+  // 当前主题模式（由 <html data-theme> 实时同步，随深/浅切换变化）
+  const mode = ref<'light' | 'dark'>(
+    typeof document !== 'undefined' && document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'
+  )
+  // 暴露给 UI 的「当前模式」强调色/辅助色（读写均落到当前模式那套），保持旧字段名兼容
+  const accentColor = computed({
+    get: () => (mode.value === 'light' ? accentLight.value : accentDark.value),
+    set: (v: string) => {
+      if (mode.value === 'light') accentLight.value = v
+      else accentDark.value = v
+    }
+  })
+  const auxColor = computed({
+    get: () => (mode.value === 'light' ? auxLight.value : auxDark.value),
+    set: (v: string) => {
+      if (mode.value === 'light') auxLight.value = v
+      else auxDark.value = v
+    }
+  })
+  // 应用当前模式的强调/辅助色到 :root（自定义色覆盖预设，空则恢复预设/默认）。
+  // 直接读 <html data-theme>，避免依赖微任务时序的 mode 缓存。
+  function applyModeColors() {
+    const m = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'
+    mode.value = m
+    applyAccent((m === 'light' ? accentLight : accentDark).value || null)
+    applyAux((m === 'light' ? auxLight : auxDark).value || null)
+  }
+  // 监听 data-theme 变化（applyTheme 同步写入）：深/浅切换时自动应用对应那套颜色
+  if (typeof MutationObserver !== 'undefined') {
+    const mo = new MutationObserver(applyModeColors)
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+  }
   // 主题预设皮肤：深 / 浅各自一套（classic=经典）。深色：oled/bangumi/ink；浅色：pure/pink/paper
   const darkPreset = ref('classic')
   const lightPreset = ref('classic')
-  // 详情页封面横幅背景（模糊放大的封面作装饰）开关，默认开
+  // 详情页封面横幅背景（模糊放大的封面作装饰）开关，默认开（仅作品详情页）
   const detailBanner = ref(true)
+  // 人物横幅背景（角色/CV 详情卡模糊放大的立绘作装饰）开关，默认开（与作品横幅分开控制）
+  const characterBanner = ref(true)
   // 沉浸光感（液态玻璃）：详情页快捷跳转按钮的玻璃质感与鼠标跟随光斑，默认开
   const immersiveGlow = ref(true)
   // 快捷跳转栏：详情页与作品悬浮窗顶部的锚点导航，默认开
@@ -61,6 +99,9 @@ export const useSettingsStore = defineStore('settings', () => {
   // 定时切换时段：浅色起 ~ 深色起（'HH:mm'，支持跨午夜），theme='scheduled' 时生效
   const scheduleLight = ref('07:00')
   const scheduleDark = ref('19:00')
+  // 圆角档位（仅本机存储）：无 / 小 / 默认 / 大；写入 <html data-radius>，
+  // 由 main.css 覆盖全局 --radius / --radius-sm。默认 默认（=基线，不加属性也行）
+  const cornerRadius = ref<'none' | 'small' | 'default' | 'large'>('default')
 
   async function load() {
     if (initialized) return
@@ -68,6 +109,9 @@ export const useSettingsStore = defineStore('settings', () => {
     const rows = await dbClient.query<{ key: string; value: string }>(
       `SELECT key, value FROM settings`
     )
+    // 旧版单键强调/辅助色的迁移源（在循环中捕获，循环后回填到深浅两套）
+    let legacyAccent: string | null = null
+    let legacyAux: string | null = null
     for (const r of rows) {
       if (r.key === 'autoSync') autoSync.value = r.value === '1'
       if (r.key === 'autoFullPull') autoFullPull.value = r.value === '1'
@@ -92,10 +136,13 @@ export const useSettingsStore = defineStore('settings', () => {
       if (r.key === 'tmdb_api_key') tmdbKey.value = r.value
       if (r.key === 'vndb_token') vndbToken.value = r.value
       if (r.key === 'proxy') proxy.value = r.value
-      if (r.key === 'accentColor') {
-        accentColor.value = r.value
-        applyAccent(r.value || null)
-      }
+      if (r.key === 'accentColorDark') accentDark.value = r.value
+      if (r.key === 'accentColorLight') accentLight.value = r.value
+      if (r.key === 'auxColorDark') auxDark.value = r.value
+      if (r.key === 'auxColorLight') auxLight.value = r.value
+      // 旧版单键：仅作为迁移源，稍后在对应新版键缺失时回填
+      if (r.key === 'accentColor') legacyAccent = r.value
+      if (r.key === 'auxColor') legacyAux = r.value
       if (r.key === 'darkPreset') {
         darkPreset.value = r.value || 'classic'
         setThemePreset('dark', darkPreset.value)
@@ -105,6 +152,7 @@ export const useSettingsStore = defineStore('settings', () => {
         setThemePreset('light', lightPreset.value)
       }
       if (r.key === 'detailBanner') detailBanner.value = r.value !== '0'
+      if (r.key === 'characterBanner') characterBanner.value = r.value !== '0'
       if (r.key === 'immersiveGlow') immersiveGlow.value = r.value !== '0'
       if (r.key === 'anchorBarEnabled') anchorBarEnabled.value = r.value !== '0'
       if (r.key === 'cardScale') {
@@ -124,6 +172,10 @@ export const useSettingsStore = defineStore('settings', () => {
       }
       if (r.key === 'scheduleLight') scheduleLight.value = r.value || '07:00'
       if (r.key === 'scheduleDark') scheduleDark.value = r.value || '19:00'
+      if (r.key === 'cornerRadius') {
+        cornerRadius.value = (r.value as 'none' | 'small' | 'default' | 'large') || 'default'
+        document.documentElement.dataset.radius = cornerRadius.value
+      }
     }
     setSchedule(scheduleLight.value, scheduleDark.value)
     // 若持久化的偏好是「定时」，需在时段载入后重新解析一次（循环内的首次 applyTheme
@@ -131,13 +183,28 @@ export const useSettingsStore = defineStore('settings', () => {
     if (theme.value === 'scheduled') void applyTheme('scheduled')
     // 把卡片大小写入 :root，供全局 .card / 主页 .hcard 等比缩放
     applyCardScale(cardScale.value)
+    // 旧版单键迁移：新版对应键缺失时，把旧单键颜色回填到深浅两套（已有新版键则保留）
+    if (legacyAccent !== null) {
+      if (accentDark.value === '') accentDark.value = legacyAccent
+      if (accentLight.value === '') accentLight.value = legacyAccent
+    }
+    if (legacyAux !== null) {
+      if (auxDark.value === '') auxDark.value = legacyAux
+      if (auxLight.value === '') auxLight.value = legacyAux
+    }
+    // 应用当前模式的强调/辅助色到 :root（数据主题已由上方 applyTheme 解析确定）
+    applyModeColors()
   }
 
   async function set(key: string, value: string) {
+    // 强调/辅助色：按当前模式路由到深浅各自的存储键，保证深浅独立记忆
+    let storeKey = key
+    if (key === 'accentColor') storeKey = mode.value === 'light' ? 'accentColorLight' : 'accentColorDark'
+    if (key === 'auxColor') storeKey = mode.value === 'light' ? 'auxColorLight' : 'auxColorDark'
     await dbClient.run(
       `INSERT INTO settings (key, value) VALUES (?, ?)
        ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
-      [key, value]
+      [storeKey, value]
     )
     if (key === 'autoSync') autoSync.value = value === '1'
     if (key === 'autoFullPull') autoFullPull.value = value === '1'
@@ -161,6 +228,10 @@ export const useSettingsStore = defineStore('settings', () => {
       accentColor.value = value
       applyAccent(value || null)
     }
+    if (key === 'auxColor') {
+      auxColor.value = value
+      applyAux(value || null)
+    }
     if (key === 'darkPreset') {
       darkPreset.value = value || 'classic'
       setThemePreset('dark', darkPreset.value)
@@ -173,6 +244,7 @@ export const useSettingsStore = defineStore('settings', () => {
       void applyTheme(theme.value)
     }
     if (key === 'detailBanner') detailBanner.value = value !== '0'
+    if (key === 'characterBanner') characterBanner.value = value !== '0'
     if (key === 'immersiveGlow') immersiveGlow.value = value !== '0'
     if (key === 'anchorBarEnabled') anchorBarEnabled.value = value !== '0'
     if (key === 'cardScale') {
@@ -197,6 +269,10 @@ export const useSettingsStore = defineStore('settings', () => {
       setSchedule(scheduleLight.value, scheduleDark.value)
       if (theme.value === 'scheduled') void applyTheme('scheduled')
     }
+    if (key === 'cornerRadius') {
+      cornerRadius.value = (value as 'none' | 'small' | 'default' | 'large') || 'default'
+      document.documentElement.dataset.radius = cornerRadius.value
+    }
   }
 
   // 仅在遮罩已盖住屏幕时调用：更新按钮高亮（不写库、不触发 applyTheme），
@@ -205,5 +281,5 @@ export const useSettingsStore = defineStore('settings', () => {
     theme.value = v
   }
 
-  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, darkPreset, lightPreset, detailBanner, immersiveGlow, anchorBarEnabled, cardScale, showCharacters, showVolumes, showRelations, showTopics, showTucao, showGallery, showPurchase, closeBehavior, scheduleLight, scheduleDark, load, set, commitTheme }
+  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, mode, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, auxColor, darkPreset, lightPreset, detailBanner, characterBanner, immersiveGlow, anchorBarEnabled, cardScale, showCharacters, showVolumes, showRelations, showTopics, showTucao, showGallery, showPurchase, closeBehavior, scheduleLight, scheduleDark, cornerRadius, load, set, commitTheme }
 })

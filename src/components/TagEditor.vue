@@ -39,7 +39,7 @@ function remove(t: string) {
 .tag {
   background: var(--bg-elev);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius);
   padding: 3px 10px;
   font-size: 12px;
   cursor: pointer;

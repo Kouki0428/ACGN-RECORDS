@@ -72,7 +72,7 @@ watch(refreshTick, loadCounts)
 }
 .status-tab {
   padding: 5px 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text-dim);
@@ -111,7 +111,7 @@ watch(refreshTick, loadCounts)
   display: inline-block;
   min-width: 18px;
   padding: 0 5px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   font-size: 11px;
   line-height: 16px;
   text-align: center;

@@ -762,7 +762,7 @@ onUnmounted(() => {
   font-weight: 600;
   padding: 10px 16px;
   cursor: pointer;
-  border-radius: 10px 10px 0 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   position: relative;
   transition: color 0.15s ease, background 0.15s ease;
 }
@@ -790,7 +790,7 @@ onUnmounted(() => {
   height: calc(132px * var(--card-scale, 1));
 }
 .skel-card .hcard-cover {
-  border-radius: calc(8px * var(--card-scale, 1));
+  border-radius: calc(var(--radius-sm) * var(--card-scale, 1));
 }
 .hcard-body .sk-line {
   height: calc(14px * var(--card-scale, 1));
@@ -829,7 +829,7 @@ onUnmounted(() => {
   min-width: 0;
   text-align: left;
   border: 1px solid var(--border);
-  border-radius: calc(14px * var(--card-scale, 1));
+  border-radius: calc(var(--radius-lg) * var(--card-scale, 1));
   background: var(--bg-panel);
   cursor: pointer;
   transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease;
@@ -837,7 +837,7 @@ onUnmounted(() => {
 .hcard:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow);
-  border-color: var(--accent-2);
+  border-color: var(--accent-aux);
 }
 /* 内层包裹：封面 + 正文的 flex 行容器（封面 flex-shrink:0 固定、正文 flex:1 随卡片变宽）。
    窗口缩放/侧栏收起换列由 useGridResizeFlip 的「位置平移 + 宽度渐变」驱动（直接设卡片 inline width，
@@ -855,7 +855,7 @@ onUnmounted(() => {
   aspect-ratio: 3 / 4;
   flex-shrink: 0;
   align-self: flex-start;
-  border-radius: calc(8px * var(--card-scale, 1));
+  border-radius: calc(var(--radius-sm) * var(--card-scale, 1));
   overflow: hidden;
   background: var(--bg-elev);
 }

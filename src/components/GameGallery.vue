@@ -148,7 +148,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 .game-gallery {
   background: var(--bg-panel, #1c2129);
   border: 1px solid var(--border, #2a3342);
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 14px 16px 16px;
   margin-top: 14px;
 }
@@ -170,7 +170,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 .gg-tab {
   cursor: pointer;
   border: 1px solid var(--border, #2a3342);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 2px 10px;
   font-size: 12px;
   color: var(--text-dim, #8b97a8);
@@ -203,7 +203,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
   gap: 3px;
   margin-left: 6px;
   padding: 2px 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   background: var(--bg-elev, #2a313c);
   border: 1px solid var(--border, #3a4554);
   font-size: 12px;
@@ -260,7 +260,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
   height: 95px;
   overflow: hidden;
   cursor: zoom-in;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--bg-elev, #252c37);
   border: 1px solid var(--border, #2a3342);
   transition: transform 0.12s ease, border-color 0.15s;
@@ -315,7 +315,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
   max-width: 90vw;
   max-height: 85vh;
   object-fit: contain;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
   transition: opacity 0.15s ease;
 }
@@ -355,6 +355,15 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 .gg-lb-close {
   top: 16px;
   right: 16px;
+}
+.gg-lb-close:hover {
+  background: var(--accent);
+  color: #fff;
+}
+.gg-lb-close:active {
+  background: #ff3d77;
+  color: #fff;
+  transform: scale(0.94);
 }
 .gg-lb-prev {
   top: 50%;

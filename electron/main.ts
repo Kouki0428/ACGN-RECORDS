@@ -206,11 +206,9 @@ function createWindow(): void {
     // 自动隐藏原生菜单栏：顶部的「Bangumi / 编辑」菜单条默认不显示（按 Alt 临时浮现），
     // 但菜单仍保留 → Ctrl+R 重载 / Ctrl+Shift+I 开 DevTools / Ctrl+C·V·X 编辑快捷键均有效。
     autoHideMenuBar: true,
-    // 完全去原生边框（frame: false）：内容铺满整窗、右侧无原生边框缝。
-    // 标题栏拖拽走 -webkit-app-region: drag；窗口四周缩放改由渲染层 ResizeHandles 用
-    // win.setBounds 驱动（见 App.vue / ResizeHandles.vue）——尺寸变化由 Chromium 自身发起，
-    // 合成层随内容同步重绘，根除「frameless 原生缩放时合成层滞后」导致的重影；动画全程不被碰。
-    frame: false,
+    // 原生标题栏（frame: true）：窗口缩放 / 拖拽 / 最小化·最大化·关闭全部由 OS 负责，
+    // 无 frameless 缩放重影；标题栏配色随系统，应用内容从标题栏下方开始铺满。
+    frame: true,
     title: 'Bangumi',
     // 运行时窗口图标用 PNG（Electron 加载最可靠）；.ico 仅用于 exe 内嵌资源
     icon: app.isPackaged
@@ -300,49 +298,8 @@ function createWindow(): void {
   win.on('maximize', () => win?.webContents.send('window:maximized-change', true))
   win.on('unmaximize', () => win?.webContents.send('window:maximized-change', false))
 
-  // 自定义窗口缩放：frame:false 下仍用 WM_NCHITTEST 钩子让 OS 在光标线程原生执行
-  // resize（4px 抓取区，零延迟、自动遵守 min/max 尺寸）。标题栏拖拽仍由渲染层 -webkit-app-region 处理；
-  // 右上按钮区返回 HTCLIENT，保证最小化/最大化/关闭按钮可点击。仅 Windows。
-  if (process.platform === 'win32') {
-    const WM_NCHITTEST = 0x0084
-    const HTCLIENT = 0x0001
-    const HTLEFT = 0x000a
-    const HTRIGHT = 0x000b
-    const HTTOP = 0x000c
-    const HTTOPLEFT = 0x000d
-    const HTTOPRIGHT = 0x000e
-    const HTBOTTOM = 0x000f
-    const HTBOTTOMLEFT = 0x0010
-    const HTBOTTOMRIGHT = 0x0011
-    const EDGE = 4 // 抓取边宽
-    const TITLE_H = 32 // 标题栏高度
-    const BTN_W = 120 // 右上三按钮区宽度（3×40px）
-    win?.hookWindowMessage(WM_NCHITTEST, (_w, l) => {
-      const x = l.readInt16LE(0)
-      const y = l.readInt16LE(2)
-      const b = win?.getBounds()
-      if (!b) return HTCLIENT
-      const px = x - b.x
-      const py = y - b.y
-      const w = b.width
-      const h = b.height
-      // 右上按钮区：交给渲染层，保证按钮可点（优先于边缘命中）
-      if (py <= TITLE_H && px >= w - BTN_W) return HTCLIENT
-      const left = px <= EDGE
-      const right = px >= w - EDGE
-      const top = py <= EDGE
-      const bottom = py >= h - EDGE
-      if (top && left) return HTTOPLEFT
-      if (top && right) return HTTOPRIGHT
-      if (bottom && left) return HTBOTTOMLEFT
-      if (bottom && right) return HTBOTTOMRIGHT
-      if (left) return HTLEFT
-      if (right) return HTRIGHT
-      if (top) return HTTOP
-      if (bottom) return HTBOTTOM
-      return HTCLIENT
-    })
-  }
+  // 原生标题栏（frame: true）下，窗口缩放与标题栏拖拽均由 OS 处理，不再需要
+  // WM_NCHITTEST 钩子；若保留会在标题栏区域返回 HTCLIENT，导致系统按钮与拖拽失效。
 }
 
 // ---- 自定义窗口控制（替代原生标题栏；渲染层 TitleBar / ResizeHandles 调用）----
@@ -473,6 +430,9 @@ let isQuitting = false
 // 自动更新器触发 quitAndInstall 时置位：before-quit 直接放行（不 preventDefault），
 // 否则 flushNetworkNow().finally(app.exit(0)) 会让安装程序永远等不到退出。
 let installingUpdate = false
+// 更新是否已下载完成 / 渲染层是否要求「下载完自动安装」（app:installUpdate 触发）
+let updateDownloaded = false
+let installOnDownload = false
 app.on('before-quit', (event) => {
   if (isQuitting || installingUpdate) return
   event.preventDefault()
@@ -488,6 +448,14 @@ function setupAutoUpdater() {
   try {
     autoUpdater.autoDownload = true
     autoUpdater.on('update-downloaded', async () => {
+      updateDownloaded = true
+      // 渲染层点过「确定更新」：下载完直接装，不再弹询问框
+      if (installOnDownload) {
+        installingUpdate = true
+        isQuitting = true
+        autoUpdater.quitAndInstall()
+        return
+      }
       try {
         const r = await dialog.showMessageBox({
           type: 'info',
@@ -520,6 +488,37 @@ function setupAutoUpdater() {
       const r = await autoUpdater.checkForUpdates()
       const v = (r as any)?.updateInfo?.version
       return { ok: true, updateAvailable: !!v && v !== app.getVersion(), version: v }
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) }
+    }
+  })
+  // 拉取指定 tag（如 v0.3.2）的 GitHub Release 正文（更新说明）；失败/无则返回 null，
+  // 渲染层已本地优先，仅作未来版本的内置说明未收录时的回退。
+  ipcMain.handle('app:getReleaseNotes', async (_e, tag: string) => {
+    try {
+      const res = await fetch(
+        `https://api.github.com/repos/Kouki0428/Bangumi-For-PC/releases/tags/${encodeURIComponent(tag)}`,
+        { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'Bangumi-For-PC' } }
+      )
+      if (!res.ok) return null
+      const data = (await res.json()) as { body?: string }
+      return data.body ?? null
+    } catch {
+      return null
+    }
+  })
+  // 设置弹窗点「确定更新」：已下载完→立即重启安装；未下完→置标志，下载完自动装
+  // （update-downloaded 里据此跳过询问框直接 quitAndInstall）。
+  ipcMain.handle('app:installUpdate', async () => {
+    try {
+      if (updateDownloaded) {
+        installingUpdate = true
+        isQuitting = true
+        autoUpdater.quitAndInstall()
+        return { ok: true }
+      }
+      installOnDownload = true
+      return { ok: true }
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : String(e) }
     }

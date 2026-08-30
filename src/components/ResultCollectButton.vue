@@ -51,24 +51,24 @@ function openEdit() {
 .fav-btn {
   flex-shrink: 0;
   padding: 4px 12px;
-  border: 1px solid var(--accent-2);
+  border: 1px solid var(--accent-aux);
   background: transparent;
-  color: var(--accent-2);
-  border-radius: 999px;
+  color: var(--accent-aux);
+  border-radius: var(--radius-sm);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 .fav-btn:hover {
-  background: var(--accent-2);
+  background: var(--accent-aux);
   color: #fff;
 }
 /* 已收藏徽标：基础布局，具体颜色由 .st-* 决定 */
 .collected-badge {
   flex-shrink: 0;
   padding: 4px 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;

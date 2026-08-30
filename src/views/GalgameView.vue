@@ -312,7 +312,7 @@ onUnmounted(() => {
     <!-- 详情视图 -->
     <template v-if="selected">
       <DetailAnchors :items="anchors" />
-      <div class="detail">
+      <div class="detail" :class="{ glow: settings.immersiveGlow }">
       <div v-if="settings.detailBanner && selected.subject.image_url" class="detail-banner" :style="{ backgroundImage: `url(${proxyImg(selected.subject.image_url)})` }"></div>
       <div class="detail__main" data-anchor="overview">
         <CoverImage

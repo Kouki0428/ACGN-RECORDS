@@ -39,7 +39,7 @@ const emit = defineEmits<{ (e: 'select', value: string): void }>()
   padding: 10px;
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius);
   box-shadow: var(--shadow);
 }
 .ec-react-picker-title {
@@ -61,7 +61,7 @@ const emit = defineEmits<{ (e: 'select', value: string): void }>()
   padding: 3px;
   background: var(--bg-elev);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: border-color 0.12s ease, background 0.12s ease, transform 0.08s ease;
 }

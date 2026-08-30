@@ -256,7 +256,7 @@ function onWorkClick(id: number) {
   flex-direction: column;
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   overflow: hidden;
 }
@@ -297,8 +297,13 @@ function onWorkClick(id: number) {
   display: block;
 }
 .subject-head .close:hover {
-  background: var(--accent-2);
+  background: var(--accent);
   color: #fff;
+}
+.subject-head .close:active {
+  background: #ff3d77;
+  color: #fff;
+  transform: scale(0.94);
 }
 .subject-body {
   flex: 1;
@@ -328,7 +333,7 @@ function onWorkClick(id: number) {
   flex-direction: column;
   background: var(--bg-elev);
   border: 1px solid var(--border-soft);
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 8px 8px 6px;
   cursor: pointer;
   transition: transform 0.12s ease, border-color 0.15s;
@@ -340,7 +345,7 @@ function onWorkClick(id: number) {
 .rcard .r-avatar {
   width: 100%;
   aspect-ratio: 3 / 4;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--bg-deep);
 }
@@ -384,7 +389,7 @@ function onWorkClick(id: number) {
   align-items: center;
   justify-content: center;
   padding: 2px 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   font-size: 12.5px;
   font-weight: 700;
   line-height: 1.6;
@@ -412,7 +417,7 @@ function onWorkClick(id: number) {
   align-items: center;
   gap: 3px;
   padding: 2px 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   font-size: 12.5px;
   font-weight: 700;
   line-height: 1.6;
@@ -445,7 +450,7 @@ function onWorkClick(id: number) {
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text-dim);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -490,7 +495,7 @@ function onWorkClick(id: number) {
   border: 1px solid var(--border);
   background: var(--bg-elev);
   color: var(--text);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;

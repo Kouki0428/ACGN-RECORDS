@@ -286,7 +286,7 @@ const html = computed(() => toHtml(parseBbcode(props.text || '')))
 .bb-img {
   max-width: 100%;
   height: auto;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   vertical-align: middle;
   margin: 2px 0;
   cursor: zoom-in; /* 点击放大（ImageLightbox） */
@@ -302,7 +302,7 @@ const html = computed(() => toHtml(parseBbcode(props.text || '')))
   padding: 6px 12px;
   border-left: 3px solid var(--border);
   background: color-mix(in srgb, var(--text-dim) 12%, var(--bg-elev));
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   color: var(--text-dim);
   font-size: 0.92em;
   line-height: 1.5;
@@ -343,7 +343,7 @@ const html = computed(() => toHtml(parseBbcode(props.text || '')))
 .bb-mask {
   background: var(--text);
   color: transparent;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   cursor: help;
   padding: 0 1px;
   transition: background 0.15s ease, color 0.15s ease;

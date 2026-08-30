@@ -6,6 +6,8 @@ import type { AcgnApi, EntityDetail, SubjectFullDetail, SubjectCharacter, Subjec
 const api: AcgnApi = {
   app: {
     getInfo: () => ipcRenderer.invoke('app:getInfo'),
+    getReleaseNotes: (tag: string) =>
+      ipcRenderer.invoke('app:getReleaseNotes', tag) as Promise<string | null>,
     openExternal: (url: string) => ipcRenderer.invoke('app:openExternal', url),
     relaunch: () => ipcRenderer.invoke('app:relaunch'),
     setProxy: (url: string | null) => ipcRenderer.invoke('app:setProxy', url),
@@ -34,6 +36,8 @@ const api: AcgnApi = {
         version?: string
         error?: string
       }>,
+    installUpdate: () =>
+      ipcRenderer.invoke('app:installUpdate') as Promise<{ ok: boolean; error?: string }>,
     /** 首次关闭：主进程询问用户选择行为 */
     onCloseBehaviorAsk: (cb: () => void) => {
       const listener = () => cb()
@@ -275,16 +279,24 @@ const api: AcgnApi = {
     toggleMaximize: () => ipcRenderer.invoke('window:toggle-maximize'),
     close: () => ipcRenderer.invoke('window:close'),
     isMaximized: () => ipcRenderer.invoke('window:is-maximized') as Promise<boolean>,
+    snap: (zone: 'left' | 'right' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'maximize') =>
+      ipcRenderer.invoke('window:snap', zone),
     onMaximizedChange: (cb: (maximized: boolean) => void) => {
       const listener = (_e: unknown, v: unknown) => cb(v as boolean)
       ipcRenderer.on('window:maximized-change', listener)
       return () => ipcRenderer.removeListener('window:maximized-change', listener)
+    },
+    onActiveChange: (cb: (active: boolean) => void) => {
+      const listener = (_e: unknown, v: unknown) => cb(v as boolean)
+      ipcRenderer.on('window:active-change', listener)
+      return () => ipcRenderer.removeListener('window:active-change', listener)
     },
     getBounds: () =>
       ipcRenderer.invoke('window:get-bounds') as Promise<{ x: number; y: number; width: number; height: number }>,
     setBounds: (bounds: { x: number; y: number; width: number; height: number }) =>
       ipcRenderer.invoke('window:set-bounds', bounds)
   }
+}
 }
 
 contextBridge.exposeInMainWorld('acgn', api)

@@ -137,7 +137,7 @@ watch(() => props.subjectId, () => load(0))
   margin-top: 16px;
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 12px 14px;
 }
 .tucao-box h3 {
@@ -156,7 +156,7 @@ watch(() => props.subjectId, () => load(0))
 .tucao-item {
   background: var(--bg-elev);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 10px 12px;
 }
 .tucao-head {
@@ -248,7 +248,7 @@ watch(() => props.subjectId, () => load(0))
 .tucao-page-btn {
   font-size: 12px;
   padding: 4px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--bg-elev);
   color: var(--text);

@@ -11,6 +11,7 @@
   --text-dim: #93a0b1;
   --accent: #ff5c8a;
   --accent-2: #5b9dff;
+  --accent-aux: #5b9dff;
   --accent-grad: linear-gradient(135deg, #ff5c8a 0%, #ff8a5c 100%);
   --accent2-grad: linear-gradient(135deg, #5b9dff 0%, #6be3ff 100%);
   --border: #2c333d;
@@ -19,12 +20,15 @@
   --err: #ff6b6b;
   --radius: 12px;
   --radius-sm: 8px;
+  --radius-lg: 16px;
   --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.25);
   --font: system-ui, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Courier New", monospace;
   /* 边栏背景（随主题切换，避免切换浅色仍留暗色） */
   --sidebar-bg: linear-gradient(180deg, #181d24 0%, #14171c 100%);
+  /* 边栏当前宽度（展开 210 / 收起 64），标题栏左段融合色按此对齐，运行时由 JS 同步 */
+  --sidebar-w: 210px;
   /* 边栏激活态文字色（深色用白、浅色用深色，保证可读） */
   --nav-active-text: #fff;
   /* 统计卡底部深色（配合 bg-panel 渐变） */
@@ -48,6 +52,12 @@
   --ring: 0 0 0 3px rgba(91, 157, 255, 0.22);
 }
 
+/* ===== 圆角档位（data-radius：none / small / default / large；default = 基线 :root）=====
+   覆盖全局 --radius / --radius-sm，卡片/面板/按钮等圆角随之变化（胶囊/圆形 999px/50% 不受影响）。 */
+:root[data-radius="none"] { --radius: 0; --radius-sm: 0; --radius-lg: 0; }
+:root[data-radius="small"] { --radius: 6px; --radius-sm: 4px; --radius-lg: 10px; }
+:root[data-radius="large"] { --radius: 18px; --radius-sm: 12px; --radius-lg: 24px; }
+
 /* ===== 浅色主题：覆盖配色变量（跟随系统解析为 light 或手动选 light 时生效） ===== */
 :root[data-theme="light"] {
   --bg: #f3f5f9;
@@ -69,7 +79,7 @@
   --err: #e23b3b;
   --shadow: 0 8px 24px rgba(20, 30, 50, 0.10);
   --shadow-soft: 0 2px 10px rgba(20, 30, 50, 0.06);
-  --sidebar-bg: linear-gradient(180deg, #ffffff 0%, #eef1f6 100%);
+  --sidebar-bg: #ffffff;
   --nav-active-text: #1b2230;
   --bg-deep: #e2e8f1;
   --scroll-thumb: rgba(0, 0, 0, 0.2);
@@ -101,6 +111,7 @@
   --border-soft: #151920;
   --sidebar-bg: linear-gradient(180deg, #05070b 0%, #000000 100%);
   --bg-deep: #000000;
+  --accent-aux: #6ea8ff;
 }
 /* Bangumi 粉夜：暖粉调深色 */
 :root[data-preset="bangumi"] {
@@ -114,6 +125,7 @@
   --border-soft: #2c2025;
   --sidebar-bg: linear-gradient(180deg, #201419 0%, #1a1216 100%);
   --bg-deep: #150f12;
+  --accent-aux: #ff7a9d;
 }
 /* 墨绿夜：冷绿纸感深色 */
 :root[data-preset="ink"] {
@@ -127,6 +139,208 @@
   --border-soft: #1b2822;
   --sidebar-bg: linear-gradient(180deg, #111a15 0%, #0e1411 100%);
   --bg-deep: #0b100d;
+  --accent-aux: #4fbf6f;
+}
+
+/* 薄荷夜：冷绿调深色 */
+:root[data-theme="dark"][data-preset="mint"] {
+  --bg: #0c1715;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #122d27 0%, #0c1715 60%);
+  --bg-panel: #10211d;
+  --bg-elev: #163029;
+  --bg-elev-hover: #1e3c33;
+  --border-hover: #2f5a4d;
+  --border: #234539;
+  --border-soft: #183028;
+  --sidebar-bg: linear-gradient(180deg, #0e1d19 0%, #0c1715 100%);
+  --bg-deep: #091210;
+  --accent: #1fc79a;
+  --accent-2: #18b6c9;
+  --accent-aux: #2ad4a8;
+  --accent-grad: linear-gradient(135deg, #1fc79a 0%, #18b6c9 100%);
+  --accent2-grad: linear-gradient(135deg, #18b6c9 0%, #6be3ff 100%);
+}
+/* 星空夜：靛紫调深色 */
+:root[data-theme="dark"][data-preset="galaxy"] {
+  --bg: #0e0d1a;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #1c1838 0%, #0e0d1a 60%);
+  --bg-panel: #15132a;
+  --bg-elev: #1f1b3a;
+  --bg-elev-hover: #281f47;
+  --border-hover: #3a2f63;
+  --border: #2c2449;
+  --border-soft: #1a1630;
+  --sidebar-bg: linear-gradient(180deg, #120f24 0%, #0e0d1a 100%);
+  --bg-deep: #0a0914;
+  --accent: #8b7bff;
+  --accent-2: #5b9dff;
+  --accent-aux: #7c9bff;
+  --accent-grad: linear-gradient(135deg, #8b7bff 0%, #5b9dff 100%);
+  --accent2-grad: linear-gradient(135deg, #5b9dff 0%, #6be3ff 100%);
+}
+/* 落日夜：暖橙调深色 */
+:root[data-theme="dark"][data-preset="sunset"] {
+  --bg: #1a1110;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #2e1a17 0%, #1a1110 60%);
+  --bg-panel: #211514;
+  --bg-elev: #2c1d1a;
+  --bg-elev-hover: #38251f;
+  --border-hover: #5a3a2f;
+  --border: #46302a;
+  --border-soft: #2c1d1a;
+  --sidebar-bg: linear-gradient(180deg, #1d1412 0%, #1a1110 100%);
+  --bg-deep: #140c0b;
+  --accent: #ff7a3d;
+  --accent-2: #ff5c8a;
+  --accent-aux: #ff9d5c;
+  --accent-grad: linear-gradient(135deg, #ff7a3d 0%, #ff5c8a 100%);
+  --accent2-grad: linear-gradient(135deg, #ff5c8a 0%, #ffb15c 100%);
+}
+/* 霓虹夜：品红青调深色 */
+:root[data-theme="dark"][data-preset="neon"] {
+  --bg: #0d0a14;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #1a0f2e 0%, #0d0a14 60%);
+  --bg-panel: #140f1f;
+  --bg-elev: #1d1630;
+  --bg-elev-hover: #281d44;
+  --border-hover: #4a2f7a;
+  --border: #361f5e;
+  --border-soft: #190f2a;
+  --sidebar-bg: linear-gradient(180deg, #110b1d 0%, #0d0a14 100%);
+  --bg-deep: #09060f;
+  --accent: #ff3df0;
+  --accent-2: #3df0ff;
+  --accent-aux: #6be3ff;
+  --accent-grad: linear-gradient(135deg, #ff3df0 0%, #b13dff 100%);
+  --accent2-grad: linear-gradient(135deg, #3df0ff 0%, #6be3ff 100%);
+}
+
+/* 海洋夜：深蓝调深色 */
+:root[data-theme="dark"][data-preset="ocean"] {
+  --bg: #0a1420;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #102a44 0%, #0a1420 60%);
+  --bg-panel: #0e1b2b;
+  --bg-elev: #14263a;
+  --bg-elev-hover: #1b3249;
+  --border-hover: #2c4a66;
+  --border: #21384f;
+  --border-soft: #14202f;
+  --sidebar-bg: linear-gradient(180deg, #0c1726 0%, #0a1420 100%);
+  --bg-deep: #070e16;
+  --accent: #2f9bff;
+  --accent-2: #25d0e0;
+  --accent-aux: #5cb8ff;
+  --accent-grad: linear-gradient(135deg, #2f9bff 0%, #25d0e0 100%);
+  --accent2-grad: linear-gradient(135deg, #25d0e0 0%, #6be3ff 100%);
+}
+/* 玫瑰夜：酒红调深色 */
+:root[data-theme="dark"][data-preset="rose"] {
+  --bg: #1a0e14;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #2e1320 0%, #1a0e14 60%);
+  --bg-panel: #211219;
+  --bg-elev: #2c1620;
+  --bg-elev-hover: #3a1c2a;
+  --border-hover: #5a2a3c;
+  --border: #46222f;
+  --border-soft: #2a141c;
+  --sidebar-bg: linear-gradient(180deg, #1d1118 0%, #1a0e14 100%);
+  --bg-deep: #140a0f;
+  --accent: #ff4d7d;
+  --accent-2: #ff7a5c;
+  --accent-aux: #ff6d93;
+  --accent-grad: linear-gradient(135deg, #ff4d7d 0%, #ff7a5c 100%);
+  --accent2-grad: linear-gradient(135deg, #ff7a5c 0%, #ffb15c 100%);
+}
+/* 森林夜：深绿调深色 */
+:root[data-theme="dark"][data-preset="forest"] {
+  --bg: #0c1510;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #16291c 0%, #0c1510 60%);
+  --bg-panel: #102016;
+  --bg-elev: #16291d;
+  --bg-elev-hover: #1d3527;
+  --border-hover: #2f4f3a;
+  --border: #243b2c;
+  --border-soft: #16241b;
+  --sidebar-bg: linear-gradient(180deg, #0e1a13 0%, #0c1510 100%);
+  --bg-deep: #09110c;
+  --accent: #3fbf6f;
+  --accent-2: #2fae9c;
+  --accent-aux: #4fd08a;
+  --accent-grad: linear-gradient(135deg, #3fbf6f 0%, #2fae9c 100%);
+  --accent2-grad: linear-gradient(135deg, #2fae9c 0%, #6be3ff 100%);
+}
+/* 琥珀夜：暖金调深色 */
+:root[data-theme="dark"][data-preset="amber"] {
+  --bg: #1a1408;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #2e2410 0%, #1a1408 60%);
+  --bg-panel: #211a0e;
+  --bg-elev: #2c2113;
+  --bg-elev-hover: #3a2c18;
+  --border-hover: #5a4523;
+  --border: #463620;
+  --border-soft: #2a2013;
+  --sidebar-bg: linear-gradient(180deg, #1d160d 0%, #1a1408 100%);
+  --bg-deep: #140f07;
+  --accent: #f0a92f;
+  --accent-2: #ff8a3d;
+  --accent-aux: #ffb84d;
+  --accent-grad: linear-gradient(135deg, #f0a92f 0%, #ff8a3d 100%);
+  --accent2-grad: linear-gradient(135deg, #ff8a3d 0%, #ffd05c 100%);
+}
+
+/* 靛蓝夜：深靛蓝调深色 */
+:root[data-theme="dark"][data-preset="indigo"] {
+  --bg: #0a0e1a;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #14203f 0%, #0a0e1a 60%);
+  --bg-panel: #0f1426;
+  --bg-elev: #161d36;
+  --bg-elev-hover: #1d2742;
+  --border-hover: #324069;
+  --border: #263052;
+  --border-soft: #18203c;
+  --sidebar-bg: linear-gradient(180deg, #0c1124 0%, #0a0e1a 100%);
+  --bg-deep: #070a14;
+  --accent: #6b8cff;
+  --accent-2: #8b6bff;
+  --accent-aux: #8aa8ff;
+  --accent-grad: linear-gradient(135deg, #6b8cff 0%, #8b6bff 100%);
+  --accent2-grad: linear-gradient(135deg, #8b6bff 0%, #6be3ff 100%);
+}
+/* 熔岩夜：暖红熔岩调深色 */
+:root[data-theme="dark"][data-preset="lava"] {
+  --bg: #1a0a0a;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #321410 0%, #1a0a0a 60%);
+  --bg-panel: #24100f;
+  --bg-elev: #2e1612;
+  --bg-elev-hover: #3a1d16;
+  --border-hover: #5a2c20;
+  --border: #46221b;
+  --border-soft: #2c1612;
+  --sidebar-bg: linear-gradient(180deg, #1f0c0b 0%, #1a0a0a 100%);
+  --bg-deep: #140707;
+  --accent: #ff5a3d;
+  --accent-2: #ffb15c;
+  --accent-aux: #ff7a5c;
+  --accent-grad: linear-gradient(135deg, #ff5a3d 0%, #ffb15c 100%);
+  --accent2-grad: linear-gradient(135deg, #ffb15c 0%, #ffd05c 100%);
+}
+/* 苔藓夜：大地黄绿调深色 */
+:root[data-theme="dark"][data-preset="moss"] {
+  --bg: #14130a;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #2a2810 0%, #14130a 60%);
+  --bg-panel: #1c1a0e;
+  --bg-elev: #242113;
+  --bg-elev-hover: #302c18;
+  --border-hover: #4a4520;
+  --border: #3a361b;
+  --border-soft: #262414;
+  --sidebar-bg: linear-gradient(180deg, #18160b 0%, #14130a 100%);
+  --bg-deep: #0e0d07;
+  --accent: #b8c24a;
+  --accent-2: #6fd36a;
+  --accent-aux: #c2d05a;
+  --accent-grad: linear-gradient(135deg, #b8c24a 0%, #6fd36a 100%);
+  --accent2-grad: linear-gradient(135deg, #6fd36a 0%, #6be3ff 100%);
 }
 
 /* ===== 浅色预设皮肤（data-theme=light + data-preset 组合生效）===== */
@@ -140,8 +354,9 @@
   --border-hover: #c9d1dc;
   --border: #dde3ea;
   --border-soft: #edf0f4;
-  --sidebar-bg: linear-gradient(180deg, #ffffff 0%, #f2f4f8 100%);
+  --sidebar-bg: #fcfdff;
   --bg-deep: #e8ecf1;
+  --accent-aux: #6aa8ff;
 }
 /* 粉白：Bangumi 樱粉调浅色 */
 :root[data-theme="light"][data-preset="pink"] {
@@ -153,8 +368,9 @@
   --border-hover: #dcc3cc;
   --border: #ecd6dd;
   --border-soft: #f4e4e9;
-  --sidebar-bg: linear-gradient(180deg, #fdf5f7 0%, #fbf1f4 100%);
+  --sidebar-bg: #fbf1f4;
   --bg-deep: #f3e2e8;
+  --accent-aux: #ff8fa8;
 }
 /* 墨绿纸：冷绿纸感浅色 */
 :root[data-theme="light"][data-preset="paper"] {
@@ -166,9 +382,222 @@
   --border-hover: #bfd0c1;
   --border: #d3e0d4;
   --border-soft: #e4ede5;
-  --sidebar-bg: linear-gradient(180deg, #f4f8f2 0%, #f1f5ef 100%);
+  --sidebar-bg: #f1f5ef;
   --bg-deep: #e6eee4;
+  --accent-aux: #4caf6f;
 }
+
+/* 薄荷：冷绿调浅色 */
+:root[data-theme="light"][data-preset="mint"] {
+  --bg: #eef6f3;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #d9efe7 0%, #eef6f3 60%);
+  --bg-panel: #f6faf8;
+  --bg-elev: #e6f1ec;
+  --bg-elev-hover: #d8e9e1;
+  --border-hover: #b6d6cb;
+  --border: #cfe3db;
+  --border-soft: #e2efe9;
+  --sidebar-bg: #f3f9f6;
+  --bg-deep: #dcebe4;
+  --nav-active-text: #0c2a22;
+  --accent: #12b886;
+  --accent-2: #0ca5c0;
+  --accent-aux: #22c98f;
+  --accent-grad: linear-gradient(135deg, #12b886 0%, #0ca5c0 100%);
+  --accent2-grad: linear-gradient(135deg, #0ca5c0 0%, #2ad0ff 100%);
+}
+/* 星空：靛紫调浅色 */
+:root[data-theme="light"][data-preset="galaxy"] {
+  --bg: #f1eefb;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #e0d8f6 0%, #f1eefb 60%);
+  --bg-panel: #f6f4fc;
+  --bg-elev: #ece6f8;
+  --bg-elev-hover: #ddd3f1;
+  --border-hover: #c3b4e6;
+  --border: #d6cbee;
+  --border-soft: #eae4f6;
+  --sidebar-bg: #f5f2fc;
+  --bg-deep: #e0d8f2;
+  --nav-active-text: #1b1230;
+  --accent: #6a4bff;
+  --accent-2: #3a7bff;
+  --accent-aux: #7a6bff;
+  --accent-grad: linear-gradient(135deg, #6a4bff 0%, #3a7bff 100%);
+  --accent2-grad: linear-gradient(135deg, #3a7bff 0%, #2ad0ff 100%);
+}
+/* 落日：暖橙调浅色 */
+:root[data-theme="light"][data-preset="sunset"] {
+  --bg: #fdf1ea;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #fbe0d2 0%, #fdf1ea 60%);
+  --bg-panel: #fef7f1;
+  --bg-elev: #fbe9df;
+  --bg-elev-hover: #f6d8c8;
+  --border-hover: #e6b89f;
+  --border: #f0d2c2;
+  --border-soft: #fae6db;
+  --sidebar-bg: #fdf4ee;
+  --bg-deep: #f8e2d4;
+  --nav-active-text: #3a1c12;
+  --accent: #f0623d;
+  --accent-2: #e84393;
+  --accent-aux: #ff8a5c;
+  --accent-grad: linear-gradient(135deg, #f0623d 0%, #e84393 100%);
+  --accent2-grad: linear-gradient(135deg, #e84393 0%, #ffb15c 100%);
+}
+/* 霓虹：品红青调浅色 */
+:root[data-theme="light"][data-preset="neon"] {
+  --bg: #fbeefb;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #f6d6f6 0%, #fbeefb 60%);
+  --bg-panel: #fdf6fd;
+  --bg-elev: #f6e3f6;
+  --bg-elev-hover: #efcdef;
+  --border-hover: #dca9dc;
+  --border: #eccdec;
+  --border-soft: #f4e2f4;
+  --sidebar-bg: #fdf3fd;
+  --bg-deep: #f3dbf3;
+  --nav-active-text: #3a0a38;
+  --accent: #d624c4;
+  --accent-2: #00b8d4;
+  --accent-aux: #3ecfef;
+  --accent-grad: linear-gradient(135deg, #d624c4 0%, #7b2ff7 100%);
+  --accent2-grad: linear-gradient(135deg, #00b8d4 0%, #2ad0ff 100%);
+}
+
+/* 海洋：深蓝调浅色 */
+:root[data-theme="light"][data-preset="ocean"] {
+  --bg: #eaf2fb;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #d3e6f7 0%, #eaf2fb 60%);
+  --bg-panel: #f2f7fc;
+  --bg-elev: #e3edf7;
+  --bg-elev-hover: #d2e2f1;
+  --border-hover: #aacbe6;
+  --border: #c5d8ea;
+  --border-soft: #e1ebf5;
+  --sidebar-bg: #f1f6fc;
+  --bg-deep: #d8e7f4;
+  --nav-active-text: #0b2238;
+  --accent: #1f7fe0;
+  --accent-2: #0ca5c0;
+  --accent-aux: #3f9be8;
+  --accent-grad: linear-gradient(135deg, #1f7fe0 0%, #0ca5c0 100%);
+  --accent2-grad: linear-gradient(135deg, #0ca5c0 0%, #2ad0ff 100%);
+}
+/* 玫瑰：酒红调浅色 */
+:root[data-theme="light"][data-preset="rose"] {
+  --bg: #fdeef2;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #fbd9e2 0%, #fdeef2 60%);
+  --bg-panel: #fdf4f7;
+  --bg-elev: #fbe4ea;
+  --bg-elev-hover: #f6cfdb;
+  --border-hover: #eab2c4;
+  --border: #f0ccd7;
+  --border-soft: #fae0e7;
+  --sidebar-bg: #fdf3f6;
+  --bg-deep: #f8dbe4;
+  --nav-active-text: #3a1322;
+  --accent: #e83a6e;
+  --accent-2: #f0623d;
+  --accent-aux: #f05c86;
+  --accent-grad: linear-gradient(135deg, #e83a6e 0%, #f0623d 100%);
+  --accent2-grad: linear-gradient(135deg, #f0623d 0%, #ffb15c 100%);
+}
+/* 森林：深绿调浅色 */
+:root[data-theme="light"][data-preset="forest"] {
+  --bg: #eef6ee;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #d9ecd9 0%, #eef6ee 60%);
+  --bg-panel: #f5faf4;
+  --bg-elev: #e4f0e4;
+  --bg-elev-hover: #d4e7d4;
+  --border-hover: #aecfae;
+  --border: #c9e0c9;
+  --border-soft: #e1ede1;
+  --sidebar-bg: #f3f9f3;
+  --bg-deep: #dcebdc;
+  --nav-active-text: #0e2a18;
+  --accent: #1f9d57;
+  --accent-2: #0ca07c;
+  --accent-aux: #2fb268;
+  --accent-grad: linear-gradient(135deg, #1f9d57 0%, #0ca07c 100%);
+  --accent2-grad: linear-gradient(135deg, #0ca07c 0%, #2ad0ff 100%);
+}
+/* 琥珀：暖金调浅色 */
+:root[data-theme="light"][data-preset="amber"] {
+  --bg: #fdf6e9;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #faecd2 0%, #fdf6e9 60%);
+  --bg-panel: #fef8ee;
+  --bg-elev: #f8edda;
+  --bg-elev-hover: #f3e2c7;
+  --border-hover: #e3c590;
+  --border: #ecd6ad;
+  --border-soft: #f6edd9;
+  --sidebar-bg: #fdf8ef;
+  --bg-deep: #f6e9cf;
+  --nav-active-text: #3a2c10;
+  --accent: #d98a1f;
+  --accent-2: #e8702f;
+  --accent-aux: #e8a83f;
+  --accent-grad: linear-gradient(135deg, #d98a1f 0%, #e8702f 100%);
+  --accent2-grad: linear-gradient(135deg, #e8702f 0%, #ffd05c 100%);
+}
+/* 靛蓝：靛蓝调浅色 */
+:root[data-theme="light"][data-preset="indigo"] {
+  --bg: #eaeefb;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #d6e0f8 0%, #eaeefb 60%);
+  --bg-panel: #f3f5fc;
+  --bg-elev: #e3e9f6;
+  --bg-elev-hover: #d5def1;
+  --border-hover: #b6c4e8;
+  --border: #cdd9ee;
+  --border-soft: #e2e8f5;
+  --sidebar-bg: #f0f3fb;
+  --bg-deep: #dbe3f4;
+  --nav-active-text: #0b1230;
+  --accent: #4a6bff;
+  --accent-2: #6a4bff;
+  --accent-aux: #6a8bff;
+  --accent-grad: linear-gradient(135deg, #4a6bff 0%, #6a4bff 100%);
+  --accent2-grad: linear-gradient(135deg, #6a4bff 0%, #2ad0ff 100%);
+}
+/* 熔岩：暖红熔岩调浅色 */
+:root[data-theme="light"][data-preset="lava"] {
+  --bg: #fbf0ea;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #f8dcd0 0%, #fbf0ea 60%);
+  --bg-panel: #fef5f0;
+  --bg-elev: #f7e0d4;
+  --bg-elev-hover: #f1cdba;
+  --border-hover: #e6a888;
+  --border: #f0c4ae;
+  --border-soft: #fae0d3;
+  --sidebar-bg: #fdf4ee;
+  --bg-deep: #f6dccb;
+  --nav-active-text: #3a140c;
+  --accent: #e84a2d;
+  --accent-2: #f08a2d;
+  --accent-aux: #ff8a5c;
+  --accent-grad: linear-gradient(135deg, #e84a2d 0%, #f08a2d 100%);
+  --accent2-grad: linear-gradient(135deg, #f08a2d 0%, #ffd05c 100%);
+}
+/* 苔藓：大地黄绿调浅色 */
+:root[data-theme="light"][data-preset="moss"] {
+  --bg: #f3f5ea;
+  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #e3e7d0 0%, #f3f5ea 60%);
+  --bg-panel: #f8faef;
+  --bg-elev: #ebeed8;
+  --bg-elev-hover: #dde2c4;
+  --border-hover: #b0c088;
+  --border: #c8d3a0;
+  --border-soft: #e3e9d2;
+  --sidebar-bg: #f6f8ec;
+  --bg-deep: #e0e6cc;
+  --nav-active-text: #1e2410;
+  --accent: #8aa026;
+  --accent-2: #2fae4a;
+  --accent-aux: #a8c24a;
+  --accent-grad: linear-gradient(135deg, #8aa026 0%, #2fae4a 100%);
+  --accent2-grad: linear-gradient(135deg, #2fae4a 0%, #2ad0ff 100%);
+}
+
 :root[data-theme="light"] ::-webkit-scrollbar-thumb {
   background-color: rgba(0, 0, 0, 0.18);
 }
@@ -241,6 +670,8 @@ body,
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+  /* 作为绝对定位标题栏的锚点（标题栏以 position:absolute 覆盖在窗口顶部 32px） */
+  position: relative;
 }
 
 .app-body {
@@ -258,10 +689,23 @@ body,
   padding: 18px 0;
   display: flex;
   flex-direction: column;
+  /* 侧栏本身顶到窗口上沿，并作为拖拽区：从侧栏空白处即可拖动窗口；
+     其可交互子元素用 no-drag 退出拖拽（见下方）。 */
+  -webkit-app-region: drag;
   /* 压过缩放边缘遮罩（z-index:30），让左侧遮罩条藏在侧栏后不可见 */
   position: relative;
   z-index: 40;
   transition: width 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* 侧栏内的可交互控件退出原生拖拽，保证点击/聚焦正常（app-region 不继承，故连带其子元素） */
+.sidebar .brand .collapse-btn,
+.sidebar .nav-search,
+.sidebar .nav-search *,
+.sidebar nav a,
+.sidebar .nav-sync-wrap,
+.sidebar .nav-sync-wrap *,
+.sidebar .nav-gear {
+  -webkit-app-region: no-drag;
 }
 .sidebar.collapsed {
   width: 64px;
@@ -306,7 +750,7 @@ body,
   border: 1px solid var(--border-soft);
   background: var(--bg-elev);
   color: var(--text-dim);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
@@ -350,7 +794,7 @@ body,
   justify-content: flex-start;
   border: none;
   background: transparent;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
 }
 .sidebar.collapsed .collapse-btn:hover {
   background: var(--bg-elev);
@@ -375,7 +819,7 @@ body,
   gap: 10px;
   padding: 10px 12px;
   height: 38px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   color: var(--text-dim);
   text-decoration: none;
   font-size: 14px;
@@ -412,6 +856,10 @@ body,
 .sidebar nav a.router-link-active svg {
   opacity: 1;
 }
+/* 浅色经典：选中项背景比纯白边栏稍深一点，留出可见但克制的底色 */
+:root[data-theme="light"]:not([data-preset]) .sidebar nav a.router-link-active {
+  background: #e9edf4;
+}
 /* 全局搜索：整条是一个“输入框”外观的框（放大镜 + 占位文字被同一框包住），
    非真实 input，不可输入；点击整行在应用中央叠加搜索卡片（见 SearchOverlay.vue）。
    展开/折叠均锁定 height:38px（与 brand 等对齐），折叠仅去边框背景、隐藏文字，
@@ -424,7 +872,7 @@ body,
   height: 38px;
   margin: -6px 10px 2px;
   padding: 0 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--bg-elev);
   color: var(--text-dim);
@@ -433,7 +881,7 @@ body,
 }
 .sidebar .nav-search:hover {
   color: var(--text);
-  border-color: var(--accent-2);
+  border-color: var(--accent-aux);
 }
 .sidebar .nav-search svg {
   width: 18px;
@@ -462,7 +910,7 @@ body,
   color: var(--text-dim);
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   padding: 2px 6px;
   letter-spacing: 0.4px;
   opacity: 0.75;
@@ -470,8 +918,8 @@ body,
   user-select: none;
 }
 .sidebar .nav-search:hover .ns-kbd {
-  color: var(--accent-2);
-  border-color: var(--accent-2);
+  color: var(--accent-aux);
+  border-color: var(--accent-aux);
   opacity: 1;
 }
 /* 折叠态：固定高度 38px 不变（防偏移），去掉边框/背景，只留放大镜图标，hover 才高亮 */
@@ -510,7 +958,7 @@ body,
   margin: 2px 10px 14px;
   padding: 10px 12px;
   height: 38px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   color: var(--text-dim);
   text-decoration: none;
   font-size: 14px;
@@ -558,7 +1006,7 @@ body,
   border: none;
   background: transparent;
   cursor: pointer;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
 }
 .ns-dot {
   width: 8px;
@@ -606,16 +1054,29 @@ body,
 .content {
   flex: 1;
   min-width: 0;
+  /* 顶部 margin 预留 32px 标题栏浮层：仅右侧内容区下沉避让，左侧边栏仍顶到窗口上沿与之融合。
+     保留原始 26px 顶部内边距作为呼吸位（HomeView 的 .home 有 -15px 负 margin，落在此内边距内，
+     不会顶进标题栏覆盖区）。 */
+  margin-top: 32px;
   padding: 26px 0 26px 30px;
   overflow-y: scroll;
-  overflow-x: hidden;
-  /* 垂直滚动条常驻（scroll）+ 始终预留沟槽（scrollbar-gutter:stable）：
-     滚动条不再随内容是否溢出而显隐，布局宽度恒定，根除竖向滚动条“抽动”。
+  overflow-x: clip;
+  scrollbar-width: none;
+  /* 垂直滚动条常驻（overflow-y:scroll）保证滚动条不随内容是否溢出而显隐、布局宽度恒定，根除竖向滚动条“抽动”。
      占位区透明，由 html/body/#app 的渐变背景透出，保证整窗无黑边。
      注意：不要在此加 will-change:width —— 会让 .content 长期驻留合成层，
      窗口缩放时该层重绘滞后，未铺满区域透出 Electron 窗口 backgroundColor（看着像黑边）。
-     右侧内边距移到 .content-inner（见下），使滚动条紧贴窗口右缘，内容仍保留右侧呼吸位。 */
-  scrollbar-gutter: stable;
+     右侧内边距移到 .content-inner（见下），使滚动条紧贴窗口右缘，内容仍保留右侧呼吸位。
+     不保留 scrollbar-gutter：覆盖式滚动条系统（Win11 / macOS 默认）下不预留沟槽，
+     开启封面横幅时横幅可铺满窗口右缘、滚动条压在其上而非透出页面底色；
+     经典常驻滚动条系统下沟槽由系统保留，横幅无法透入（已知限制）。 */
+}
+
+/* 隐藏 .content 原生滚动条：改用自定义覆盖式滚动条（ContentScrollbar），
+   使封面横幅可铺满窗口右缘、不再被原生滚动条沟槽截断。 */
+.content::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 /* 内容区内层：承接原 .content 的右侧内边距，让竖向滚动条能贴到窗口最右缘，
@@ -623,50 +1084,6 @@ body,
 .content-inner {
   min-height: 100%;
   padding-right: 30px;
-}
-
-/* 缩放边缘遮罩层：默认隐藏，仅 body.resizing（拖拽缩放进行中）时出现。
-   四条固定边条用与页面完全相同的背景（var(--bg-grad) + background-attachment:fixed
-   对齐视口），盖住原生缩放时 GPU 合成层滞后 1-2 帧露出的旧内容（重影）。
-   z-index 置于内容(0)之上、固定侧栏(40)/标题栏(50)之下 —— 边条只遮内容区，
-   不遮固定栏；左/上条因被侧栏/标题栏覆盖而自然不可见。pointer-events:none 不挡交互。
-   FLIP 动画照常运行，只是边缘条在拖拽期间被遮住不可见。 */
-.resize-masks {
-  display: none;
-}
-body.resizing .resize-masks {
-  display: block;
-}
-.rm {
-  position: fixed;
-  z-index: 30;
-  pointer-events: none;
-  background: var(--bg-grad);
-  background-attachment: fixed;
-}
-.rm-top {
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 64px;
-}
-.rm-bottom {
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 64px;
-}
-.rm-left {
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 64px;
-}
-.rm-right {
-  top: 0;
-  bottom: 0;
-  right: 0;
-  width: 64px;
 }
 
 .content h1 {
@@ -873,7 +1290,7 @@ body.resizing .resize-masks {
   align-items: center;
   gap: calc(3px * var(--card-scale, 1));
   padding: calc(2px * var(--card-scale, 1)) calc(9px * var(--card-scale, 1));
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   font-size: calc(12.5px * var(--card-scale, 1));
   font-weight: 700;
   line-height: 1.6;
@@ -887,7 +1304,7 @@ body.resizing .resize-masks {
   align-items: center;
   gap: calc(3px * var(--card-scale, 1));
   padding: calc(2px * var(--card-scale, 1)) calc(9px * var(--card-scale, 1));
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   font-size: calc(12.5px * var(--card-scale, 1));
   font-weight: 700;
   line-height: 1.6;
@@ -987,19 +1404,32 @@ body.resizing .resize-masks {
    后续兄弟（.detail__main / .panel）设为 positioned 使其绘制在横幅之上。 */
 .detail-banner {
   position: absolute;
-  top: -90px;
+  top: -130px;
   left: -30px;
   right: -30px;
-  height: 460px;
+  /* 左右拉满详情页宽度；用封面比例(2:3)定高，使 cover 等比例铺满不裁切。
+     ⚠️ aspect-ratio 仅本页横幅需要，悬浮窗两处修饰类(.subject-banner/.entity-banner)必须复位为 auto */
+  aspect-ratio: 2 / 3;
   background-size: cover;
-  background-position: center 25%;
+  background-position: center top;
   filter: blur(70px) saturate(1.45);
   opacity: 0.32;
   pointer-events: none;
-  /* 双端渐隐：顶部 0→20% 渐入（消除上缘硬边界，与页面背景融为一体），
-     底部 42%→100% 渐出（漫过锚点栏后柔和平息） */
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 42%, transparent 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 42%, transparent 100%);
+  /* 顶部渐入区间拉长（0→14%），顶底两段淡出都放慢，过渡更顺滑自然 */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 34%, transparent 60%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 34%, transparent 60%);
+}
+/* 沉浸光感模式：详情页板块壳与卡片底色半透明，让封面横幅从背后透出
+   （与作品悬浮窗一致：壳 70% / 评论子卡 60%；.card-box 本就是 60% 半透明，无需重复） */
+.detail.glow .panel,
+.detail.glow .game-gallery,
+.detail.glow .topics-box,
+.detail.glow .tucao-box {
+  background: color-mix(in srgb, var(--bg-panel) 70%, transparent);
+}
+.detail.glow .topic-item,
+.detail.glow .tucao-item {
+  background: color-mix(in srgb, var(--bg-elev) 60%, transparent);
 }
 .detail__main,
 .detail > .panel {
@@ -1179,7 +1609,7 @@ textarea.input {
   font-size: 11px;
   font-weight: 700;
   padding: 2px 7px;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   color: #fff;
   letter-spacing: 0.4px;
 }
@@ -1259,7 +1689,7 @@ textarea.input {
   height: 34px;
   padding: 0;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-dim);
   font-size: 18px;
@@ -1323,7 +1753,7 @@ textarea.input {
   position: relative;
   overflow: hidden;
   background: var(--bg-elev);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 .skeleton::after {
   content: '';

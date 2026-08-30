@@ -6,12 +6,15 @@ import { useToast } from '@/composables/useToast'
 import { parseAppError } from '@/utils/appError'
 import { collectionClient } from '@/services/collectionClient'
 import { statusVerbs } from '@/utils/collectionVerbs'
+import { useSettingsStore } from '@/stores/settings'
 
 // 全局单例：状态由 open() 写入，本组件只负责渲染与提交
 const modal = useCollectionModal()
 const toast = useToast()
 // 最后打开的悬浮窗抬到最上层
 const z = useModalZ(modal.isOpen)
+// 沉浸光感（液态玻璃）开关：与讨论抽屉 / 悬浮卡同一设置项
+const settings = useSettingsStore()
 
 // 本地编辑副本（打开时从单例状态初始化）
 const selectedStatus = ref(1)
@@ -147,20 +150,61 @@ async function onSave() {
   }
 }
 
-function onOverlayClick() {
-  modal.close()
-}
 function onKey(e: KeyboardEvent) {
   if (e.key === 'Escape' && modal.isOpen.value) modal.close()
 }
-onMounted(() => window.addEventListener('keydown', onKey))
-onUnmounted(() => window.removeEventListener('keydown', onKey))
+// 点击穿透（overlay 设为 pointer-events:none）后，靠全局监听恢复「点击面板外关闭」：
+// 事件会落到背后页面，target 不在 .col-modal 内即视为外部点击。
+function onDocPointerDown(e: PointerEvent) {
+  if (!modal.isOpen.value) return
+  if ((e.target as HTMLElement)?.closest?.('.col-modal')) return
+  modal.close()
+}
+onMounted(() => {
+  window.addEventListener('keydown', onKey)
+  window.addEventListener('pointerdown', onDocPointerDown)
+})
+onUnmounted(() => {
+  window.removeEventListener('keydown', onKey)
+  window.removeEventListener('pointerdown', onDocPointerDown)
+  if (glowRAF) cancelAnimationFrame(glowRAF)
+  glowEl = null
+})
+
+// 沉浸光感：指针光斑平滑跟随（带轻微延迟的插值），--mx/--my 驱动 ::after 光斑位置（事件委托在 .col-modal）
+let glowEl: HTMLElement | null = null
+let glowTX = 0, glowTY = 0, glowCX = 0, glowCY = 0
+let glowRAF = 0
+function glowTick() {
+  if (!glowEl) { glowRAF = 0; return }
+  // 插值系数越小，光斑相对鼠标延迟越明显
+  glowCX += (glowTX - glowCX) * 0.02
+  glowCY += (glowTY - glowCY) * 0.02
+  glowEl.style.setProperty('--mx', `${glowCX}px`)
+  glowEl.style.setProperty('--my', `${glowCY}px`)
+  glowRAF = requestAnimationFrame(glowTick)
+}
+function onGlowMove(e: MouseEvent) {
+  const el = (e.target as HTMLElement).closest?.('.col-status-btn, .col-save') as HTMLElement | null
+  if (!el) { glowEl = null; return }
+  const r = el.getBoundingClientRect()
+  if (glowEl !== el) {
+    // 切换到新按钮：从当前指针位置起步，避免光斑从旧按钮坐标飞入
+    glowCX = glowTX = e.clientX - r.left
+    glowCY = glowTY = e.clientY - r.top
+    glowEl = el
+  } else {
+    glowTX = e.clientX - r.left
+    glowTY = e.clientY - r.top
+  }
+  if (!glowRAF) glowRAF = requestAnimationFrame(glowTick)
+}
 </script>
 
 <template>
   <Transition name="overlay">
-    <div v-if="modal.isOpen.value" class="col-overlay" :style="{ zIndex: z }" @click="onOverlayClick">
-      <div class="col-modal" @click.stop>
+    <div v-if="modal.isOpen.value" class="col-overlay" :style="{ zIndex: z }">
+      <div class="col-modal" :class="{ glass: settings.immersiveGlow }" @click.stop @mousemove="onGlowMove">
         <div class="col-head">
           <span class="col-title">加入收藏</span>
           <button class="col-close" type="button" title="关闭" aria-label="关闭" @click="modal.close()">
@@ -246,28 +290,58 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
   position: fixed;
   inset: 0;
   z-index: 1200;
-  /* 自带一层暗化 + 高斯模糊：当本悬浮窗叠在搜索/实体卡片等其它悬浮窗之上时，
-     能遮住并模糊其下方的内容（全局 .modal-backdrop 只模糊应用主内容，叠在上面的
-     其它悬浮窗并不在它背后），从而收藏窗后面始终有模糊。 */
-  background: rgba(8, 10, 14, 0.42);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  /* 点击穿透：pointer-events:none 让滚轮 / 触摸事件落到背后页面，
+     打开悬浮窗时背景仍可滚动；面板自身在 .col-modal 上重新开启 pointer-events。
+     不叠加任何暗化或高斯模糊，背后内容保持清晰可见。 */
+  pointer-events: none;
+
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  /* 内容高于视口（如未评分作品展开评分区）时允许滚动，确保底部「保存」按钮始终可达，
-     不再被 overflow 裁掉导致「点不到保存」。顶部留白 + 底部留白，滚动时上下都有缓冲。 */
-  overflow-y: auto;
+  /* 内容高于视口时由 .col-modal 自身滚动（max-height + overflow-y:auto），确保底部「保存」按钮可达 */
+  overflow: visible;
   padding: 18vh 16px 24px;
 }
 .col-modal {
+  pointer-events: auto;
   width: calc(100% - 32px);
   max-width: 420px;
+  max-height: calc(100vh - 18vh - 24px);
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   overflow: hidden;
+}
+/* ——「沉浸光感」开启时的液态玻璃面板（设置可关，与讨论抽屉 / 悬浮卡同款）——
+   面板浮在其它悬浮窗 / 内容之上，折射滤镜外再叠 blur 保证文字可读；
+   本体叠自上而下微透光 + 顶部内描边高光，背后内容经玻璃折射后透出。
+   注意：此效果仅作用于面板本体，不叠加任何整屏暗化 / 模糊遮罩（与前述要求一致）。 */
+.col-modal.glass {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-color: transparent;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.06) 0%,
+      rgba(255, 255, 255, 0.02) 42%,
+      rgba(255, 255, 255, 0) 100%
+    ),
+    color-mix(in srgb, var(--bg-panel) 72%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    var(--shadow);
+}
+.col-modal.glass::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  z-index: -1;
+  border-radius: var(--radius-lg);
+  backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(10px);
+  -webkit-backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(10px);
 }
 .col-head {
   display: flex;
@@ -302,8 +376,13 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
   display: block;
 }
 .col-close:hover {
-  background: var(--accent-2);
+  background: var(--accent);
   color: #fff;
+}
+.col-close:active {
+  background: #ff3d77;
+  color: #fff;
+  transform: scale(0.94);
 }
 .col-status-row {
   display: flex;
@@ -319,18 +398,61 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
   border: 1px solid var(--border);
   background: var(--bg-elev);
   color: var(--text);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 .col-status-btn:hover {
-  border-color: var(--accent-2);
+  border-color: var(--accent);
 }
 .col-status-btn.active {
-  background: var(--accent-2);
-  border-color: var(--accent-2);
+  background: #FF3D77;
+  border-color: #FF3D77;
   color: #fff;
   font-weight: 600;
+}
+/* ——「沉浸光感」开启时，状态按钮换液态玻璃（与悬浮卡标记按钮同款）——
+   ::before 外扩 6px 承载折射滤镜，overflow 裁掉边缘拉伸线；::after 为跟随指针的
+   主题色光斑（--mx/--my 由 JS 鼠标事件写入），:hover 时淡入 */
+.col-modal.glass .col-status-btn {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--border) 90%, transparent);
+  background: color-mix(in srgb, #fff 10%, transparent);
+}
+.col-modal.glass .col-status-btn::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  z-index: -1;
+  border-radius: var(--radius-sm);
+  backdrop-filter: url(#liquid-glass-distortion) saturate(1.5);
+  -webkit-backdrop-filter: url(#liquid-glass-distortion) saturate(1.5);
+}
+.col-modal.glass .col-status-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    80px circle at var(--mx, 50%) var(--my, 50%),
+    color-mix(in srgb, var(--accent) 40%, transparent),
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.28s ease;
+  pointer-events: none;
+}
+.col-modal.glass .col-status-btn:hover::after {
+  opacity: 1;
+}
+/* 选中态与保存按钮一致：玻璃态用半透强调色 + 液态玻璃折射 */
+.col-modal.glass .col-status-btn.active {
+  background: color-mix(in srgb, #FF3D77 78%, transparent);
+  border-color: transparent;
+  color: #fff;
+  border-color: transparent;
 }
 .col-tucao {
   padding: 12px 16px 4px;
@@ -385,12 +507,12 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
   display: block;
 }
 .col-clear-btn:hover {
-  border-color: var(--accent-2);
-  color: var(--accent-2);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 .col-clear-btn.is-active {
-  border-color: var(--accent-2);
-  color: var(--accent-2);
+  border-color: var(--accent);
+  color: var(--accent);
   background: var(--rating-bg, rgba(255, 206, 107, 0.14));
 }
 .col-star-btn {
@@ -414,18 +536,25 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
   width: 100%;
   box-sizing: border-box;
   resize: vertical;
+  max-height: 160px;
+  overflow-y: auto;
   padding: 10px 12px;
   font-size: 13px;
   line-height: 1.5;
   color: var(--text);
   background: var(--bg-elev);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   outline: none;
   font-family: inherit;
 }
 .col-textarea:focus {
-  border-color: var(--accent-2);
+  border-color: var(--accent);
+}
+/* 沉浸光感：吐槽输入框化半透磨砂，与面板玻璃同语言 */
+.col-modal.glass .col-textarea {
+  background: color-mix(in srgb, var(--bg-elev) 70%, transparent);
+  border-color: color-mix(in srgb, var(--border) 80%, transparent);
 }
 .col-foot {
   display: flex;
@@ -439,8 +568,8 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
   font-size: 14px;
   font-weight: 600;
   border: none;
-  border-radius: 8px;
-  background: var(--accent-2);
+  border-radius: var(--radius-sm);
+  background: #FF3D77;
   color: #fff;
   cursor: pointer;
   transition: opacity 0.15s ease;
@@ -448,6 +577,40 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
 .col-save:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+/* ——「沉浸光感」开启时，保存按钮换液态玻璃 + 跟随指针的白色光斑 —— */
+.col-modal.glass .col-save {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: color-mix(in srgb, #FF3D77 78%, transparent);
+  border-color: transparent;
+}
+.col-modal.glass .col-save::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  z-index: -1;
+  border-radius: var(--radius-sm);
+  backdrop-filter: url(#liquid-glass-distortion) saturate(1.5);
+  -webkit-backdrop-filter: url(#liquid-glass-distortion) saturate(1.5);
+}
+.col-modal.glass .col-save::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    80px circle at var(--mx, 50%) var(--my, 50%),
+    color-mix(in srgb, var(--accent) 40%, transparent),
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.28s ease;
+  pointer-events: none;
+}
+.col-modal.glass .col-save:hover::after {
+  opacity: 1;
 }
 .col-private {
   display: inline-flex;
@@ -461,7 +624,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
 .col-private input {
   width: 15px;
   height: 15px;
-  accent-color: var(--accent-2);
+  accent-color: var(--accent);
   cursor: pointer;
 }
 .col-error {
@@ -472,25 +635,18 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
   color: var(--err, #ff5a5a);
   background: rgba(255, 90, 90, 0.1);
   border: 1px solid rgba(255, 90, 90, 0.35);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
-/* 进入/离开动画 */
-.overlay-enter-active,
-.overlay-leave-active {
-  transition: opacity 0.2s ease;
-}
+/* 进入/离开动画：只动位移、不动 opacity —— opacity<1 会把浮窗变成 backdrop root，
+   导致玻璃 ::before 的 backdrop-filter 采样失效、玻璃要等动画结束才出现（"跳出来才出现"）。
+   位移动画下玻璃全程可见，与讨论抽屉 / 悬浮卡同款处理方式。 */
 .overlay-enter-active .col-modal,
 .overlay-leave-active .col-modal {
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-.overlay-enter-from,
-.overlay-leave-to {
-  opacity: 0;
+  transition: transform 0.2s ease;
 }
 .overlay-enter-from .col-modal,
 .overlay-leave-to .col-modal {
-  transform: translateY(12px) scale(0.98);
-  opacity: 0;
+  transform: translateY(12px);
 }
 </style>

@@ -2,10 +2,10 @@
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import SidebarNav from './components/SidebarNav.vue'
-import TitleBar from './components/TitleBar.vue'
 import SearchOverlay from './components/SearchOverlay.vue'
 import EntitySubjectCard from './components/EntitySubjectCard.vue'
 import CollectionModal from './components/CollectionModal.vue'
+import ContentScrollbar from './components/ContentScrollbar.vue'
 import ImageLightbox from './components/ImageLightbox.vue'
 import ToastHost from './components/ToastHost.vue'
 import ContextMenu from './components/ContextMenu.vue'
@@ -34,12 +34,13 @@ const entityOpen = entity.isOpen
 const collection = useCollectionModal()
 const collectionOpen = collection.isOpen
 
-// 全局模糊遮罩：任意悬浮窗打开时显示唯一一层 backdrop-filter 模糊。
+// 全局模糊遮罩：搜索 / 实体卡 打开时显示唯一一层 backdrop-filter 模糊。
 // 各悬浮窗自身不再带 backdrop-filter（见各 *-overlay 样式），因此悬浮窗之间
 // 互跳时这层模糊始终稳定在背后、绝不重算/闪烁；仅当「最后一个悬浮窗关闭」时才淡出。
-// 注：单集评论（kind==='episode'）已并入 EntitySubjectCard 同一 overlay，不再独立计入。
+// 注：单集评论（kind==='episode'）已并入 EntitySubjectCard 同一 overlay，不再独立计入；
+//     收藏悬浮窗（CollectionModal）不计入 —— 其后不加任何暗化/模糊遮罩（用户要求）。
 const anyModalOpen = computed(
-  () => searchOpen.value || entityOpen.value || collectionOpen.value
+  () => searchOpen.value || entityOpen.value
 )
 
 // 防抖：一次物理按键在某些鼠标/系统上会连续派发多个 mousedown/mouseup，
@@ -102,7 +103,6 @@ onUnmounted(() => {
 
 <template>
   <div class="app-shell">
-    <TitleBar />
     <div class="app-body">
       <SidebarNav />
       <main class="content">
@@ -150,14 +150,8 @@ onUnmounted(() => {
     <ContextMenu />
     <!-- 首次关闭行为选择窗（主进程触发） -->
     <CloseBehaviorDialog />
-    <!-- 缩放边缘遮罩：拖拽缩放期间盖住右/下缘同色遮罩，遮挡合成层滞后露出的旧内容（重影），
-         松手即隐藏。FLIP 动画照常运行，仅边缘条在拖拽时被遮住不可见。 -->
-    <div class="resize-masks" aria-hidden="true">
-      <span class="rm rm-top"></span>
-      <span class="rm rm-bottom"></span>
-      <span class="rm rm-left"></span>
-      <span class="rm rm-right"></span>
-    </div>
+    <!-- 自定义覆盖式滚动条：替代 .content 原生滚动条，使封面横幅可铺满窗口右缘 -->
+    <ContentScrollbar />
   </div>
 </template>
 

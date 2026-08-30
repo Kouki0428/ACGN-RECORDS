@@ -633,7 +633,7 @@ watch(
 </script>
 
 <template>
-  <div class="subject-card" @click.stop>
+  <div class="subject-card" :class="{ glow: settings.immersiveGlow }" @click.stop>
     <!-- 封面横幅：铺满卡片最顶端（含标题栏背后），常驻背景光晕不随滚动；
          模糊放大封面作装饰，可在设置关闭。后续 head/body 均 positioned 绘制其上。 -->
     <div
@@ -764,11 +764,28 @@ watch(
   flex-direction: column;
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   overflow: hidden;
-  /* 封面横幅的定位上下文 */
+  /* 封面横幅的定位上下文 + 层叠上下文：横幅 z-index:-1 只压到卡片背景之下、内容之上 */
   position: relative;
+  isolation: isolate;
+}
+/* 沉浸光感开启时：悬浮窗内各板块底色改半透明（默认都是不透明 var(--bg-panel)，
+   会把封面横幅完全挡住），改成半透明后横幅从背后透出。关闭时保持不透明。
+   涵盖 .panel（评分/标签/制作信息、角色、关联条目、购买信息）、
+   .game-gallery（游戏画廊）、.topics-box（讨论板预览）、.tucao-box（吐槽箱） */
+.subject-card.glow :deep(.panel),
+.subject-card.glow :deep(.game-gallery),
+.subject-card.glow :deep(.topics-box),
+.subject-card.glow :deep(.tucao-box) {
+  background: color-mix(in srgb, var(--bg-panel) 70%, transparent);
+}
+/* 板块内的评论子卡（讨论版条目 / 吐槽箱评论）：原本不透明 var(--bg-elev)，
+   沉浸光感下改 60% 半透明，与 .card-box 一致 */
+.subject-card.glow :deep(.topic-item),
+.subject-card.glow :deep(.tucao-item) {
+  background: color-mix(in srgb, var(--bg-elev) 60%, transparent);
 }
 .subject-head {
   display: flex;
@@ -815,8 +832,13 @@ watch(
   display: block;
 }
 .subject-head .close:hover {
-  background: var(--accent-2);
+  background: var(--accent);
   color: #fff;
+}
+.subject-head .close:active {
+  background: #ff3d77;
+  color: #fff;
+  transform: scale(0.94);
 }
 /* 单栏滚动（作品卡内容纵向排布，共用一条滚动条） */
 .subject-body {
@@ -842,7 +864,7 @@ watch(
 .card-anchor-chip {
   padding: 3px 11px;
   font-size: 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   border-color: transparent;
   background: color-mix(in srgb, var(--bg) 55%, transparent);
   backdrop-filter: blur(10px);
@@ -879,7 +901,7 @@ watch(
   position: absolute;
   inset: -8px;
   z-index: -1;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   backdrop-filter: url(#liquid-glass-distortion) saturate(1.5);
   -webkit-backdrop-filter: url(#liquid-glass-distortion) saturate(1.5);
 }
@@ -927,13 +949,21 @@ watch(
 /* 悬浮窗横幅：铺到卡片最顶端（含标题栏背后），常驻不随滚动；
    其余 blur/透明度复用全局 .detail-banner；mask 覆盖为仅底部渐隐
    （贴顶设计，顶部不需要渐入） */
+/* 悬浮窗横幅：与人物横幅一致——覆盖整张卡片（不溢出），图片上缘对齐顶部、
+   按原比例放大铺满不变形（cover）；原「顶部 300px 光晕带 + 向下渐隐」改为满铺，
+   不再只占顶部一段导致下半张卡空白 */
 .subject-banner {
   top: 0;
   left: 0;
   right: 0;
-  height: 300px;
-  -webkit-mask-image: linear-gradient(to bottom, #000 30%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 30%, transparent 100%);
+  bottom: 0;
+  height: 100%;
+  z-index: -1;
+  aspect-ratio: auto;
+  background-position: center top;
+  background-size: cover;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 100%);
 }
 .detail__poster--empty {
   display: flex;

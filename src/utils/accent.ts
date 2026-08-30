@@ -46,3 +46,14 @@ export function applyAccent(color: string | null) {
   root.style.setProperty('--accent', color)
   root.style.setProperty('--accent-grad', `linear-gradient(135deg, ${color} 0%, ${lighter} 100%)`)
 }
+
+// 辅助色：控制卡片激活边框 / 输入框激活边框等次级强调元素，默认浅蓝（由 main.css 兜底）。
+// null / 空 = 恢复样式表默认（--accent-aux: #5b9dff）。
+export function applyAux(color: string | null) {
+  const root = document.documentElement
+  if (!color || !/^#[0-9a-fA-F]{6}$/.test(color)) {
+    root.style.removeProperty('--accent-aux')
+    return
+  }
+  root.style.setProperty('--accent-aux', color)
+}

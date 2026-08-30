@@ -483,7 +483,7 @@ onUnmounted(() => {
 .ep-cell {
   width: 36px;
   height: 36px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--bg-elev);
   color: var(--text-dim);
@@ -567,7 +567,7 @@ onUnmounted(() => {
   position: absolute;
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--bg-panel);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
   font-size: 12px;
@@ -604,7 +604,7 @@ onUnmounted(() => {
   position: absolute;
   inset: -8px;
   z-index: -1;
-  border-radius: 10px;
+  border-radius: var(--radius);
   backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(6px);
   -webkit-backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(6px);
 }
@@ -654,8 +654,13 @@ onUnmounted(() => {
   transition: background 0.15s ease, color 0.15s ease;
 }
 .ep-close:hover {
-  background: var(--bg-elev);
-  color: var(--text);
+  background: var(--accent);
+  color: #fff;
+}
+.ep-close:active {
+  background: #ff3d77;
+  color: #fff;
+  transform: scale(0.94);
 }
 .ep-hover-head {
   display: flex;
@@ -674,7 +679,7 @@ onUnmounted(() => {
   font-weight: 700;
   color: #d98b3a;
   border: 1px solid #d98b3a;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   padding: 0 6px;
   line-height: 16px;
 }
@@ -692,7 +697,7 @@ onUnmounted(() => {
 }
 .ep-status-tag {
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--bg-elev);
   color: var(--text-dim);
@@ -734,7 +739,7 @@ onUnmounted(() => {
   position: absolute;
   inset: -6px;
   z-index: -1;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   backdrop-filter: url(#liquid-glass-distortion) saturate(1.5);
   -webkit-backdrop-filter: url(#liquid-glass-distortion) saturate(1.5);
 }

@@ -67,7 +67,7 @@ function go(p: number) {
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border-soft);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--bg-elev);
   color: var(--text-dim);
   font-size: 13px;

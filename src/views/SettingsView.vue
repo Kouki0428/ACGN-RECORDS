@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref, computed } from 'vue'
+import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useSettingsStore } from '@/stores/settings'
@@ -10,6 +10,7 @@ import { apiClient } from '@/services/apiClient'
 import { applyTheme, type ThemePref } from '@/theme'
 import { applyUiScale } from '@/scale'
 import type { ArchiveMeta, ArchiveProgress, CacheStats, NetworkStatsResult } from '@shared/types'
+import { CHANGELOG } from '@/constants/changelog'
 
 const auth = useAuthStore()
 const settings = useSettingsStore()
@@ -84,11 +85,44 @@ const appVersion = ref('')
 const checkingUpdate = ref(false)
 const updateMsg = ref('')
 const updateOk = ref(true)
+// 更新说明：当前版本（进设置即拉）与检查更新发现的新版本
+const currentNotes = ref('')
+const nextVersion = ref('')
+const nextNotes = ref('')
+// 检查更新发现新版本时，跳出更新说明弹窗
+const showUpdateModal = ref(false)
+
+// Markdown 轻量转纯文本展示：去掉标题井号与多余空行，保留列表短横
+function plainNotes(md: string): string {
+  return md
+    .replace(/^#{1,6}\s*/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+// 优先用本地内置更新说明（网络无关），本地没有再回退到 GitHub 拉取
+async function resolveNotes(tag: string): Promise<string> {
+  const local = CHANGELOG[tag]
+  if (local) return plainNotes(local)
+  try {
+    const r = await window.acgn.app.getReleaseNotes(tag)
+    return r ? plainNotes(r) : ''
+  } catch {
+    return ''
+  }
+}
+
+async function loadCurrentNotes() {
+  if (!appVersion.value) return
+  currentNotes.value = await resolveNotes('v' + appVersion.value)
+}
 
 async function doCheckUpdate() {
   if (checkingUpdate.value) return
   checkingUpdate.value = true
   updateMsg.value = ''
+  nextVersion.value = ''
+  nextNotes.value = ''
   try {
     const r = await window.acgn.app.checkUpdate()
     if (!r.ok) {
@@ -98,13 +132,32 @@ async function doCheckUpdate() {
     }
     if (r.updateAvailable) {
       updateOk.value = true
+      nextVersion.value = r.version ?? ''
       updateMsg.value = `发现新版本 v${r.version}，后台下载完成后会提示重启安装`
+      // 只在发现新版本时跳出更新说明弹窗
+      nextNotes.value = await resolveNotes('v' + (r.version ?? ''))
+      showUpdateModal.value = true
     } else {
       updateOk.value = true
       updateMsg.value = `已是最新版本（v${appVersion.value}）`
     }
   } finally {
     checkingUpdate.value = false
+  }
+}
+
+// 弹窗里点「确定更新」：直接触发安装（已下载完立即重启，否则下载完成后自动安装）
+async function onConfirmUpdate() {
+  showUpdateModal.value = false
+  try {
+    const r = await window.acgn.app.installUpdate()
+    if (!r.ok) {
+      updateOk.value = false
+      updateMsg.value = '更新失败：' + (r.error ?? '')
+    }
+  } catch (e) {
+    updateOk.value = false
+    updateMsg.value = '更新失败：' + (e instanceof Error ? e.message : String(e))
   }
 }
 
@@ -133,6 +186,7 @@ onMounted(async () => {
   } catch {
     /* ignore */
   }
+  await loadCurrentNotes()
   await refreshArchiveMeta()
   await refreshCacheStats()
   await loadNetworkStats()
@@ -280,9 +334,20 @@ const themeOptions: { value: ThemePref; label: string }[] = [
 // 深色风格预设（深色主题下的皮肤）
 const darkPresets = [
   { value: 'classic', label: '经典' },
-  { value: 'oled', label: 'OLED 纯黑' },
+  { value: 'oled', label: '纯黑' },
   { value: 'bangumi', label: '粉夜' },
-  { value: 'ink', label: '墨绿夜' }
+  { value: 'ink', label: '墨绿' },
+  { value: 'mint', label: '薄荷' },
+  { value: 'galaxy', label: '星空' },
+  { value: 'sunset', label: '落日' },
+  { value: 'neon', label: '霓虹' },
+  { value: 'ocean', label: '海洋' },
+  { value: 'rose', label: '玫瑰' },
+  { value: 'forest', label: '森林' },
+  { value: 'amber', label: '琥珀' },
+  { value: 'indigo', label: '靛蓝' },
+  { value: 'lava', label: '熔岩' },
+  { value: 'moss', label: '苔藓' }
 ]
 
 // 浅色风格预设（浅色主题下的皮肤）
@@ -290,7 +355,26 @@ const lightPresets = [
   { value: 'classic', label: '经典' },
   { value: 'pure', label: '纯白' },
   { value: 'pink', label: '粉白' },
-  { value: 'paper', label: '墨绿纸' }
+  { value: 'paper', label: '墨绿' },
+  { value: 'mint', label: '薄荷' },
+  { value: 'galaxy', label: '星空' },
+  { value: 'sunset', label: '落日' },
+  { value: 'neon', label: '霓虹' },
+  { value: 'ocean', label: '海洋' },
+  { value: 'rose', label: '玫瑰' },
+  { value: 'forest', label: '森林' },
+  { value: 'amber', label: '琥珀' },
+  { value: 'indigo', label: '靛蓝' },
+  { value: 'lava', label: '熔岩' },
+  { value: 'moss', label: '苔藓' }
+]
+
+// 圆角档位（无 / 小 / 默认 / 大）
+const radiusOptions = [
+  { value: 'none', label: '无' },
+  { value: 'small', label: '小' },
+  { value: 'default', label: '默认' },
+  { value: 'large', label: '大' }
 ]
 
 // 强调色预设（'' = 默认粉，由「默认」按钮处理）
@@ -305,6 +389,35 @@ const accentPresets = [
 // 当前强调色是否为自定义值（不在预设中）→ 高亮「自定义」色块
 const isCustomAccent = computed(
   () => !!settings.accentColor && !accentPresets.some((c) => c.hex === settings.accentColor)
+)
+// 辅助色预设（'' = 默认浅蓝，由「默认」按钮处理）
+const auxPresets = [
+  { hex: '#5b9dff', label: '浅蓝' },
+  { hex: '#ff5c8a', label: '樱粉' },
+  { hex: '#f0623d', label: '暖橙' },
+  { hex: '#a06bff', label: '紫罗兰' },
+  { hex: '#34c98e', label: '青绿' },
+  { hex: '#f7b500', label: '琥珀金' }
+]
+// 当前辅助色是否为自定义值（不在预设中）→ 高亮「自定义」色块
+const isCustomAux = computed(
+  () => !!settings.auxColor && !auxPresets.some((c) => c.hex === settings.auxColor)
+)
+// 当前实际生效的辅助色：未自定义时取当前风格预设的 --accent-aux（随深/浅主题与预设实时变化），
+// 自定义时取用户选色。读 getComputedStyle 保证与画面所见一致（含系统/定时解析出的主题）。
+const currentAux = ref('')
+// 当前实际生效的强调色：同上，读 --accent。用于自定义取色器打开时的初始色（未自定义时
+// 取当前风格预设色而非写死的粉色，避免「打开取色器却不是当前颜色」）。
+const currentAccent = ref('')
+function refreshCurrentColors() {
+  const cs = getComputedStyle(document.documentElement)
+  currentAux.value = cs.getPropertyValue('--accent-aux').trim()
+  currentAccent.value = cs.getPropertyValue('--accent').trim()
+}
+watch(
+  () => [settings.theme, settings.mode, settings.darkPreset, settings.lightPreset, settings.accentColor, settings.auxColor],
+  refreshCurrentColors,
+  { immediate: true }
 )
 async function setTheme(v: ThemePref, e?: MouseEvent) {
   await settings.set('theme', v) // 先持久化到库
@@ -838,7 +951,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         >
           <input
             type="color"
-            :value="settings.accentColor || '#ff5c8a'"
+            :value="settings.accentColor || currentAccent"
             @input="settings.set('accentColor', ($event.target as HTMLInputElement).value)"
           />
         </label>
@@ -849,12 +962,60 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
           @click="settings.set('accentColor', '')"
         >默认</button>
       </div>
+
+      <!-- 辅助色 -->
+      <hr class="divider" />
+      <p class="hint">辅助色：卡片激活边框、输入框激活边框等次级强调元素随之换色（默认取当前风格的辅助色）。</p>
+      <div class="accent-row">
+        <button
+          v-for="c in auxPresets"
+          :key="c.hex"
+          type="button"
+          class="accent-swatch"
+          :class="{ active: settings.auxColor === c.hex }"
+          :style="{ background: c.hex }"
+          :title="c.label"
+          @click="settings.set('auxColor', c.hex)"
+        ></button>
+        <label
+          class="accent-swatch accent-custom"
+          :class="{ active: isCustomAux }"
+          title="自定义颜色"
+          :style="{ background: settings.auxColor || currentAux }"
+        >
+          <input
+            type="color"
+            :value="settings.auxColor || currentAux"
+            @input="settings.set('auxColor', ($event.target as HTMLInputElement).value)"
+          />
+        </label>
+        <button
+          type="button"
+          class="accent-reset"
+          :class="{ active: !settings.auxColor }"
+          @click="settings.set('auxColor', '')"
+        >默认</button>
+      </div>
       </section>
 
     <!-- 布局与显示 -->
     <section class="panel">
       <h2>布局与显示</h2>
       <p class="hint">界面整体缩放与详情页装饰元素。</p>
+      <hr class="divider" />
+      <p class="hint">圆角：控制卡片、面板、按钮等圆角大小（胶囊 / 圆形不受影响）。</p>
+      <div class="seg">
+        <button
+          v-for="r in radiusOptions"
+          :key="r.value"
+          type="button"
+          class="seg-item"
+          :class="{ active: settings.cornerRadius === r.value }"
+          @click="settings.set('cornerRadius', r.value)"
+        >
+          {{ r.label }}
+        </button>
+      </div>
       <div class="scale-control">
         <div class="scale-head">
           <span>界面缩放</span>
@@ -916,7 +1077,11 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
       <hr class="divider" />
       <label class="progress-editor">
         <input type="checkbox" :checked="settings.detailBanner" @change="settings.set('detailBanner', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
-        详情页封面横幅背景（模糊放大的封面作顶部装饰）
+        作品详情页封面横幅背景（模糊放大的封面作装饰）
+      </label>
+      <label class="progress-editor">
+        <input type="checkbox" :checked="settings.characterBanner" @change="settings.set('characterBanner', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
+        人物详情卡横幅背景（角色/CV 模糊放大的立绘作装饰）
       </label>
       <label class="progress-editor">
         <input type="checkbox" :checked="settings.anchorBarEnabled" @change="settings.set('anchorBarEnabled', ($event.target as HTMLInputElement).checked ? '1' : '0')" />
@@ -1120,9 +1285,8 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
     <section class="panel">
       <h2>备份与恢复</h2>
       <p class="hint">
-        将<strong>全部个人数据</strong>（收藏 / 进度 / 评分 / 吐槽 / 购买记录 / 设置）导出为一个数据库文件；
-        恢复时会<strong>自动先把当前库留存应急副本</strong>（userData/backups）再覆盖。
-        不含 Bangumi 离线库与图片字节缓存。
+        导出主数据库（收藏 / 进度 / 评分 / 吐槽 / 购买记录 / 设置）；恢复前自动留存应急副本（数据目录/backups）。
+        不含离线库与图片缓存——二者皆在数据目录中，改文件夹时离线库一并迁移、图片缓存自动重生。
       </p>
       <div class="row" style="margin-top: 12px; align-items: center">
         <span class="hint" style="margin: 0">数据目录：</span>
@@ -1185,6 +1349,12 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         更新只替换程序文件，数据目录不受影响。
       </p>
 
+      <!-- 当前版本更新说明 -->
+      <div v-if="currentNotes" class="release-notes">
+        <h3 class="release-notes__title">当前版本（v{{ appVersion }}）更新说明</h3>
+        <pre class="release-notes__body">{{ currentNotes }}</pre>
+      </div>
+
       <!-- GitHub 仓库 -->
       <hr class="divider" />
       <div class="row" style="align-items: center; margin: 0">
@@ -1245,6 +1415,28 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         </div>
       </div>
     </div>
+
+    <!-- 检查更新：点击即跳出弹窗（验证用） -->
+    <div v-if="showUpdateModal" class="modal-mask" @click.self="showUpdateModal = false">
+      <div class="modal">
+        <template v-if="nextVersion">
+          <h3>发现新版本 v{{ nextVersion }}</h3>
+          <p class="modal-text">后台下载完成后会提示重启安装。更新只替换程序文件，数据目录不受影响。</p>
+          <pre v-if="nextNotes" class="release-notes__body release-notes__body--modal">{{ nextNotes }}</pre>
+          <p v-else class="modal-text">暂无该版本的更新说明。</p>
+        </template>
+        <template v-else>
+          <h3>已是最新版本（v{{ appVersion }}）</h3>
+          <pre v-if="currentNotes" class="release-notes__body release-notes__body--modal">{{ currentNotes }}</pre>
+          <p v-else class="modal-text">{{ updateMsg || '当前已是最新，无需更新。' }}</p>
+        </template>
+        <div class="modal-actions">
+          <button class="btn btn--ghost" @click="showUpdateModal = false">取消</button>
+          <button v-if="nextVersion" class="btn btn--primary" @click="onConfirmUpdate">确定更新</button>
+          <button v-else class="btn btn--primary" @click="showUpdateModal = false">知道了</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -1272,7 +1464,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
 .badge {
   font-size: 11px;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   margin-left: 4px;
   font-weight: 600;
 }
@@ -1309,7 +1501,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
   margin-top: 12px;
   padding: 4px;
   background: var(--bg-elev);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
 }
 .seg-item {
   padding: 7px 16px;
@@ -1317,7 +1509,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
   background: transparent;
   color: var(--text-dim);
   font-size: 13px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
@@ -1379,7 +1571,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
 .hint code {
   background: var(--bg-elev);
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 12px;
 }
 .ok {
@@ -1422,7 +1614,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
 .net-history {
   margin-top: 14px;
   border: 1px solid var(--border, #2a3342);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 .net-hrow {
@@ -1451,7 +1643,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
 .arc-bar {
   width: 100%;
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   background: var(--bg-elev, #1c2230);
   overflow: hidden;
 }
@@ -1480,7 +1672,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
   max-height: 280px;
   overflow-y: auto;
   border: 1px solid var(--border, #2a3342);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
 }
 .arc-results li {
   display: flex;
@@ -1529,7 +1721,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
   max-width: calc(100vw - 40px);
   background: var(--bg-panel, #1b2029);
   border: 1px solid var(--border, #2a3342);
-  border-radius: 14px;
+  border-radius: var(--radius);
   padding: 22px 22px 18px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
 }
@@ -1552,13 +1744,39 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
   justify-content: flex-end;
   gap: 10px;
 }
+.release-notes {
+  margin-top: 14px;
+  border-top: 1px solid var(--border-soft, #2a3342);
+  padding-top: 12px;
+}
+.release-notes__title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.release-notes__body {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  max-height: 220px;
+  overflow: auto;
+}
+.release-notes__body--modal {
+  margin-top: 12px;
+  max-height: 320px;
+}
 .datadir-path {
   font-family: var(--font-mono);
   font-size: 12px;
   color: var(--text);
   background: var(--bg-elev);
   border: 1px solid var(--border-soft);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 5px 9px;
   max-width: 520px;
   overflow: hidden;
@@ -1642,7 +1860,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
 .accent-reset {
   padding: 6px 14px;
   font-size: 13px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text-dim);
@@ -1655,7 +1873,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
 }
 .accent-reset.active {
   color: var(--text);
-  border-color: var(--accent-2);
+  border-color: var(--accent-aux);
 }
 
 /* ===== 母级分类卡片（/settings 导航页）===== */.settings-groups {
@@ -1680,7 +1898,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
 }
 .sg-card:hover {
   transform: translateY(-3px);
-  border-color: var(--accent-2);
+  border-color: var(--accent-aux);
   box-shadow: var(--shadow);
 }
 .sg-card:active {
@@ -1692,13 +1910,13 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--bg-elev);
-  color: var(--accent-2);
+  color: var(--accent-aux);
   transition: background var(--dur-fast) ease, color var(--dur-fast) ease;
 }
 .sg-card:hover .sg-icon {
-  background: var(--accent-2);
+  background: var(--accent-aux);
   color: #fff;
 }
 .sg-icon svg {
@@ -1731,6 +1949,6 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
 }
 .sg-card:hover .sg-chevron {
   transform: translateX(3px);
-  color: var(--accent-2);
+  color: var(--accent-aux);
 }
 </style>

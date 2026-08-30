@@ -486,13 +486,18 @@ const collapsedMeta = computed<SubjectMeta[]>(() => {
   gap: 6px;
 }
 .card-box {
-  background: var(--bg-elev, #1c2230);
+  background: color-mix(in srgb, var(--bg-elev, #1c2230) 60%, transparent);
   border: 1px solid var(--border, #2a3342);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   padding: 12px 14px;
 }
 .rating-card {
+  /* 不设 position，避免与标签/制作信息卡在层叠上产生差异（竖线定位改由 .rating-split 承担） */
+}
+.rating-split {
   position: relative;
+  display: flex;
+  align-items: stretch;
 }
 .card-head {
   display: flex;
@@ -510,7 +515,7 @@ const collapsedMeta = computed<SubjectMeta[]>(() => {
   color: var(--text-dim, #8b94a3);
   background: var(--bg, #11151d);
   border: 1px solid var(--border, #2a3342);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   padding: 1px 8px;
 }
 .card-empty {
@@ -554,10 +559,6 @@ const collapsedMeta = computed<SubjectMeta[]>(() => {
 }
 
 /* 评分卡片：左右分栏（左=我的评价/ Bangumi；右=暂留空）+ 左半上下分栏 */
-.rating-split {
-  display: flex;
-  align-items: stretch;
-}
 .rating-left {
   flex: 1 1 50%;
   display: grid;
@@ -637,8 +638,8 @@ const collapsedMeta = computed<SubjectMeta[]>(() => {
 }
 .rating-divider-v {
   position: absolute;
-  top: 12px;
-  bottom: 12px;
+  top: 0;
+  bottom: 0;
   left: 50%;
   width: 1px;
   transform: translateX(-50%);
@@ -715,7 +716,7 @@ const collapsedMeta = computed<SubjectMeta[]>(() => {
   background: rgba(16, 20, 28, 0.96);
   color: #fff;
   border: 1px solid var(--border, #2a3342);
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   font-size: 10px;
   line-height: 1.2;
   white-space: nowrap;
@@ -745,7 +746,7 @@ const collapsedMeta = computed<SubjectMeta[]>(() => {
   align-items: center;
   gap: 3px;
   padding: 3px 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   background: var(--bg, #11151d);
   border: 1px solid var(--border, #3a4554);
   font-size: 12px;
@@ -829,7 +830,7 @@ const collapsedMeta = computed<SubjectMeta[]>(() => {
   color: var(--text-dim, #8b97a8);
   background: var(--bg, #11151d);
   border: 1px solid var(--border, #2a3342);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   padding: 2px 9px;
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;

@@ -808,6 +808,8 @@ export interface RouteItem {
 export interface AcgnApi {
   app: {
     getInfo: () => Promise<AppInfo>
+    /** 拉取指定 tag（如 v0.3.1）的 GitHub Release 正文（更新说明）；无/失败返回 null */
+    getReleaseNotes: (tag: string) => Promise<string | null>
     openExternal: (url: string) => Promise<void>
     relaunch: () => Promise<void>
     /** 运行时设置 / 清除手动代理（设置项 `proxy`）。传 null/空串即清除，免重启生效。 */
@@ -826,6 +828,8 @@ export interface AcgnApi {
     setDataDir: (dir: null) => Promise<{ ok: boolean; sameTarget?: boolean; error?: string; path?: string }>
     /** 手动检查更新：updateAvailable=有新版本；ok=false 时附 error */
     checkUpdate: () => Promise<{ ok: boolean; updateAvailable?: boolean; version?: string; error?: string }>
+    /** 在设置弹窗点「确定更新」：已下载完立即重启安装，否则标记下载完自动安装 */
+    installUpdate: () => Promise<{ ok: boolean; error?: string }>
     /** 首次关闭时主进程会触发此事件（渲染层应弹出选择窗） */
     onCloseBehaviorAsk: (cb: () => void) => () => void
     /** 渲染层回复用户的选择；remember=true 时持久化（下次不再弹） */
@@ -1130,10 +1134,14 @@ export interface AcgnApi {
     isMaximized: () => Promise<boolean>
     /** 订阅最大化状态变化（最大化/还原时主进程推送） */
     onMaximizedChange: (cb: (maximized: boolean) => void) => () => void
+    /** 窗口聚焦/失焦通知（失焦时标题栏整体变暗） */
+    onActiveChange: (cb: (active: boolean) => void) => () => void
     /** 取当前窗口位置与尺寸 */
     getBounds: () => Promise<{ x: number; y: number; width: number; height: number }>
     /** 设置窗口位置与尺寸（用于边缘拖拽缩放） */
     setBounds: (bounds: { x: number; y: number; width: number; height: number }) => Promise<void>
+    /** 自定义贴靠：把窗口吸附到当前显示器的半屏 / 四象限 / 最大化 */
+    snap: (zone: 'left' | 'right' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'maximize') => Promise<void>
   }
 }
 

@@ -53,7 +53,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
   width: auto;
   height: auto;
   object-fit: contain;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
   cursor: default;
   background: #fff;
@@ -76,7 +76,13 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
   z-index: 1;
 }
 .img-lightbox-close:hover {
-  background: rgba(255, 255, 255, 0.26);
+  background: var(--accent);
+  color: #fff;
+}
+.img-lightbox-close:active {
+  background: #ff3d77;
+  color: #fff;
+  transform: scale(0.94);
 }
 .imglb-fade-enter-active,
 .imglb-fade-leave-active {

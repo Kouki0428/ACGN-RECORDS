@@ -85,7 +85,7 @@ function onLeave() {
   position: fixed;
   z-index: 12000;
   padding: 6px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: rgba(15, 23, 42, 0.92);
   color: #fff;
   font-size: 12px;

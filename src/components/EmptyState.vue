@@ -38,7 +38,7 @@ defineProps<{
 .es-art {
   width: 64px;
   height: 64px;
-  border-radius: 18px;
+  border-radius: var(--radius-lg);
   display: grid;
   place-items: center;
   background: var(--bg-elev);

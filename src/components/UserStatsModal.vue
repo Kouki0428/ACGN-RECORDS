@@ -221,7 +221,7 @@ function close() {
   overflow-y: auto;
   background: var(--bg-elev, #1c2230);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius);
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
   padding: 18px 20px 22px;
   color: var(--text);
@@ -244,11 +244,16 @@ function close() {
   line-height: 1;
   cursor: pointer;
   padding: 2px 6px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 .us-close:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text);
+  background: var(--accent);
+  color: #fff;
+}
+.us-close:active {
+  background: #ff3d77;
+  color: #fff;
+  transform: scale(0.94);
 }
 .us-tabs {
   display: flex;
@@ -258,7 +263,7 @@ function close() {
 .us-tab {
   flex: 1;
   padding: 7px 0;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text-dim);
@@ -280,7 +285,7 @@ function close() {
 .us-card {
   background: var(--bg-deep, #14171c);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   padding: 12px 10px;
   text-align: center;
 }
@@ -304,7 +309,7 @@ function close() {
   margin: -14px 0 18px;
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--bg-deep, #14171c);
 }
 .us-spent-label {
@@ -352,7 +357,7 @@ function close() {
 .us-bar-fill {
   width: 70%;
   min-height: 2px;
-  border-radius: 4px 4px 0 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   transition: height 0.3s;
 }
 .us-bar-tip {
@@ -366,7 +371,7 @@ function close() {
   font-size: 11px;
   line-height: 1;
   padding: 4px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   white-space: nowrap;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
   opacity: 0;
@@ -392,7 +397,7 @@ function close() {
   margin-bottom: 16px;
   background: var(--bg-deep, #14171c);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   padding: 10px 12px;
 }
 .us-trend-head {

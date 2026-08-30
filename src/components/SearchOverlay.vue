@@ -441,7 +441,7 @@ watch(isOpen, async (v) => {
   flex-direction: column;
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   overflow: hidden;
 }
@@ -461,13 +461,13 @@ watch(isOpen, async (v) => {
   gap: 10px;
   padding: 0 14px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--bg-elev);
   color: var(--text-dim);
   transition: border-color 0.15s ease;
 }
 .search-bar:focus-within {
-  border-color: var(--accent-2);
+  border-color: var(--accent-aux);
 }
 .search-bar svg {
   width: 20px;
@@ -494,7 +494,7 @@ watch(isOpen, async (v) => {
   cursor: pointer;
   font-size: 13px;
   padding: 4px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
 .search-bar .clear:hover {
@@ -521,8 +521,13 @@ watch(isOpen, async (v) => {
   display: block;
 }
 .close:hover {
-  background: var(--accent-2);
+  background: var(--accent);
   color: #fff;
+}
+.close:active {
+  background: #ff3d77;
+  color: #fff;
+  transform: scale(0.94);
 }
 
 /* 一级分类 */
@@ -537,15 +542,15 @@ watch(isOpen, async (v) => {
   border: 1px solid var(--border);
   background: var(--bg-elev);
   color: var(--text-dim);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 .cat-tabs button.active {
-  background: var(--accent-2);
-  border-color: var(--accent-2);
+  background: var(--accent-aux);
+  border-color: var(--accent-aux);
   color: #fff;
 }
 
@@ -562,7 +567,7 @@ watch(isOpen, async (v) => {
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text-dim);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -572,8 +577,8 @@ watch(isOpen, async (v) => {
   border-color: var(--text-dim);
 }
 .cat-sub button.active {
-  background: var(--bg-elev);
-  border-color: var(--accent-2);
+  background: color-mix(in srgb, var(--accent-aux) 14%, var(--bg-elev));
+  border-color: var(--accent-aux);
   color: var(--text);
 }
 
@@ -625,7 +630,7 @@ watch(isOpen, async (v) => {
   font-size: 12px;
   cursor: pointer;
   padding: 2px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 .start-clear:hover {
   background: var(--bg-deep);
@@ -641,7 +646,7 @@ watch(isOpen, async (v) => {
   align-items: center;
   border: 1px solid var(--border);
   background: var(--bg-elev);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 .hist-term {
@@ -696,7 +701,7 @@ watch(isOpen, async (v) => {
 .recent-item .recent-empty {
   width: 84px;
   aspect-ratio: 3 / 4;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   object-fit: cover;
   background: var(--bg-deep);
   border: 1px solid var(--border-soft);
@@ -704,7 +709,7 @@ watch(isOpen, async (v) => {
 }
 .recent-item:hover img {
   transform: translateY(-2px);
-  border-color: var(--accent-2);
+  border-color: var(--accent-aux);
 }
 .recent-empty {
   display: flex;
@@ -735,19 +740,22 @@ watch(isOpen, async (v) => {
   flex-direction: column;
   background: var(--bg-elev);
   border: 1px solid var(--border-soft);
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 8px 8px 6px;
   cursor: pointer;
   transition: transform 0.12s ease, border-color 0.15s;
 }
 .rcard:hover {
   transform: translateY(-2px);
-  border-color: var(--accent-2);
+  border-color: var(--accent-aux);
+}
+.rcard:active {
+  border-color: color-mix(in srgb, var(--accent-aux) 75%, #000);
 }
 .rcard .r-avatar {
   width: 100%;
   aspect-ratio: 3 / 4;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--bg-deep);
 }
@@ -790,7 +798,7 @@ watch(isOpen, async (v) => {
   display: inline-block;
   align-self: flex-start;
   padding: 2px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   font-size: 12px;
   font-weight: 600;
   color: #fff;
@@ -828,7 +836,7 @@ watch(isOpen, async (v) => {
   border: 1px solid var(--border);
   background: var(--bg-elev);
   color: var(--text);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -851,7 +859,7 @@ watch(isOpen, async (v) => {
   margin: 0 14px 14px;
   padding: 8px 12px;
   border: 1px solid var(--border-soft);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--bg-elev);
   color: var(--text-dim);
   font-size: 12px;

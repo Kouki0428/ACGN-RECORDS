@@ -141,7 +141,7 @@ watch(
   position: relative;
   padding: 4px 12px;
   font-size: 12.5px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   /* 关闭「沉浸光感」时的回退样式：普通高斯模糊按钮（磨砂） */
   border-color: transparent;
   background: color-mix(in srgb, var(--bg) 55%, transparent);
@@ -186,7 +186,7 @@ watch(
   position: absolute;
   inset: -8px;
   z-index: -1;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   backdrop-filter: url(#liquid-glass-distortion) saturate(1.5);
   -webkit-backdrop-filter: url(#liquid-glass-distortion) saturate(1.5);
 }

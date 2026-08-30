@@ -590,7 +590,7 @@ watch(
   flex-direction: column;
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   overflow: hidden;
 }
@@ -646,8 +646,13 @@ watch(
   display: block;
 }
 .ec-close:hover {
-  background: var(--accent-2);
+  background: var(--accent);
   color: #fff;
+}
+.ec-close:active {
+  background: #ff3d77;
+  color: #fff;
+  transform: scale(0.94);
 }
 .ec-meta {
   display: flex;
@@ -672,7 +677,7 @@ watch(
   margin: 10px 16px 0;
   background: var(--bg-elev);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius);
 }
 .ec-avatar {
   width: 38px;
@@ -707,7 +712,7 @@ watch(
   color: var(--text);
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   outline: none;
   font-family: inherit;
 }
@@ -728,7 +733,7 @@ watch(
   color: var(--text);
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -754,7 +759,7 @@ watch(
   padding: 8px;
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   box-shadow: var(--shadow);
 }
 .ec-smiley-item {
@@ -762,7 +767,7 @@ watch(
   height: 28px;
   object-fit: contain;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   justify-self: center;
 }
 .ec-smiley-item:hover {
@@ -773,7 +778,7 @@ watch(
   padding: 8px 10px;
   background: var(--bg-panel);
   border: 1px dashed var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 .ec-preview-label {
   display: block;
@@ -801,7 +806,7 @@ watch(
   font-size: 14px;
   font-weight: 600;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--accent-2);
   color: #fff;
   cursor: pointer;
@@ -839,7 +844,7 @@ watch(
   color: var(--text);
   background: var(--bg-elev);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 4px 10px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -855,7 +860,7 @@ watch(
   font-size: 12px;
   color: #fff;
   background: #d9534f;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   word-break: break-all;
   overflow-wrap: anywhere;
 }
@@ -877,7 +882,7 @@ watch(
 }
 .ec-comment.mine {
   background: color-mix(in srgb, var(--accent-2) 8%, transparent);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 10px 8px;
   margin: 0 -8px;
 }
@@ -910,7 +915,7 @@ watch(
   font-size: 11px;
   color: #fff;
   background: var(--accent-2);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 0 5px;
   line-height: 16px;
 }
@@ -918,7 +923,7 @@ watch(
   font-size: 11px;
   color: #d98b3a;
   border: 1px solid #d98b3a;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 0 5px;
   line-height: 16px;
 }
@@ -963,7 +968,7 @@ watch(
   background: transparent;
   border: none;
   padding: 4px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -988,7 +993,7 @@ watch(
   color: var(--text-dim);
   background: transparent;
   border: none;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: color 0.15s ease, background 0.15s ease;
 }
@@ -1032,7 +1037,7 @@ watch(
 }
 .ec-reply.mine {
   background: color-mix(in srgb, var(--accent-2) 8%, transparent);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 6px 6px;
   margin: 0 -6px;
 }
@@ -1074,7 +1079,7 @@ watch(
   font-size: 13px;
   font-weight: 600;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--bg-elev);
   color: var(--text-dim);
   cursor: pointer;

@@ -257,7 +257,7 @@ onMounted(async () => {
   flex: 0 0 auto;
   width: 34px;
   height: 34px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text-dim);
@@ -316,6 +316,9 @@ onMounted(async () => {
   border-color: var(--accent-2, #5b9dff);
   transform: translateY(-1px);
 }
+:root[data-theme="light"] .tc-item {
+  background: #f5f8fc;
+}
 .tc-covers {
   flex: 0 0 auto;
   display: flex;
@@ -325,7 +328,7 @@ onMounted(async () => {
   flex: 0 0 auto;
   width: 64px;
   height: 88px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--bg-elev, #1c2230);
   cursor: pointer;
@@ -397,7 +400,7 @@ onMounted(async () => {
   align-items: center;
   gap: 3px;
   padding: 2px 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   font-size: 12.5px;
   font-weight: 700;
   line-height: 1.6;
@@ -447,7 +450,7 @@ onMounted(async () => {
 }
 .tc-page-btn {
   padding: 7px 18px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--bg-elev, #1c2230);
   color: var(--text);
