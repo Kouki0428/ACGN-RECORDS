@@ -454,6 +454,12 @@ function setUiScale(factor: number) {
   void settings.set('uiScale', String(f)) // 持久化，重启后自动恢复
 }
 
+/** 滑条已走过的比例（0-100%），用于填充轨道已选区间颜色 */
+function rangePct(v: number, min: number, max: number): string {
+  const pct = max > min ? ((v - min) / (max - min)) * 100 : 0
+  return `${Math.min(100, Math.max(0, pct))}%`
+}
+
 // ---------- 卡片重排动画（实时生效，无需重启） ----------
 // 滑条语义：0 = 最快（左），1 = 最慢（右），默认 0.2（偏快）。
 const gridAnimSpeedLocal = ref(0.2)
@@ -1029,6 +1035,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
           max="200"
           step="5"
           :value="Math.round(uiScaleLocal * 100)"
+          :style="{ '--pct': rangePct(Math.round(uiScaleLocal * 100), 50, 200) }"
           @input="onScaleInput"
         />
         <div class="seg scale-presets">
@@ -1059,6 +1066,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
           max="150"
           step="5"
           :value="Math.round(cardSizeLocal * 100)"
+          :style="{ '--pct': rangePct(Math.round(cardSizeLocal * 100), 75, 150) }"
           @input="onCardSizeInput"
         />
         <div class="seg scale-presets">
@@ -1165,6 +1173,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
             max="1"
             step="0.01"
             :value="gridAnimSpeedLocal"
+            :style="{ '--pct': rangePct(gridAnimSpeedLocal, 0, 1) }"
             :disabled="!settings.gridAnimEnabled"
             @input="onAnimSpeedInput"
           />
@@ -1539,10 +1548,75 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
   font-variant-numeric: tabular-nums;
 }
 .scale-range {
+  -webkit-appearance: none;
+  appearance: none;
   width: 100%;
+  height: 6px;
   margin: 10px 0 4px;
-  accent-color: var(--accent);
+  border-radius: 999px;
+  background: var(--bg-elev);
+  outline: none;
   cursor: pointer;
+}
+/* WebKit：用 input 自身当轨道，渐变填充已走过的区间（--pct 由 JS 按滑块值写入） */
+.scale-range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--accent) var(--pct, 0%),
+    var(--bg-elev) var(--pct, 0%)
+  );
+  transition: background 0.12s;
+}
+.scale-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -5px;
+  border-radius: 50%;
+  border: none;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+.scale-range::-webkit-slider-thumb:hover {
+  transform: scale(1.12);
+}
+.scale-range:active::-webkit-slider-thumb {
+  transform: scale(1.2);
+}
+/* Firefox */
+.scale-range::-moz-range-track {
+  height: 6px;
+  border: none;
+  border-radius: 999px;
+  background: var(--bg-elev);
+}
+.scale-range::-moz-range-progress {
+  height: 6px;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+}
+.scale-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+.scale-range::-moz-range-thumb:hover {
+  transform: scale(1.12);
+}
+.scale-range:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 .scale-presets {
   margin-top: 8px;
