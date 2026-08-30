@@ -340,12 +340,11 @@ const themeOptions: { value: ThemePref; label: string }[] = [
 ]
 
 // 选择栏选中背景滑动动画：给 .seg 容器挂 v-seg-thumb，
-// 在容器内注入一个绝对定位的滑块背景，切换选中项时平滑移动到新项（支持跨行）。
+// 容器内需有一个 .seg-thumb（模板里写死，确保 scoped 样式生效），指令负责把它定位到 active 项。
 const vSegThumb: Directive<HTMLElement> = {
   mounted(el) {
-    const thumb = document.createElement('span')
-    thumb.className = 'seg-thumb'
-    el.appendChild(thumb)
+    const thumb = el.querySelector<HTMLElement>('.seg-thumb')
+    if (!thumb) return
     ;(el as HTMLElement & { __segThumb?: HTMLElement }).__segThumb = thumb
     // 首次定位不播放过渡（避免页面打开时从左上角滑过来）
     thumb.style.transition = 'none'
@@ -924,6 +923,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
       <h2>主题与色彩</h2>
       <p class="hint">选择界面主题。“跟随系统”随操作系统自动切换；“定时”按下方时段自动切换。</p>
       <div class="seg" v-seg-thumb>
+        <span class="seg-thumb" aria-hidden="true"></span>
         <button
           v-for="opt in themeOptions"
           :key="opt.value"
@@ -952,6 +952,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
       <hr class="divider" />
       <p class="hint">深色风格——切换到深色主题时的外观。</p>
       <div class="seg" v-seg-thumb>
+        <span class="seg-thumb" aria-hidden="true"></span>
         <button
           v-for="p in darkPresets"
           :key="p.value"
@@ -965,6 +966,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
       </div>
       <p class="hint" style="margin-top: 12px">浅色风格——切换到浅色主题时的外观。</p>
       <div class="seg" v-seg-thumb>
+        <span class="seg-thumb" aria-hidden="true"></span>
         <button
           v-for="p in lightPresets"
           :key="p.value"
@@ -1053,6 +1055,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
       <hr class="divider" />
       <p class="hint">圆角：控制卡片、面板、按钮等圆角大小（胶囊 / 圆形不受影响）。</p>
       <div class="seg" v-seg-thumb>
+        <span class="seg-thumb" aria-hidden="true"></span>
         <button
           v-for="r in radiusOptions"
           :key="r.value"
@@ -1080,6 +1083,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
           @input="onScaleInput"
         />
         <div class="seg scale-presets" v-seg-thumb>
+          <span class="seg-thumb" aria-hidden="true"></span>
           <button
             v-for="p in scalePresets"
             :key="p"
@@ -1111,6 +1115,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
           @input="onCardSizeInput"
         />
         <div class="seg scale-presets" v-seg-thumb>
+          <span class="seg-thumb" aria-hidden="true"></span>
           <button
             v-for="p in cardSizePresets"
             :key="p"
