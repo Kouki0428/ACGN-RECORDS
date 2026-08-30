@@ -361,20 +361,25 @@ export async function getGalleryForSubject(
   let steamId = links.steam || (localId != null ? await getExt(localId, 'steam') : null)
 
   if (!vndbId && (subj?.title || subj?.title_cn)) {
-    // VNDB 标题多为原名（日文/英文），优先用原名，其次中文名，提高命中率。
-    // - 精确命中（title / alttitle 与候选完全一致）→ 可信，持久化外链（防串图固化）；
-    // - 未精确命中 → 用首个结果的 id「仅当次使用、不持久化」，保证中文译名作品也能出 CG；
-    //   （此前只允许精确命中，导致“变态监狱/超次元恋人”这类译名对不上 VNDB 原名的作品整栏空白）
+    // VNDB 标题多为原名（日文/英文），**优先用 Bangumi 的日文原名 subj.title 去匹配 VNDB 的 title**，
+    // 中文译名次之。匹配时做规范化（小写、去空白、去常见标点），容忍全半角/符号/后缀差异，
+    // 这样「变态监狱/超次元恋人」这类能靠日文原名精确命中 VNDB。
+    // - 规范化后精确命中（title / alttitle 与候选一致）→ 可信，持久化外链（防串图固化）；
+    // - 未精确命中 → 用首个结果 id「仅当次使用、不持久化」，保底出 CG（不把不确定 id 固化）。
+    const norm = (s: string) =>
+      String(s)
+        .toLowerCase()
+        .replace(/[\s・·、，,。.．!！?？（）()【】\[\]「」『』:：/\\"'`~-]+/g, '')
     const candidates = [subj?.title, subj?.title_cn].filter(Boolean) as string[]
     outer: for (const q of candidates) {
       try {
         const hits = await searchVndb(q, vndbToken)
         if (!hits.length) continue
-        const ql = q.toLowerCase()
+        const qn = norm(q)
         const exact = hits.find((h: any) => {
-          const t = String(h?.title ?? '').toLowerCase()
-          const a = String(h?.alttitle ?? '').toLowerCase()
-          return t === ql || a === ql
+          const t = norm(String(h?.title ?? ''))
+          const a = norm(String(h?.alttitle ?? ''))
+          return t === qn || (a !== '' && a === qn)
         })
         if (exact != null) {
           vndbId = String(exact.id)
