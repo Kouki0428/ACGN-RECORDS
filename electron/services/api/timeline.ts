@@ -132,37 +132,21 @@ export function extractP1SubjectId(raw: any): number | null {
 }
 
 /** 标记来源（旧版硬编码 'API'）：p1 顶层或 memo 里带真实 source。
- *  已知短码映射为可读文案；未知值（如客户端应用名）原样透传；取不到回退 'API'。 */
+ *  source 可能是字符串名，也可能是 { name, url, appID } 对象（bangumi 的标记来源项，
+ *  name 如 web / mobile / onAir / inTouch / Windows Phone 7 / API / next / Chobits iOS / 自定义应用名）。
+ *  取 name 原样透传显示；取不到回退 'API'（本应用经 API 产生的动态）。 */
 function parseP1Source(raw: any): string | undefined {
-  const source =
+  const s =
     raw?.source ??
     raw?.memo?.collection?.source ??
     raw?.memo?.progress?.source ??
     raw?.memo?.source
-  if (source == null) return 'API'
-  const s = String(source).trim()
-  if (!s) return 'API'
-  const lower = s.toLowerCase()
-  const map: Record<string, string> = {
-    web: '网页',
-    website: '网页',
-    api: 'API',
-    mobile: '手机',
-    mobi: '手机',
-    mobibot: '手机',
-    app: '客户端',
-    client: '客户端',
-    ios: 'iOS 客户端',
-    iphone: 'iOS 客户端',
-    android: 'Android 客户端',
-    windows: 'Windows 客户端',
-    win: 'Windows 客户端',
-    mac: 'macOS 客户端',
-    '1': '网页',
-    '2': 'API',
-    '3': '其他'
-  }
-  return map[lower] ?? s
+  let name: string | undefined
+  if (s == null) name = undefined
+  else if (typeof s === 'string') name = s.trim()
+  else if (typeof s === 'object') name = String(s?.name ?? '').trim() || undefined
+  else name = String(s).trim()
+  return name || 'API'
 }
 
 /**
