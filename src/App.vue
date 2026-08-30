@@ -18,6 +18,7 @@ import { useEntityCard } from './composables/useEntityCard'
 import { useCollectionModal } from './composables/useCollectionModal'
 import { useAppHotkeys } from './composables/useAppHotkeys'
 import { installGridNav } from './utils/gridNav'
+import { installClickSound } from './utils/uiSound'
 
 // 窗口缩放时作品卡片的 FLIP 补间（列数跨阈值时平滑滑动）
 useGridResizeFlip()
@@ -93,6 +94,8 @@ onMounted(() => {
   window.addEventListener('auxclick', blockSide)
   // 方向键在网格卡片间移动焦点（键盘可达下半场）
   installGridNav()
+  // 全局点击音效（受设置页「音效」总开关控制）
+  installClickSound()
 })
 onUnmounted(() => {
   window.removeEventListener('mousedown', onSideDown)

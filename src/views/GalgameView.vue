@@ -322,6 +322,7 @@ onUnmounted(() => {
             :src="selected.subject.image_url"
             :alt="selected.subject.title"
             class="detail__poster"
+            data-sound="pop"
             @click="openImage(proxyImg(selected.subject.image_url), selected.subject.title)"
           />
         <div class="detail__body">
