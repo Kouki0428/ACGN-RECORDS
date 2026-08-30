@@ -1,10 +1,18 @@
 <script setup lang="ts">
-defineProps<{
+import { playToggleClick } from '@/utils/uiSound'
+
+const props = defineProps<{
   modelValue: boolean
   disabled?: boolean
   ariaLabel?: string
 }>()
-defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
+const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
+
+function onToggle() {
+  const next = !props.modelValue
+  playToggleClick(next)
+  emit('update:modelValue', next)
+}
 </script>
 
 <template>
@@ -16,7 +24,7 @@ defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
     :disabled="disabled"
     class="toggle-switch"
     :class="{ on: modelValue }"
-    @click="$emit('update:modelValue', !modelValue)"
+    @click="onToggle"
   >
     <span class="toggle-knob"></span>
   </button>
