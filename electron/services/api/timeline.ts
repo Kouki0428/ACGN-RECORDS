@@ -131,6 +131,40 @@ export function extractP1SubjectId(raw: any): number | null {
   return sid || null
 }
 
+/** 标记来源（旧版硬编码 'API'）：p1 顶层或 memo 里带真实 source。
+ *  已知短码映射为可读文案；未知值（如客户端应用名）原样透传；取不到回退 'API'。 */
+function parseP1Source(raw: any): string | undefined {
+  const source =
+    raw?.source ??
+    raw?.memo?.collection?.source ??
+    raw?.memo?.progress?.source ??
+    raw?.memo?.source
+  if (source == null) return 'API'
+  const s = String(source).trim()
+  if (!s) return 'API'
+  const lower = s.toLowerCase()
+  const map: Record<string, string> = {
+    web: '网页',
+    website: '网页',
+    api: 'API',
+    mobile: '手机',
+    mobi: '手机',
+    mobibot: '手机',
+    app: '客户端',
+    client: '客户端',
+    ios: 'iOS 客户端',
+    iphone: 'iOS 客户端',
+    android: 'Android 客户端',
+    windows: 'Windows 客户端',
+    win: 'Windows 客户端',
+    mac: 'macOS 客户端',
+    '1': '网页',
+    '2': 'API',
+    '3': '其他'
+  }
+  return map[lower] ?? s
+}
+
 /**
  * 把单条 p1 活动规范化为现有 TimelineItem（字段形状与 HTML 版一致，前端零改动）。
  * p1 真实结构：顶层 { id, uid, cat, type, memo }，实体藏在 memo 里：
@@ -246,7 +280,7 @@ function parseP1Item(raw: any): TimelineItem | null {
     comment: comment || undefined,
     time: formatRelative(ts),
     timeAbs: new Date(ts * 1000).toLocaleString('zh-CN', { hour12: false }),
-    source: 'API'
+    source: parseP1Source(raw)
   }
 }
 
