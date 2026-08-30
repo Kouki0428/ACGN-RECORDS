@@ -315,6 +315,7 @@ onUnmounted(() => {
             :src="selected.subject.image_url"
             :alt="selected.subject.title"
             class="detail__poster"
+            :class="{ 'cover-blur': !settings.showNsfw && selected.subject.nsfw }"
             data-sound="pop"
             @click="openImage(proxyImg(selected.subject.image_url), selected.subject.title)"
           />
@@ -360,7 +361,7 @@ onUnmounted(() => {
           @keydown.space.prevent="openDetail(w.subjectId)"
           @contextmenu.prevent="onCardMenu($event, w)"
         >
-          <CoverImage :src="w.imageUrl" :alt="w.title" class="card-cover" />
+          <CoverImage :src="w.imageUrl" :alt="w.title" class="card-cover" :class="{ 'cover-blur': !settings.showNsfw && w.nsfw }" />
           <div class="title">{{ w.titleCn || w.title }}</div>
           <div v-if="activeStatus === 2 || activeStatus === 4 || activeStatus === 5" class="meta meta--rate">
             <span v-if="w.rating" class="my-rating">★ {{ w.rating }}</span>

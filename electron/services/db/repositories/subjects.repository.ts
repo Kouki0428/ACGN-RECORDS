@@ -232,6 +232,46 @@ export async function reclassifyBooks(): Promise<ReclassifySummary> {
 }
 
 /**
+ * 从离线 Archive 库批量回填主库 subjects.nsfw（存档为权威源：每周官方导出自带 R18 标记）。
+ * 幂等：把存档标为 nsfw=1 的主库行置 1，其余保持原值。Archive 缺失时静默跳过。
+ */
+export async function backfillSubjectNsfw(): Promise<void> {
+  const db = await getDb()
+  const rows = db
+    .prepare("SELECT id, provider_subject_id FROM subjects WHERE provider = 'bangumi'")
+    .all() as { id: number; provider_subject_id: string }[]
+  if (!rows.length) return
+  try {
+    const { app } = electron
+    const arcPath = join(app.getPath('userData'), 'bangumi-archive', 'bangumi-archive.db')
+    if (!existsSync(arcPath)) return
+    const Database = (await import('better-sqlite3')).default
+    const arc = new Database(arcPath, { readonly: true, fileMustExist: true })
+    const byId = new Map<number, number>()
+    for (const r of rows) byId.set(Number(r.provider_subject_id), r.id)
+    try {
+      const ids = rows.map((r) => Number(r.provider_subject_id))
+      const upd = db.prepare('UPDATE subjects SET nsfw = 1 WHERE id = ?')
+      // 分块查询避免 SQLite 变量上限（999）
+      for (let i = 0; i < ids.length; i += 500) {
+        const chunk = ids.slice(i, i + 500)
+        const ph = chunk.map(() => '?').join(',')
+        const arcRows = arc
+          .prepare(`SELECT id, nsfw FROM arc_subjects WHERE id IN (${ph})`)
+          .all(...chunk) as { id: number; nsfw: number }[]
+        for (const a of arcRows) {
+          if (a.nsfw && byId.has(a.id)) upd.run(byId.get(a.id))
+        }
+      }
+    } finally {
+      arc.close()
+    }
+  } catch (e) {
+    console.warn('[nsfw] 回填失败（忽略，封面不模糊）：', e)
+  }
+}
+
+/**
  * 从离线 Archive 库批量读取书籍的 platform(code) + tags，用于本地书籍细分（免联网）。
  * Archive platform code：1001=漫画，1002=轻小说；其余（文库/单行本等）不强行映射，交给 tag 计数兜底。
  */

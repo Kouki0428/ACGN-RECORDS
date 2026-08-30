@@ -365,6 +365,11 @@ export async function runMigrations(db: any): Promise<void> {
   if (!subjCols.includes('meta_tags')) {
     db.exec('ALTER TABLE subjects ADD COLUMN meta_tags TEXT')
   }
+  // NSFW 标记（是否 R18）：存档库 arc_subjects.nsfw 回流，用于封面模糊/隐藏。
+  // 幂等：缺列则按需 ALTER。
+  if (!subjCols.includes('nsfw')) {
+    db.exec('ALTER TABLE subjects ADD COLUMN nsfw INTEGER NOT NULL DEFAULT 0')
+  }
 
   // 应用网络使用量月度统计：以 month='YYYY-MM' 为主键聚合当月上行/下行字节与请求次数。
   // 由 safeFetch 埋点经 networkStats.repository 增量 upsert。幂等建表。

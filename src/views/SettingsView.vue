@@ -1184,6 +1184,18 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
       </label>
     </section>
 
+    <!-- 内容分级 -->
+    <section class="panel">
+      <h2>内容</h2>
+      <label class="progress-editor">
+        <ToggleSwitch :model-value="settings.showNsfw" @update:model-value="(v: boolean) => settings.set('showNsfw', v ? '1' : '0')" />
+        显示 NSFW（R18）作品封面
+      </label>
+      <p class="hint">
+        关闭时 R18 作品的封面默认打码模糊；点击封面放大仍可查看原图。开启后恢复清晰显示。
+      </p>
+    </section>
+
     <!-- 性能 -->
     <section class="panel">
       <h2>性能</h2>

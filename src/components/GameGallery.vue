@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { GameGallery, GameGalleryImage } from '@shared/types'
+import { useSettingsStore } from '@/stores/settings'
+import ToggleSwitch from './ToggleSwitch.vue'
 
 const props = defineProps<{
   gallery: GameGallery | null
@@ -10,13 +12,19 @@ const props = defineProps<{
 
 const emit = defineEmits<{ (e: 'refresh'): void }>()
 
+const settings = useSettingsStore()
+
 type SourceKey = 'vndb' | 'dlsite' | 'steam'
 
 const SOURCE_ORDER: SourceKey[] = ['vndb', 'dlsite', 'steam']
 const SOURCE_LABEL: Record<SourceKey, string> = { vndb: 'VNDB', dlsite: 'DLsite', steam: 'Steam' }
 
 const activeSource = ref<SourceKey>('dlsite')
-const showR18 = ref(false)
+// R18 显隐走全局设置（带记忆），非单条目
+const showR18 = computed({
+  get: () => settings.galleryR18,
+  set: (v: boolean) => void settings.set('galleryR18', v ? '1' : '0')
+})
 
 /** 当前有图可显示（非空）的来源 */
 const availableSources = computed<SourceKey[]>(() => {
@@ -91,7 +99,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         >
       </div>
       <label class="gg-nsfw" v-if="gallery && gallery.vndb.some((i) => i.nsfw)">
-        <input type="checkbox" v-model="showR18" />
+        <ToggleSwitch v-model="showR18" aria-label="显示 R18 截图" />
         <span>R18</span>
       </label>
       <span class="gg-rating" v-if="gallery && gallery.vndbRating != null">

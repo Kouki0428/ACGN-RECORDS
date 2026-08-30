@@ -190,7 +190,7 @@ async function removeRoute(idx: number) {
   flex-shrink: 0;
   border: 1px dashed var(--border);
   background: var(--bg-elev);
-  color: var(--accent-2);
+  color: var(--accent-aux);
   font-size: 18px;
   line-height: 1;
   border-radius: var(--radius-sm);
@@ -198,8 +198,8 @@ async function removeRoute(idx: number) {
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 .route-add:hover {
-  background: var(--accent-2);
-  border-color: var(--accent-2);
+  background: var(--accent-aux);
+  border-color: var(--accent-aux);
   color: #fff;
 }
 .route-empty {

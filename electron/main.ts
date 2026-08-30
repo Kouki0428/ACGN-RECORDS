@@ -193,7 +193,7 @@ import { maybeAutoUpdateArchive, warmArchiveDb } from './services/archive/archiv
 import { buildMenu } from './menu'
 import { getSetting, setSetting } from './services/db/repositories/settings.repository'
 import { pushAll, pullAll, onSyncState } from './services/sync/syncEngine'
-import { reclassifyBooks } from './services/db/repositories/subjects.repository'
+import { reclassifyBooks, backfillSubjectNsfw } from './services/db/repositories/subjects.repository'
 
 let win: BrowserWindow | null = null
 
@@ -706,6 +706,8 @@ app.whenReady().then(() => {
   // 预热离线库连接：把 400MB Archive 库的冷打开成本前置到启动阶段，
   // 避免首次打开作品详情时因懒加载打开该库而卡顿 0.5~1s（文件不存在时静默跳过）
   warmArchiveDb()
+  // 从离线 Archive 回填主库 NSFW 标记（封面模糊/隐藏用）；存档缺失时静默跳过
+  backfillSubjectNsfw().catch(() => {})
   setInterval(() => {
     maybeAutoUpdateArchive().catch(() => {})
     maybeAutoCleanCache().catch(() => {})

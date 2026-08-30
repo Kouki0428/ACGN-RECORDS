@@ -104,6 +104,10 @@ export const useSettingsStore = defineStore('settings', () => {
   const cornerRadius = ref<'none' | 'tiny' | 'small' | 'default' | 'large' | 'xlarge'>('default')
   // 界面操作音效总开关（如开关切换的咔嗒声），默认关闭
   const uiSound = ref(false)
+  // 游戏画廊 R18 截图显示开关（全局记忆，非单条目），默认隐藏 R18
+  const galleryR18 = ref(false)
+  // 显示 NSFW（R18）作品封面：开=正常显示封面，关=封面模糊（默认关=模糊）
+  const showNsfw = ref(false)
 
   async function load() {
     if (initialized) return
@@ -179,6 +183,8 @@ export const useSettingsStore = defineStore('settings', () => {
         document.documentElement.dataset.radius = cornerRadius.value
       }
       if (r.key === 'uiSound') uiSound.value = r.value !== '0'
+      if (r.key === 'galleryR18') galleryR18.value = r.value === '1'
+      if (r.key === 'showNsfw') showNsfw.value = r.value === '1'
     }
     setSchedule(scheduleLight.value, scheduleDark.value)
     // 若持久化的偏好是「定时」，需在时段载入后重新解析一次（循环内的首次 applyTheme
@@ -277,6 +283,8 @@ export const useSettingsStore = defineStore('settings', () => {
       document.documentElement.dataset.radius = cornerRadius.value
     }
     if (key === 'uiSound') uiSound.value = value !== '0'
+    if (key === 'galleryR18') galleryR18.value = value === '1'
+    if (key === 'showNsfw') showNsfw.value = value === '1'
   }
 
   // 仅在遮罩已盖住屏幕时调用：更新按钮高亮（不写库、不触发 applyTheme），
@@ -285,5 +293,5 @@ export const useSettingsStore = defineStore('settings', () => {
     theme.value = v
   }
 
-  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, mode, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, auxColor, darkPreset, lightPreset, detailBanner, characterBanner, immersiveGlow, anchorBarEnabled, cardScale, showCharacters, showVolumes, showRelations, showTopics, showTucao, showGallery, showPurchase, closeBehavior, scheduleLight, scheduleDark, cornerRadius, uiSound, load, set, commitTheme }
+  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, mode, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, auxColor, darkPreset, lightPreset, detailBanner, characterBanner, immersiveGlow, anchorBarEnabled, cardScale, showCharacters, showVolumes, showRelations, showTopics, showTucao, showGallery, showPurchase, closeBehavior, scheduleLight, scheduleDark, cornerRadius, uiSound, galleryR18, showNsfw, load, set, commitTheme }
 })

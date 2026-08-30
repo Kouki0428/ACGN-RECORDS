@@ -680,7 +680,7 @@ watch(
       </div>
       <!-- 头部：封面 + 标题 + 简介（复用全局 .detail__* 样式，与详情页一致） -->
       <div class="detail__main" data-card-anchor="overview">
-        <img v-if="detail.subject.image_url" :src="proxyImg(detail.subject.image_url)" class="detail__poster" :alt="detail.subject.title" @click.stop="openPoster(proxyImg(detail.subject.image_url), detail.subject.title)" style="cursor: pointer" />
+        <img v-if="detail.subject.image_url" :src="proxyImg(detail.subject.image_url)" class="detail__poster" :class="{ 'cover-blur': !settings.showNsfw && detail.subject.nsfw }" :alt="detail.subject.title" @click.stop="openPoster(proxyImg(detail.subject.image_url), detail.subject.title)" style="cursor: pointer" />
         <span v-else class="detail__poster detail__poster--empty">无封面</span>
         <div class="detail__body">
           <h2>{{ detail.subject.title_cn || detail.subject.title }}</h2>

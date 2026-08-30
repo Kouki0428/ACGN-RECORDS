@@ -197,7 +197,8 @@ export function registerCollectionIpc(): void {
                 s.title, s.title_cn AS titleCn, s.image_url AS imageUrl,
                 s.total_volumes AS totalVolumes, s.total_episodes AS totalEpisodes,
                 s.series AS series, s.provider_subject_id AS providerSubjectId,
-                c.rating AS rating, c.local_updated_at AS markedAt, s.rating AS siteRating
+                c.rating AS rating, c.local_updated_at AS markedAt, s.rating AS siteRating,
+                s.nsfw AS nsfw
          FROM collections c
          JOIN subjects s ON s.id = c.subject_id
          WHERE c.status = ? AND s.category = ?

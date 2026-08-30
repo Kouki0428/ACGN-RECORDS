@@ -89,6 +89,8 @@ export interface Subject {
   metaTags?: string[]
   /** 辅助源外链 id，如 { vndb: 'v17', tmdb: '123' }（搜索时按标题匹配写入） */
   externalLinks?: Record<string, string>
+  /** 是否 R18（来自 subjects.nsfw，由离线 Archive 回填）；用于封面模糊/隐藏 */
+  nsfw?: boolean
 }
 
 /** 单条「其它用户的吐槽」（来自 Bangumi 条目吐槽区 next.bgm.tv/p1/subjects/{id}/comments） */
@@ -401,6 +403,8 @@ export interface SubjectFullSubject {
   air_date?: string | null
   /** 是否系列作品（Bangumi series 标志位：true=系列，false=单行本/单卷，null=未获取） */
   series?: boolean | null
+  /** 是否 R18（来自 subjects.nsfw，由离线 Archive 回填）；用于封面模糊/隐藏 */
+  nsfw?: boolean
 }
 /** 单集（来自 Bangumi /episodes，正片 type=0）。epNumber 为 Bangumi 真实集号（可能非从 1 开始）。 */
 export interface SubjectFullEpisode {
@@ -605,6 +609,8 @@ export interface AnimeDetail {
     meta?: SubjectMeta[]
     /** 官方/系统标签（来自 Bangumi meta_tags 顶层字符串数组） */
     metaTags?: string[]
+    /** 是否 R18（来自 subjects.nsfw，由离线 Archive 回填）；用于封面模糊/隐藏 */
+    nsfw?: boolean
   }
   collection: {
     id: number
@@ -649,6 +655,8 @@ export interface AnimeWatchingItem {
   siteRating?: number | null
   /** 本地最后标记/更新时间（unix 秒，来自 collections.local_updated_at） */
   markedAt?: number | null
+  /** 是否 R18（来自 subjects.nsfw，由离线 Archive 回填）；用于封面模糊/隐藏 */
+  nsfw?: boolean
 }
 
 /** 动画统计 */
@@ -675,6 +683,8 @@ export interface CollectionDetail {
     meta?: SubjectMeta[]
     /** 官方/系统标签（来自 Bangumi meta_tags 顶层字符串数组） */
     metaTags?: string[]
+    /** 是否 R18（来自 subjects.nsfw，由离线 Archive 回填）；用于封面模糊/隐藏 */
+    nsfw?: boolean
   }
   collection: {
     id: number
@@ -713,6 +723,8 @@ export interface CollectionItem {
   siteRating?: number | null
   /** 本地最后标记/更新时间（unix 秒，来自 collections.local_updated_at） */
   markedAt?: number | null
+  /** 是否 R18（来自 subjects.nsfw，由离线 Archive 回填）；用于封面模糊/隐藏 */
+  nsfw?: boolean
 }
 
 /** 收藏统计（某分类下的在看部数 + 累计进度） */
