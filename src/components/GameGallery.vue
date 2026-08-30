@@ -117,7 +117,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
           >{{ SOURCE_LABEL[s] }}</span
         >
       </div>
-      <label class="gg-nsfw" v-if="gallery && gallery.vndb?.length">
+      <label class="gg-nsfw">
         <ToggleSwitch v-model="showR18" aria-label="显示 R18 截图" />
         <span>R18</span>
       </label>
