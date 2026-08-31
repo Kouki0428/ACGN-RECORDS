@@ -173,12 +173,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 </template>
 
 <style scoped>
-.game-gallery {
-  border: 1px solid var(--border, #2a3342);
-  border-radius: var(--radius);
-  padding: 14px 16px 16px;
-  margin-top: 14px;
-}
+
 
 .gg-head {
   display: flex;

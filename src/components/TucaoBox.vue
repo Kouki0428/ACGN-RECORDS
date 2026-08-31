@@ -133,12 +133,7 @@ watch(() => props.subjectId, () => load(0))
 </template>
 
 <style scoped>
-.tucao-box {
-  margin-top: 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 12px 14px;
-}
+
 .tucao-box h3 {
   margin: 0 0 10px;
   font-size: 15px;
@@ -152,11 +147,7 @@ watch(() => props.subjectId, () => load(0))
   flex-direction: column;
   gap: 10px;
 }
-.tucao-item {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
-}
+
 .tucao-head {
   display: flex;
   align-items: center;

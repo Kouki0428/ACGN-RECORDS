@@ -136,12 +136,7 @@ watch(() => props.subjectId, () => load())
 </template>
 
 <style scoped>
-.topics-box {
-  margin-top: 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 12px 14px;
-}
+
 .tb-head-row {
   display: flex;
   align-items: center;
@@ -180,14 +175,8 @@ watch(() => props.subjectId, () => load())
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 8px 12px;
   cursor: pointer;
   transition: border-color .15s;
-}
-.topic-item:hover {
-  border-color: var(--accent);
 }
 .topic-title {
   flex: 1;
