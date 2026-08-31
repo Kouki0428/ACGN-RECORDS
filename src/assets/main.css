@@ -1453,8 +1453,8 @@ body,
   opacity: 0.32;
   pointer-events: none;
   /* 顶部渐入区间拉长（0→14%），顶底两段淡出都放慢，过渡更顺滑自然 */
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 34%, transparent 60%);
-  mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 34%, transparent 60%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 60%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 60%, transparent 100%);
 }
 /* 沉浸光感模式：详情页板块壳与卡片底色半透明，让封面横幅从背后透出
    （与作品悬浮窗一致：壳 70% / 子卡 60%）。
