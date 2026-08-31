@@ -421,8 +421,24 @@ const radiusOptions = [
   { value: 'xlarge', label: '特大' }
 ]
 
-// 沉浸光感强度档位（faintest / faint / weak / default / strong / strongest / ultra；default = 现状）
+// 沉浸光感强度档位（softest / faintest / faint / weak / mild / default / strong / stronger / strongest / ultra / ultimate；default = 现状）
 const glowStrengthOptions = [
+  { value: 'softest', label: '超弱' },
+  { value: 'faintest', label: '极弱' },
+  { value: 'faint', label: '微弱' },
+  { value: 'weak', label: '弱' },
+  { value: 'mild', label: '偏弱' },
+  { value: 'default', label: '默认' },
+  { value: 'strong', label: '强' },
+  { value: 'stronger', label: '较强' },
+  { value: 'strongest', label: '特强' },
+  { value: 'ultra', label: '超强' },
+  { value: 'ultimate', label: '究极' }
+]
+
+// 横幅背景模糊度档位（none / faintest / faint / weak / default / strong / strongest / ultra；default = 现状 70px）
+const bannerBlurOptions = [
+  { value: 'none', label: '无' },
   { value: 'faintest', label: '极弱' },
   { value: 'faint', label: '微弱' },
   { value: 'weak', label: '弱' },
@@ -430,14 +446,6 @@ const glowStrengthOptions = [
   { value: 'strong', label: '强' },
   { value: 'strongest', label: '特强' },
   { value: 'ultra', label: '超强' }
-]
-
-// 横幅背景模糊度档位（none / weak / default / strong；default = 现状 70px）
-const bannerBlurOptions = [
-  { value: 'none', label: '无' },
-  { value: 'weak', label: '弱' },
-  { value: 'default', label: '默认' },
-  { value: 'strong', label: '强' }
 ]
 
 // 强调色预设（'' = 默认粉，由「默认」按钮处理）
@@ -1254,6 +1262,10 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         <ToggleSwitch :model-value="settings.detailBanner" @update:model-value="(v: boolean) => settings.set('detailBanner', v ? '1' : '0')" />
         作品详情页封面横幅背景（模糊放大的封面作装饰）
       </label>
+      <label class="progress-editor">
+        <ToggleSwitch :model-value="settings.characterBanner" @update:model-value="(v: boolean) => settings.set('characterBanner', v ? '1' : '0')" />
+        人物详情卡横幅背景（角色/CV 模糊放大的立绘作装饰）
+      </label>
       <p class="hint" style="margin: 10px 0 2px">横幅模糊度</p>
       <div class="seg" v-seg-thumb>
         <span class="seg-thumb" aria-hidden="true"></span>
@@ -1268,10 +1280,6 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
           {{ o.label }}
         </button>
       </div>
-      <label class="progress-editor">
-        <ToggleSwitch :model-value="settings.characterBanner" @update:model-value="(v: boolean) => settings.set('characterBanner', v ? '1' : '0')" />
-        人物详情卡横幅背景（角色/CV 模糊放大的立绘作装饰）
-      </label>
       <label class="progress-editor">
         <ToggleSwitch :model-value="settings.anchorBarEnabled" @update:model-value="(v: boolean) => settings.set('anchorBarEnabled', v ? '1' : '0')" />
         快捷跳转栏（详情页与作品悬浮窗顶部的锚点导航）

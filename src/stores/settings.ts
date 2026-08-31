@@ -78,14 +78,15 @@ export const useSettingsStore = defineStore('settings', () => {
   const lightPreset = ref('classic')
   // 详情页封面横幅背景（模糊放大的封面作装饰）开关，默认开（仅作品详情页）
   const detailBanner = ref(true)
-  // 横幅模糊度档位：无 none / 弱 weak / 默认 default / 强 strong（默认 = 现有 70px），写入 <html data-banner-blur>
-  const bannerBlur = ref<'none' | 'weak' | 'default' | 'strong'>('default')
+  // 横幅模糊度档位：无 none / 极弱 faintest / 微弱 faint / 弱 weak / 默认 default / 强 strong / 特强 strongest / 超强 ultra
+  // （默认 = 现有 70px），写入 <html data-banner-blur>
+  const bannerBlur = ref<'none' | 'faintest' | 'faint' | 'weak' | 'default' | 'strong' | 'strongest' | 'ultra'>('default')
   // 人物横幅背景（角色/CV 详情卡模糊放大的立绘作装饰）开关，默认开（与作品横幅分开控制）
   const characterBanner = ref(true)
   // 沉浸光感（液态玻璃）：详情页快捷跳转按钮的玻璃质感与鼠标跟随光斑，默认开
   const immersiveGlow = ref(true)
-  // 沉浸光感强度档位：极弱 faintest / 微弱 faint / 弱 weak / 默认 default / 强 strong / 特强 strongest / 超强 ultra
-  const immersiveGlowStrength = ref<'faintest' | 'faint' | 'weak' | 'default' | 'strong' | 'strongest' | 'ultra'>('default')
+  // 沉浸光感强度档位：超弱 softest / 极弱 faintest / 微弱 faint / 弱 weak / 偏弱 mild / 默认 default / 强 strong / 较强 stronger / 特强 strongest / 超强 ultra / 究极 ultimate
+  const immersiveGlowStrength = ref<'softest' | 'faintest' | 'faint' | 'weak' | 'mild' | 'default' | 'strong' | 'stronger' | 'strongest' | 'ultra' | 'ultimate'>('default')
   // 快捷跳转栏：详情页与作品悬浮窗顶部的锚点导航，默认开
   const anchorBarEnabled = ref(true)
   // 主页卡片大小缩放（0.75~1.5，1=标准 360px 最小列宽），实时生效
@@ -163,13 +164,13 @@ export const useSettingsStore = defineStore('settings', () => {
       }
       if (r.key === 'detailBanner') detailBanner.value = r.value !== '0'
       if (r.key === 'bannerBlur') {
-        bannerBlur.value = (r.value as 'none' | 'weak' | 'default' | 'strong') || 'default'
+        bannerBlur.value = (r.value as 'none' | 'faintest' | 'faint' | 'weak' | 'default' | 'strong' | 'strongest' | 'ultra') || 'default'
         document.documentElement.dataset.bannerBlur = bannerBlur.value
       }
       if (r.key === 'characterBanner') characterBanner.value = r.value !== '0'
       if (r.key === 'immersiveGlow') immersiveGlow.value = r.value !== '0'
       if (r.key === 'immersiveGlowStrength') {
-        immersiveGlowStrength.value = (r.value as 'faintest' | 'faint' | 'weak' | 'default' | 'strong' | 'strongest' | 'ultra') || 'default'
+        immersiveGlowStrength.value = (r.value as 'softest' | 'faintest' | 'faint' | 'weak' | 'mild' | 'default' | 'strong' | 'stronger' | 'strongest' | 'ultra' | 'ultimate') || 'default'
         document.documentElement.dataset.glowStrength = immersiveGlowStrength.value
       }
       if (r.key === 'anchorBarEnabled') anchorBarEnabled.value = r.value !== '0'
@@ -266,13 +267,13 @@ export const useSettingsStore = defineStore('settings', () => {
     }
     if (key === 'detailBanner') detailBanner.value = value !== '0'
     if (key === 'bannerBlur') {
-      bannerBlur.value = (value as 'none' | 'weak' | 'default' | 'strong') || 'default'
+      bannerBlur.value = (value as 'none' | 'faintest' | 'faint' | 'weak' | 'default' | 'strong' | 'strongest' | 'ultra') || 'default'
       document.documentElement.dataset.bannerBlur = bannerBlur.value
     }
     if (key === 'characterBanner') characterBanner.value = value !== '0'
     if (key === 'immersiveGlow') immersiveGlow.value = value !== '0'
     if (key === 'immersiveGlowStrength') {
-      immersiveGlowStrength.value = (value as 'faintest' | 'faint' | 'weak' | 'default' | 'strong' | 'strongest' | 'ultra') || 'default'
+      immersiveGlowStrength.value = (value as 'softest' | 'faintest' | 'faint' | 'weak' | 'mild' | 'default' | 'strong' | 'stronger' | 'strongest' | 'ultra' | 'ultimate') || 'default'
       document.documentElement.dataset.glowStrength = immersiveGlowStrength.value
     }
     if (key === 'anchorBarEnabled') anchorBarEnabled.value = value !== '0'
