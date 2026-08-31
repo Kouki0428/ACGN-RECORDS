@@ -368,8 +368,26 @@ export async function getGalleryForSubject(
   } catch (e) {
     console.warn('[cg] 解析 Bangumi infobox 外链失败（回退已有/检索）：', e)
   }
-  // 在线 infobox 未取到（限流/网络/无外链）→ 离线 Archive raw infobox 兜底：
-  // 与网页插件「直接读页面 infobox 里的链接」等价，避免离线/限流时整栏抓取不到。
+  // 在线 infobox 未取到（限流/网络/无外链）→ 依次兜底：
+  //   ① 本地 subjects.infobox 列（详情页联网补全写回的 meta，常含 VNDB/DLsite/Steam 链接，免联网）
+  //   ② 离线 Archive raw infobox（与网页插件「读页面 infobox 链接」等价）
+  if (!links.vndb && !links.dlsite && !links.steam) {
+    try {
+      // ① 本地已缓存的 meta（JSON 字符串，链接在 value 里以 URL 文本存在）
+      const localRaw = subj?.infobox ? (typeof subj.infobox === 'string' ? subj.infobox : JSON.stringify(subj.infobox)) : ''
+      const localLinks = parseLinksFromText(localRaw)
+      if (localLinks.vndb || localLinks.dlsite || localLinks.steam) {
+        links = { ...links, ...localLinks }
+        if (localId != null) {
+          if (links.vndb) await saveExternalLink(localId, 'vndb', links.vndb)
+          if (links.dlsite) await saveExternalLink(localId, 'dlsite', links.dlsite)
+          if (links.steam) await saveExternalLink(localId, 'steam', links.steam)
+        }
+      }
+    } catch (e) {
+      console.warn('[cg] 本地 infobox 外链提取失败（忽略）：', e)
+    }
+  }
   if (!links.vndb && !links.dlsite && !links.steam) {
     try {
       const raw = await getArchiveRawInfo(Number(providerId))
