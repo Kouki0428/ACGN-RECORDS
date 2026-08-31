@@ -380,7 +380,7 @@ function onGlowMove(e: MouseEvent) {
   color: #fff;
 }
 .col-close:active {
-  background: #ff3d77;
+  background: var(--accent);
   color: #fff;
   transform: scale(0.94);
 }
@@ -406,8 +406,8 @@ function onGlowMove(e: MouseEvent) {
   border-color: var(--accent);
 }
 .col-status-btn.active {
-  background: #FF3D77;
-  border-color: #FF3D77;
+  background: var(--accent);
+  border-color: var(--accent);
   color: #fff;
   font-weight: 600;
 }
@@ -449,7 +449,7 @@ function onGlowMove(e: MouseEvent) {
 }
 /* 选中态与保存按钮一致：玻璃态用半透强调色 + 液态玻璃折射 */
 .col-modal.glass .col-status-btn.active {
-  background: color-mix(in srgb, #FF3D77 78%, transparent);
+  background: color-mix(in srgb, var(--accent) 78%, transparent);
   border-color: transparent;
   color: #fff;
   border-color: transparent;
@@ -568,7 +568,7 @@ function onGlowMove(e: MouseEvent) {
   font-weight: 600;
   border: none;
   border-radius: var(--radius-sm);
-  background: #FF3D77;
+  background: var(--accent);
   color: #fff;
   cursor: pointer;
   transition: opacity 0.15s ease;
@@ -582,7 +582,7 @@ function onGlowMove(e: MouseEvent) {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  background: color-mix(in srgb, #FF3D77 78%, transparent);
+  background: color-mix(in srgb, var(--accent) 78%, transparent);
   border-color: transparent;
 }
 .col-modal.glass .col-save::before {
