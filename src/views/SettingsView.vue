@@ -967,6 +967,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         <div class="arc-stat"><span>当月下载</span><b>{{ fmtSize(netStats.current.received) }}</b></div>
         <div class="arc-stat"><span>当月请求次数</span><b>{{ fmtCount(netStats.current.requests) }}</b></div>
         <div class="arc-stat"><span>当月合计</span><b>{{ fmtSize(netStats.current.sent + netStats.current.received) }}</b></div>
+        <div class="arc-stat arc-stat--wide"><span>当月请求：bgm / 其它</span><b>{{ fmtCount(netStats.current.bgmRequests) }} / {{ fmtCount(netStats.current.otherRequests) }}</b></div>
       </div>
       <p v-else-if="netStats" class="hint">本月尚无网络请求记录。</p>
       <p v-else class="hint">正在统计网络使用量…</p>
@@ -975,6 +976,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         <div class="arc-stat"><span>当日上传</span><b>{{ fmtSize(netStats.today.sent) }}</b></div>
         <div class="arc-stat"><span>当日下载</span><b>{{ fmtSize(netStats.today.received) }}</b></div>
         <div class="arc-stat"><span>当日请求次数</span><b>{{ fmtCount(netStats.today.requests) }}</b></div>
+        <div class="arc-stat arc-stat--wide"><span>当日请求：bgm / 其它</span><b>{{ fmtCount(netStats.today.bgmRequests) }} / {{ fmtCount(netStats.today.otherRequests) }}</b></div>
       </div>
       <p v-else-if="netStats" class="hint">当日尚无网络请求记录。</p>
 
@@ -1906,6 +1908,10 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
   font-weight: 600;
   color: var(--text);
   word-break: break-all;
+}
+/* 请求拆分行：占满整行，避免与其它格子挤在一行 */
+.arc-stat--wide {
+  grid-column: 1 / -1;
 }
 .net-history {
   margin-top: 14px;

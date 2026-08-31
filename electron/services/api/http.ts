@@ -431,6 +431,14 @@ export async function safeFetch(url: string, init?: FetchInit): Promise<MinimalR
   const sentBytes = computeSentBytes(url, init || {})
   pendingSent += sentBytes
   pendingRequests += 1
+  let host = ''
+  try {
+    host = new URL(url).hostname
+  } catch {
+    /* ignore */
+  }
+  if (isBgmHost(host)) pendingBgmRequests += 1
+  else pendingOtherRequests += 1
   scheduleFlush()
   for (let i = 0; i < strategies.length; i++) {
     const s = strategies[i]
@@ -468,7 +476,23 @@ export async function safeFetch(url: string, init?: FetchInit): Promise<MinimalR
 let pendingSent = 0
 let pendingReceived = 0
 let pendingRequests = 0
+let pendingBgmRequests = 0
+let pendingOtherRequests = 0
 let flushTimer: NodeJS.Timeout | null = null
+
+/** bgm 相关域名（主进程请求的 bgm 域）：api.bgm.tv / bgm.tv / bangumi.tv / next.bgm.tv 及其子域 */
+function isBgmHost(hostname: string): boolean {
+  const h = hostname.toLowerCase()
+  return (
+    h === 'api.bgm.tv' ||
+    h === 'bgm.tv' ||
+    h === 'bangumi.tv' ||
+    h === 'next.bgm.tv' ||
+    h.endsWith('.bgm.tv') ||
+    h.endsWith('.bangumi.tv') ||
+    h.endsWith('.next.bgm.tv')
+  )
+}
 
 /** 估算一次请求的上行字节：URL + 请求头（含 ": " 分隔）+ 请求体。 */
 function computeSentBytes(url: string, init: FetchInit): number {
@@ -572,21 +596,33 @@ function scheduleFlush(): void {
 
 /** 立即把累计增量写入 network_stats（退出前调用）。无增量则跳过。落库失败退回 pending。 */
 export async function flushNetworkNow(): Promise<void> {
-  if (pendingSent === 0 && pendingReceived === 0 && pendingRequests === 0) return
+  if (
+    pendingSent === 0 &&
+    pendingReceived === 0 &&
+    pendingRequests === 0 &&
+    pendingBgmRequests === 0 &&
+    pendingOtherRequests === 0
+  )
+    return
   const s = pendingSent
   const r = pendingReceived
-  const q = pendingRequests
+  const qb = pendingBgmRequests
+  const qo = pendingOtherRequests
   pendingSent = 0
   pendingReceived = 0
   pendingRequests = 0
+  pendingBgmRequests = 0
+  pendingOtherRequests = 0
   try {
     const { addNetworkUsage, addDailyUsage } = await import('../db/repositories/networkStats.repository')
-    await addNetworkUsage(s, r, q)
-    await addDailyUsage(s, r, q)
+    await addNetworkUsage(s, r, qb, qo)
+    await addDailyUsage(s, r, qb, qo)
   } catch {
     // 落库失败：退回 pending，下次重试（避免数据丢失）
     pendingSent += s
     pendingReceived += r
-    pendingRequests += q
+    pendingRequests += qb + qo
+    pendingBgmRequests += qb
+    pendingOtherRequests += qo
   }
 }

@@ -381,6 +381,13 @@ export async function runMigrations(db: any): Promise<void> {
       requests INTEGER NOT NULL DEFAULT 0
     )`
   )
+  // 按域名拆分请求次数（bgm 域 vs 其它域），便于区分「bgm API」与「画廊/离线库等其它」流量。
+  // 幂等：缺列则 ALTER。
+  const nsCols = (db.prepare('PRAGMA table_info(network_stats)').all() as { name: string }[]).map(
+    (c) => c.name
+  )
+  if (!nsCols.includes('bgm_requests')) db.exec('ALTER TABLE network_stats ADD COLUMN bgm_requests INTEGER NOT NULL DEFAULT 0')
+  if (!nsCols.includes('other_requests')) db.exec('ALTER TABLE network_stats ADD COLUMN other_requests INTEGER NOT NULL DEFAULT 0')
 
   // 应用网络使用量日度统计：以 day='YYYY-MM-DD' 为主键聚合当天上行/下行字节与请求次数。
   // 供设置页「网络使用量」展示当天请求次数。幂等建表。
@@ -392,6 +399,11 @@ export async function runMigrations(db: any): Promise<void> {
       requests INTEGER NOT NULL DEFAULT 0
     )`
   )
+  const nsdCols = (db.prepare('PRAGMA table_info(network_stats_daily)').all() as { name: string }[]).map(
+    (c) => c.name
+  )
+  if (!nsdCols.includes('bgm_requests')) db.exec('ALTER TABLE network_stats_daily ADD COLUMN bgm_requests INTEGER NOT NULL DEFAULT 0')
+  if (!nsdCols.includes('other_requests')) db.exec('ALTER TABLE network_stats_daily ADD COLUMN other_requests INTEGER NOT NULL DEFAULT 0')
 
   // 收藏月度快照：每月首次启动记录当期计数，供统计悬浮窗绘制历史趋势曲线。幂等建表。
   db.exec(

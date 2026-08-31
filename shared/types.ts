@@ -514,6 +514,10 @@ export interface NetworkMonthStat {
   received: number
   /** 请求次数（safeFetch 逻辑调用次数） */
   requests: number
+  /** 当月 bgm 相关域名（api.bgm.tv / bgm.tv / bangumi.tv / next.bgm.tv）请求次数 */
+  bgmRequests: number
+  /** 当月其它域名（vndb / dlsite / steam / tmdb / 离线库下载等）请求次数 */
+  otherRequests: number
 }
 
 /** 单日应用网络使用量统计（字节 / 请求次数）。day 形如 'YYYY-MM-DD'。 */
@@ -525,6 +529,8 @@ export interface NetworkDayStat {
   received: number
   /** 请求次数（safeFetch 逻辑调用次数） */
   requests: number
+  bgmRequests: number
+  otherRequests: number
 }
 
 /** 设置页「网络使用量」一次性拉取结果（当天 + 当月 + 近 6 月历史）。 */
