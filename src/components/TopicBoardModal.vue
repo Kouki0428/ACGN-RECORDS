@@ -147,6 +147,12 @@ function toggleReaction(id: number) {
 function closeReaction() {
   reactingTo.value = null
 }
+// 表情选择器的全屏点击层会挡住滚动：把滚轮滚动转发到主滚动容器 .content，
+// 让唤出表情选择器时仍能滑动背后的页面
+function onBackdropWheel(e: WheelEvent) {
+  const scroller = document.querySelector<HTMLElement>('.content')
+  if (scroller) scroller.scrollTop += e.deltaY
+}
 function meInReaction(rx: any): boolean {
   const users = rx?.users || []
   return users.some(
@@ -242,7 +248,7 @@ function onTaKey(e: KeyboardEvent) {
 
 <template>
   <div class="tb-modal" :class="{ 'glow-card': settings.immersiveGlow && settings.subjectCardGlow }" @click.stop>
-    <div v-if="reactingTo !== null" class="tb-rx-backdrop" @click="closeReaction"></div>
+    <div v-if="reactingTo !== null" class="tb-rx-backdrop" @click="closeReaction" @wheel="onBackdropWheel"></div>
     <header class="ec-head tb-head">
       <button class="back-btn" type="button" title="返回上级" aria-label="返回" @click="goBack">
         <svg class="back-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="12" x2="4" y2="12" /><polyline points="10,5 4,12 10,19" /></svg>

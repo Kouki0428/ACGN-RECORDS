@@ -45,18 +45,36 @@ const emit = defineEmits<{ (e: 'select', value: string): void }>()
   border-radius: var(--radius);
   box-shadow: var(--shadow);
 }
-/* 沉浸光感（跟随总开关 immersiveGlow，与悬浮窗本体开关独立）：面板与表情项半透明 */
+/* 沉浸光感（跟随悬浮窗本体开关 immersiveGlow+subjectCardGlow）：面板呈液态玻璃，
+   样式与单集标记悬浮窗 .ep-hover-card.glass 同款 —— 折射滤镜 + 顶部高光渐变 + 内描边 */
 .ec-react-picker.glass {
-  background: color-mix(in srgb, var(--bg-panel) calc(70% * var(--glass-k)), transparent);
+  isolation: isolate;
+  overflow: hidden;
+  border-color: transparent;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.025) 42%, rgba(255, 255, 255, 0) 100%),
+    color-mix(in srgb, var(--bg-panel) calc(72% * var(--glass-k)), transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 8px 28px rgba(0, 0, 0, 0.5);
+}
+.ec-react-picker.glass::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  z-index: -1;
+  border-radius: var(--radius);
+  backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(calc(6px * var(--glass-blur-k)));
+  -webkit-backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(calc(6px * var(--glass-blur-k)));
 }
 .ec-react-picker.glass .ec-react-item {
   background: color-mix(in srgb, var(--bg-elev) calc(70% * var(--glass-k)), transparent);
 }
 .ec-react-picker.glass .ec-react-item:hover {
-  background: color-mix(in srgb, var(--accent-2) 12%, color-mix(in srgb, var(--bg-elev) calc(70% * var(--glass-k)), transparent));
+  background: color-mix(in srgb, var(--accent-aux) 12%, color-mix(in srgb, var(--bg-elev) calc(70% * var(--glass-k)), transparent));
 }
 .ec-react-picker.glass .ec-react-item.on {
-  background: color-mix(in srgb, var(--accent-2) 18%, color-mix(in srgb, var(--bg-elev) calc(70% * var(--glass-k)), transparent));
+  background: color-mix(in srgb, var(--accent-aux) 18%, color-mix(in srgb, var(--bg-elev) calc(70% * var(--glass-k)), transparent));
 }
 .ec-react-picker-title {
   font-size: 12px;
@@ -88,14 +106,14 @@ const emit = defineEmits<{ (e: 'select', value: string): void }>()
   pointer-events: none;
 }
 .ec-react-item:hover {
-  border-color: var(--accent-2);
-  background: color-mix(in srgb, var(--accent-2) 12%, var(--bg-elev));
+  border-color: var(--accent-aux);
+  background: color-mix(in srgb, var(--accent-aux) 12%, var(--bg-elev));
 }
 .ec-react-item:active {
   transform: scale(0.94);
 }
 .ec-react-item.on {
-  border-color: var(--accent-2);
-  background: color-mix(in srgb, var(--accent-2) 18%, var(--bg-elev));
+  border-color: var(--accent-aux);
+  background: color-mix(in srgb, var(--accent-aux) 18%, var(--bg-elev));
 }
 </style>
