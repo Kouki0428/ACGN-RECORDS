@@ -594,7 +594,7 @@ onUnmounted(() => {
       rgba(255, 255, 255, 0.025) 42%,
       rgba(255, 255, 255, 0) 100%
     ),
-    color-mix(in srgb, var(--bg-panel) 72%, transparent);
+    color-mix(in srgb, var(--bg-panel) calc(72% * var(--glass-k)), transparent);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 8px 28px rgba(0, 0, 0, 0.5);
@@ -605,8 +605,8 @@ onUnmounted(() => {
   inset: -8px;
   z-index: -1;
   border-radius: var(--radius);
-  backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(6px);
-  -webkit-backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(6px);
+  backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(calc(6px * var(--glass-blur-k)));
+  -webkit-backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(calc(6px * var(--glass-blur-k)));
 }
 /* 鼠标跟随的主题色光斑（与快速跳转锚点条同款）：径向渐变锚定在按钮内指针坐标
    （--mx/--my 由 JS 经事件委托写入），进入按钮淡入、移出淡出；纯装饰不拦截点击 */

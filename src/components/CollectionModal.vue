@@ -329,7 +329,7 @@ function onGlowMove(e: MouseEvent) {
       rgba(255, 255, 255, 0.02) 42%,
       rgba(255, 255, 255, 0) 100%
     ),
-    color-mix(in srgb, var(--bg-panel) 72%, transparent);
+    color-mix(in srgb, var(--bg-panel) calc(72% * var(--glass-k)), transparent);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     var(--shadow);
@@ -340,8 +340,8 @@ function onGlowMove(e: MouseEvent) {
   inset: -8px;
   z-index: -1;
   border-radius: var(--radius-lg);
-  backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(10px);
-  -webkit-backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(10px);
+  backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(calc(10px * var(--glass-blur-k)));
+  -webkit-backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(calc(10px * var(--glass-blur-k)));
 }
 .col-head {
   display: flex;
@@ -553,8 +553,7 @@ function onGlowMove(e: MouseEvent) {
 }
 /* 沉浸光感：吐槽输入框化半透磨砂，与面板玻璃同语言 */
 .col-modal.glass .col-textarea {
-  background: color-mix(in srgb, var(--bg-elev) 70%, transparent);
-  border-color: color-mix(in srgb, var(--border) 80%, transparent);
+  background: color-mix(in srgb, var(--bg-elev) calc(70% * var(--glass-k)), transparent);
 }
 .col-foot {
   display: flex;

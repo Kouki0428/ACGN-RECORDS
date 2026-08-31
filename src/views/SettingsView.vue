@@ -420,6 +420,15 @@ const radiusOptions = [
   { value: 'xlarge', label: '特大' }
 ]
 
+// 沉浸光感强度档位（faint / weak / default / strong / strongest；default = 现状）
+const glowStrengthOptions = [
+  { value: 'faint', label: '微弱' },
+  { value: 'weak', label: '弱' },
+  { value: 'default', label: '默认' },
+  { value: 'strong', label: '强' },
+  { value: 'strongest', label: '特强' }
+]
+
 // 强调色预设（'' = 默认粉，由「默认」按钮处理）
 const accentPresets = [
   { hex: '#ff5c8a', label: '樱粉' },
@@ -1144,10 +1153,30 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         <ToggleSwitch :model-value="settings.anchorBarEnabled" @update:model-value="(v: boolean) => settings.set('anchorBarEnabled', v ? '1' : '0')" />
         快捷跳转栏（详情页与作品悬浮窗顶部的锚点导航）
       </label>
+    </section>
+
+    <!-- 沉浸光感 -->
+    <section class="panel">
+      <h2>沉浸光感</h2>
+      <p class="hint">让详情页 / 悬浮窗的卡片与面板呈半透明液态玻璃质感。</p>
       <label class="progress-editor">
         <ToggleSwitch :model-value="settings.immersiveGlow" @update:model-value="(v: boolean) => settings.set('immersiveGlow', v ? '1' : '0')" />
-        沉浸光感
+        开启沉浸光感
       </label>
+      <p class="hint" style="margin: 10px 0 2px">强度</p>
+      <div class="seg" v-seg-thumb>
+        <span class="seg-thumb" aria-hidden="true"></span>
+        <button
+          v-for="o in glowStrengthOptions"
+          :key="o.value"
+          type="button"
+          class="seg-item"
+          :class="{ active: settings.immersiveGlowStrength === o.value }"
+          @click="settings.set('immersiveGlowStrength', o.value)"
+        >
+          {{ o.label }}
+        </button>
+      </div>
     </section>
 
     <!-- 作品栏区块 -->

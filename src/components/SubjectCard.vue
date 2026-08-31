@@ -779,13 +779,13 @@ watch(
 .subject-card.glow :deep(.game-gallery),
 .subject-card.glow :deep(.topics-box),
 .subject-card.glow :deep(.tucao-box) {
-  background: color-mix(in srgb, var(--bg-panel) 70%, transparent);
+  background: color-mix(in srgb, var(--bg-panel) calc(70% * var(--glass-k)), transparent);
 }
 /* 板块内的评论子卡（讨论版条目 / 吐槽箱评论）：原本不透明 var(--bg-elev)，
    沉浸光感下改 60% 半透明，与 .card-box 一致 */
 .subject-card.glow :deep(.topic-item),
 .subject-card.glow :deep(.tucao-item) {
-  background: color-mix(in srgb, var(--bg-elev) 60%, transparent);
+  background: color-mix(in srgb, var(--bg-elev) calc(60% * var(--glass-k)), transparent);
 }
 .subject-head {
   display: flex;
@@ -866,9 +866,9 @@ watch(
   font-size: 12px;
   border-radius: var(--radius-sm);
   border-color: transparent;
-  background: color-mix(in srgb, var(--bg) 55%, transparent);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--bg) calc(55% * var(--glass-k)), transparent);
+  backdrop-filter: blur(calc(10px * var(--glass-blur-k)));
+  -webkit-backdrop-filter: blur(calc(10px * var(--glass-blur-k)));
   color: var(--text-dim);
   cursor: pointer;
   transition:

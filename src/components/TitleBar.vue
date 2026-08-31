@@ -227,7 +227,7 @@ onBeforeUnmount(() => {
       rgba(255, 255, 255, 0.025) 42%,
       rgba(255, 255, 255, 0) 100%
     ),
-    color-mix(in srgb, var(--bg-panel) 72%, transparent);
+    color-mix(in srgb, var(--bg-panel) calc(72% * var(--glass-k)), transparent);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 8px 28px rgba(0, 0, 0, 0.5);
@@ -238,8 +238,8 @@ onBeforeUnmount(() => {
   inset: -8px;
   z-index: -1;
   border-radius: var(--radius);
-  backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(6px);
-  -webkit-backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(6px);
+  backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(calc(6px * var(--glass-blur-k)));
+  -webkit-backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(calc(6px * var(--glass-blur-k)));
 }
 /* 入场只动 top、不动 opacity / transform：opacity<1 或 transform 过渡期间元素会变成
    backdrop root，导致 ::before 的 backdrop-filter 采样失效（玻璃要在动画结束后才出现、

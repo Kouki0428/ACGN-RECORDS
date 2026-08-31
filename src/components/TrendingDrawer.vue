@@ -190,7 +190,7 @@ function toggle() {
       rgba(255, 255, 255, 0.02) 42%,
       rgba(255, 255, 255, 0) 100%
     ),
-    color-mix(in srgb, var(--bg-panel) 72%, transparent);
+    color-mix(in srgb, var(--bg-panel) calc(72% * var(--glass-k)), transparent);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     -8px 0 30px rgba(0, 0, 0, 0.25);
@@ -201,8 +201,8 @@ function toggle() {
   inset: -8px;
   z-index: -1;
   border-radius: var(--radius);
-  backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(10px);
-  -webkit-backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(10px);
+  backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(calc(10px * var(--glass-blur-k)));
+  -webkit-backdrop-filter: url(#liquid-glass-distortion) saturate(1.5) blur(calc(10px * var(--glass-blur-k)));
 }
 .td-head {
   display: flex;

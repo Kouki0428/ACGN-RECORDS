@@ -144,9 +144,9 @@ watch(
   border-radius: var(--radius-sm);
   /* 关闭「沉浸光感」时的回退样式：普通高斯模糊按钮（磨砂） */
   border-color: transparent;
-  background: color-mix(in srgb, var(--bg) 55%, transparent);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--bg) calc(55% * var(--glass-k)), transparent);
+  backdrop-filter: blur(calc(10px * var(--glass-blur-k)));
+  -webkit-backdrop-filter: blur(calc(10px * var(--glass-blur-k)));
   color: var(--text-dim);
   cursor: pointer;
   transition:
@@ -158,7 +158,7 @@ watch(
 }
 .anchor-chip:hover {
   color: var(--text);
-  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  background: color-mix(in srgb, var(--bg) calc(72% * var(--glass-k)), transparent);
 }
 .anchor-chip:active {
   transform: scale(0.95);
