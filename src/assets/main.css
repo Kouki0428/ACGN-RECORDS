@@ -1509,6 +1509,12 @@ body,
 :root .detail.glow .card-box {
   background: color-mix(in srgb, var(--bg-elev) calc(60% * var(--glass-k)), transparent);
 }
+/* 悬浮窗本体沉浸光感（.glow-card）下：快速表情回复标签 / 评论 bbcode 引用块同步半透明。
+   这两个类是子组件（CommentReactions / BgmBbcode）scoped 内的，需全局 :root 前缀压过其 [data-v]。 */
+:root .glow-card .ec-reaction,
+:root .glow-card .bb-quote {
+  background: color-mix(in srgb, var(--bg-elev) calc(70% * var(--glass-k)), transparent);
+}
 .detail__main,
 .detail > .panel {
   position: relative;
