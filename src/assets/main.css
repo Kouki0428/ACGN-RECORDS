@@ -1415,19 +1415,18 @@ body,
 /* 讨论版/吐槽箱/画廊与 .panel 同一实现方式：全部卡片壳属性全局定义，组件 scoped 内不设这些属性，
    由 :root .detail.glow .xxx (0,4,0) 压过全局基础 (0,1,0) 实现光感开关与强度关联 */
 .topics-box,
-.tucao-box {
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 12px 14px;
-  margin-top: 16px;
-}
+.tucao-box,
 .game-gallery {
   background: var(--bg-panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 14px 16px 16px;
-  margin-top: 14px;
+  padding: 16px 18px;
+  margin-top: 18px;
+}
+.detail .topics-box,
+.detail .tucao-box,
+.detail .game-gallery {
+  margin-top: 9px;
 }
 .topic-item,
 .tucao-item {
