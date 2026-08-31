@@ -1213,10 +1213,21 @@ function flattenInfoboxValue(v: any): string {
   if (v == null) return ''
   if (typeof v === 'string') return v
   if (Array.isArray(v)) {
-    return v.map((x) => (typeof x === 'string' ? x : x?.v ?? '')).filter(Boolean).join('、')
+    return v.map((x) => (typeof x === 'string' ? x : flattenObjectValue(x))).filter(Boolean).join('、')
   }
-  if (typeof v === 'object') return v?.v ?? ''
+  if (typeof v === 'object') return flattenObjectValue(v)
   return String(v)
+}
+
+/** infobox 对象的 value 常为 { v, k }（一个显示名、一个链接）。保留「更像 URL」的那个，
+ *  避免外链（如 vndb.org/v60663）因藏在 k 字段而被丢弃。 */
+function flattenObjectValue(o: any): string {
+  const vv = o?.v
+  const kk = o?.k
+  const both = [vv, kk].filter((x): x is string => typeof x === 'string' && !!x)
+  if (!both.length) return ''
+  const url = both.find((x) => /^https?:\/\//i.test(x) || /(?:\.org|\.com|\.jp)\//i.test(x))
+  return url ?? both[0]
 }
 
 export interface BookAnalysis {
