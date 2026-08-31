@@ -346,7 +346,7 @@ function onWorkClick(id: number) {
 }
 .rcard:hover {
   transform: translateY(-2px);
-  border-color: var(--accent-2);
+  border-color: var(--accent-aux);
 }
 .rcard .r-avatar {
   width: 100%;
@@ -469,7 +469,7 @@ function onWorkClick(id: number) {
 .filters button.active,
 .sorts button.active {
   background: var(--bg-elev);
-  border-color: var(--accent-2);
+  border-color: var(--accent-aux);
   color: var(--text);
 }
 .sorts {
