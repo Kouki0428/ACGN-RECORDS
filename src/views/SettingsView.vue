@@ -626,10 +626,6 @@ async function loadBgmStatus() {
   }
 }
 
-// 服务器正常但应用自己连不上（区分「bgm 故障」与「本地网络/代理问题」）
-const bgmServerFine = computed(
-  () => bgmStatus.value != null && bgmStatus.value.status === 'ok'
-)
 // 只保留应用实际用到的服务器域名（主进程依赖），并按域名合并 guest/auth 两项：
 // 状态取较差的（down>degrade>ok），30 天可用率取较低者，避免一项正常就误导为全通。
 const BGM_DOMAINS = ['api.bgm.tv', 'next.bgm.tv/p1', 'bgm.tv'] as const
@@ -1028,13 +1024,6 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
             <span class="bgm-status-uptime">{{ Math.round(c.uptime) }}%</span>
           </div>
         </div>
-
-        <!-- 智能提示：服务器正常但应用自己却连不上 → 多半是本地网络 / 代理 -->
-        <p v-if="bgmServerFine" class="hint" style="margin-top: 10px">
-          bgm 服务器当前正常。若你仍遇到「请求超时 / 同步失败」，问题多半出在
-          <strong>你本地的网络或代理设置</strong>——请检查上方代理地址，或在 Clash 里确认
-          <code>*.bgm.tv</code> 走了可用节点。
-        </p>
       </template>
     </section>
       </template>
