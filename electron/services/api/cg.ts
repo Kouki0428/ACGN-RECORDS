@@ -49,7 +49,9 @@ function extractSteamAppId(href: string): string | null {
   return m ? m[1] : null
 }
 
-/** 遍历 Bangumi infobox（可能嵌套 数组/对象，链接藏在 value 的 v/k 字段），收集所有外链 URL */
+/** 遍历 Bangumi infobox（可能嵌套 数组/对象，链接藏在 value 的 v/k 字段），收集所有外链 URL。
+ *  k/v 字段都收集（不强制 https:// 前缀）：Bangumi 链接常写作无协议的裸链接（如 vndb.org/v123），
+ *  显示名等普通文本由 extract* 正则天然过滤，无害。 */
 function collectInfoboxUrls(infobox: any): string[] {
   const urls: string[] = []
   const walk = (node: any) => {
@@ -58,9 +60,9 @@ function collectInfoboxUrls(infobox: any): string[] {
     } else if (Array.isArray(node)) {
       node.forEach(walk)
     } else if (node && typeof node === 'object') {
-      if (typeof node.v === 'string') urls.push(node.v)
-      if (typeof node.k === 'string' && /^https?:\/\//i.test(node.k)) urls.push(node.k)
-      for (const k of Object.keys(node)) if (k !== 'v' && k !== 'k') walk(node[k])
+      if (typeof node.v === 'string' && node.v.trim()) urls.push(node.v.trim())
+      if (typeof node.k === 'string' && node.k.trim()) urls.push(node.k.trim())
+      for (const key of Object.keys(node)) if (key !== 'v' && key !== 'k') walk(node[key])
     }
   }
   walk(infobox)
