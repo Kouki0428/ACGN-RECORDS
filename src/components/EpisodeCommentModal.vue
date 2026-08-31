@@ -1085,6 +1085,10 @@ watch(
 }
 .ec-reply-box {
   margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
 }
 .ec-reply-actions {
   display: flex;

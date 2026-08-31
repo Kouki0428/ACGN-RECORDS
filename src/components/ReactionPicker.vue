@@ -14,7 +14,7 @@ const emit = defineEmits<{ (e: 'select', value: string): void }>()
 </script>
 
 <template>
-  <div class="ec-react-picker" :class="{ glass: settings.immersiveGlow }" @click.stop>
+  <div class="ec-react-picker" :class="{ glass: settings.immersiveGlow && settings.subjectCardGlow }" @click.stop>
     <div class="ec-react-picker-title">发表表情回应</div>
     <div class="ec-react-grid">
       <button

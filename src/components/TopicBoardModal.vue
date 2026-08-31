@@ -641,6 +641,7 @@ function onTaKey(e: KeyboardEvent) {
 .ec-avatar-ph { background: var(--border); }
 .ec-c-body { flex: 1; min-width: 0; }
 .ec-c-head {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -825,6 +826,7 @@ function onTaKey(e: KeyboardEvent) {
 }
 .ec-r-body { flex: 1; min-width: 0; }
 .ec-r-head {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -832,7 +834,13 @@ function onTaKey(e: KeyboardEvent) {
   margin-bottom: 2px;
 }
 .ec-r-name { font-size: 12px; font-weight: 600; color: var(--text); }
-.ec-reply-box { margin-top: 8px; }
+.ec-reply-box {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+}
 .ec-reply-actions { display: flex; align-items: center; gap: 8px; }
 .ec-reply-cancel {
   padding: 7px 16px;
