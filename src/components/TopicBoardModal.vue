@@ -147,10 +147,10 @@ function toggleReaction(id: number) {
 function closeReaction() {
   reactingTo.value = null
 }
-// 表情选择器的全屏点击层会挡住滚动：把滚轮滚动转发到主滚动容器 .content，
-// 让唤出表情选择器时仍能滑动背后的页面
+// 表情选择器的全屏点击层会挡住滚动：把滚轮滚动转发到本悬浮窗的滚动容器 .ec-scroll，
+// 让唤出表情选择器时仍能滑动评论列表（表情选择器随列表一起滚动）
 function onBackdropWheel(e: WheelEvent) {
-  const scroller = document.querySelector<HTMLElement>('.content')
+  const scroller = document.querySelector<HTMLElement>('.ec-scroll')
   if (scroller) scroller.scrollTop += e.deltaY
 }
 function meInReaction(rx: any): boolean {

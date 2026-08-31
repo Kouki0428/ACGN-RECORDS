@@ -43,7 +43,7 @@ const emit = defineEmits<{ (e: 'select', value: string): void }>()
   background: var(--bg-panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.32);
 }
 /* 沉浸光感（跟随悬浮窗本体开关 immersiveGlow+subjectCardGlow）：面板呈液态玻璃，
    样式与单集标记悬浮窗 .ep-hover-card.glass 同款 —— 折射滤镜 + 顶部高光渐变 + 内描边 */
@@ -56,7 +56,7 @@ const emit = defineEmits<{ (e: 'select', value: string): void }>()
     color-mix(in srgb, var(--bg-panel) calc(72% * var(--glass-k)), transparent);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 8px 28px rgba(0, 0, 0, 0.5);
+    0 4px 16px rgba(0, 0, 0, 0.32);
 }
 .ec-react-picker.glass::before {
   content: '';
