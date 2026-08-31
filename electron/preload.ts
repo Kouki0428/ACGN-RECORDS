@@ -1,6 +1,6 @@
 import electron from 'electron'
 const { contextBridge, ipcRenderer, webFrame } = electron
-import type { AcgnApi, EntityDetail, SubjectFullDetail, SubjectCharacter, SubjectPerson, EpisodeProgressState, SubjectFullEpisode, EpisodeComment, EpisodeDetail, CacheStats, NetworkStatsResult, BgmTopic, BgmTopicDetail } from '../shared/types'
+import type { AcgnApi, EntityDetail, SubjectFullDetail, SubjectCharacter, SubjectPerson, EpisodeProgressState, SubjectFullEpisode, EpisodeComment, EpisodeDetail, CacheStats, NetworkStatsResult, BgmTopic, BgmTopicDetail, BgmStatus } from '../shared/types'
 
 // 仅暴露白名单方法，绝不直接暴露 require / fs / ipcRenderer 本身
 const api: AcgnApi = {
@@ -46,7 +46,9 @@ const api: AcgnApi = {
     },
     answerCloseBehavior: (pick: 'minimize' | 'exit', remember: boolean) =>
       ipcRenderer.send('app:answerCloseBehavior', pick, remember),
-    getNetworkStats: () => ipcRenderer.invoke('app:getNetworkStats') as Promise<NetworkStatsResult>
+    getNetworkStats: () => ipcRenderer.invoke('app:getNetworkStats') as Promise<NetworkStatsResult>,
+    /** Bangumi 可用性监测（bgm-status 探针，社区数据）；失败返回 null */
+    getBgmStatus: () => ipcRenderer.invoke('app:getBgmStatus') as Promise<BgmStatus | null>
   },
   db: {
     query: (sql: string, params?: unknown[]) => ipcRenderer.invoke('db:query', sql, params),

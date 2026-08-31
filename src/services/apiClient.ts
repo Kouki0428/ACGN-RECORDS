@@ -1,4 +1,4 @@
-import type { GameGallery, AuthStatus, AcgnApi, SearchQuery, SearchResultItem, TimelineItem, TimelinePage, NetworkStatsResult } from '@shared/types'
+import type { GameGallery, AuthStatus, AcgnApi, SearchQuery, SearchResultItem, TimelineItem, TimelinePage, NetworkStatsResult, BgmStatus } from '@shared/types'
 
 /**
  * 渲染进程对主进程 API 能力的安全封装（不直接 import electron）。
@@ -21,6 +21,8 @@ export const apiClient = {
   relaunch: (): Promise<void> => acgn().app.relaunch(),
   /** 拉取应用当月及近 6 月网络使用量统计 */
   getNetworkStats: (): Promise<NetworkStatsResult> => acgn().app.getNetworkStats(),
+  /** 拉取 Bangumi 可用性监测状态（bgm-status 探针）；失败返回 null */
+  getBgmStatus: (): Promise<BgmStatus | null> => acgn().app.getBgmStatus(),
   /** 当前实际生效的数据目录（userData）；custom=true 表示用户自定义过 */
   getDataDir: (): Promise<{ dir: string; custom: boolean }> => acgn().app.getDataDir(),
   /** 在系统文件管理器中打开数据目录 */

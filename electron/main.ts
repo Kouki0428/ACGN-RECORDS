@@ -1,7 +1,8 @@
 ﻿// 必须最先 import：让主进程所有 fetch 自动走代理/TLS 配置（详见该模块）
 import './services/api/http'
-import { setManualProxy, flushNetworkNow } from './services/api/http'
+import { setManualProxy, flushNetworkNow, safeFetch } from './services/api/http'
 import { getNetworkStats, getNetworkHistory, getTodayStats } from './services/db/repositories/networkStats.repository'
+import type { BgmStatus } from '../shared/types'
 import { closeDb } from './services/db/connection'
 import electron from 'electron'
 const { app, BrowserWindow, ipcMain, shell, protocol, Tray, Menu, nativeImage, dialog } = electron
@@ -351,6 +352,50 @@ ipcMain.handle('app:getNetworkStats', async () => {
     getTodayStats()
   ])
   return { current, history, today }
+})
+
+// 拉取 Bangumi 可用性监测（bgm-status 社区探针 /api/status），供设置页「网络」区分服务器故障与本地网络问题。
+// 60s 内存缓存避免频繁请求；失败返回 null（前端展示「暂不可用」，不影响其它功能）。
+const BGM_STATUS_URL = 'https://bgm-status.ry.mk/api/status'
+const BGM_STATUS_TTL_MS = 60_000
+let bgmStatusCache: { at: number; data: BgmStatus | null } | null = null
+ipcMain.handle('app:getBgmStatus', async () => {
+  const now = Date.now()
+  if (bgmStatusCache && now - bgmStatusCache.at < BGM_STATUS_TTL_MS) return bgmStatusCache.data
+  try {
+    const res = await safeFetch(BGM_STATUS_URL, { headers: { Accept: 'application/json' } })
+    if (!res.ok) return null
+    const j = (await res.json()) as {
+      status?: string
+      message?: string
+      updated_at?: number
+      components?: {
+        domain?: string
+        kind?: string
+        label?: string
+        status?: string
+        uptime?: number
+      }[]
+    }
+    const out: BgmStatus = {
+      status: j.status || 'unknown',
+      message: j.message || '',
+      updated_at: typeof j.updated_at === 'number' ? j.updated_at : now / 1000,
+      components: (j.components ?? []).map((c) => ({
+        domain: c.domain || '',
+        kind: (c.kind === 'auth' ? 'auth' : 'guest') as BgmStatus['components'][number]['kind'],
+        label: c.label || c.domain || '',
+        status: c.status || 'unknown',
+        uptime: typeof c.uptime === 'number' ? c.uptime : 0
+      }))
+    }
+    bgmStatusCache = { at: now, data: out }
+    return out
+  } catch (e) {
+    console.warn('[bgm-status] 获取失败（返回 null）：', (e as Error)?.message)
+    bgmStatusCache = { at: now, data: null }
+    return null
+  }
 })
 
 // 退出前强制落库：把 debounce 攒批的网络统计增量写入 network_stats，避免数据丢失。

@@ -534,6 +534,26 @@ export interface NetworkStatsResult {
   today: NetworkDayStat | null
 }
 
+/** Bangumi 可用性监测（来自 bgm-status.ry.mk /api/status，社区探针）单条组件状态 */
+export interface BgmStatusComponent {
+  domain: string
+  kind: 'guest' | 'auth'
+  label: string
+  /** ok / degrade / down */
+  status: string
+  /** 30 天可用率（0-100） */
+  uptime: number
+}
+
+/** Bangumi 服务状态（全局 + 各域名 × guest/auth 探针） */
+export interface BgmStatus {
+  /** ok / degrade / down */
+  status: string
+  message: string
+  updated_at: number
+  components: BgmStatusComponent[]
+}
+
 /** 离线搜索结果条目 */
 export interface ArchiveSubjectSearch {
   id: number
@@ -828,6 +848,8 @@ export interface AcgnApi {
     setProxy: (url: string | null) => Promise<void>
     /** 拉取应用网络使用量统计（当月 + 近 6 月历史）。 */
     getNetworkStats: () => Promise<NetworkStatsResult>
+    /** 拉取 Bangumi 可用性监测状态（bgm-status 探针，社区数据）。失败返回 null。 */
+    getBgmStatus: () => Promise<BgmStatus | null>
     /** 设置窗口关闭行为：minimize=点 X 缩到托盘（默认）；exit=点 X 直接退出。 */
     setCloseBehavior: (v: 'minimize' | 'exit') => Promise<void>
     /** 当前实际生效的数据目录；custom=true 表示用户自定义过（非默认解析链） */

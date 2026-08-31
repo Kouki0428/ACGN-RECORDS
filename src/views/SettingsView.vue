@@ -9,7 +9,7 @@ import { cacheClient } from '@/services/cacheClient'
 import { apiClient } from '@/services/apiClient'
 import { applyTheme, type ThemePref } from '@/theme'
 import { applyUiScale } from '@/scale'
-import type { ArchiveMeta, ArchiveProgress, CacheStats, NetworkStatsResult } from '@shared/types'
+import type { ArchiveMeta, ArchiveProgress, CacheStats, NetworkStatsResult, BgmStatus } from '@shared/types'
 import { CHANGELOG } from '@/constants/changelog'
 import ToggleSwitch from '@/components/ToggleSwitch.vue'
 import { playToggleClick } from '@/utils/uiSound'
@@ -192,6 +192,7 @@ onMounted(async () => {
   await refreshArchiveMeta()
   await refreshCacheStats()
   await loadNetworkStats()
+  await loadBgmStatus()
 })
 
 // ---------- Bangumi 离线数据库（Archive） ----------
@@ -606,6 +607,49 @@ async function loadNetworkStats() {
   }
 }
 
+// ---------- Bangumi 服务状态（bgm-status 探针，社区数据） ----------
+const bgmStatus = ref<BgmStatus | null>(null)
+const bgmStatusLoading = ref(false)
+const bgmStatusError = ref(false)
+
+async function loadBgmStatus() {
+  bgmStatusLoading.value = true
+  bgmStatusError.value = false
+  try {
+    bgmStatus.value = await apiClient.getBgmStatus()
+    bgmStatusError.value = bgmStatus.value == null
+  } catch (e) {
+    console.error('[settings] 加载 Bangumi 服务状态失败：', e)
+    bgmStatusError.value = true
+  } finally {
+    bgmStatusLoading.value = false
+  }
+}
+
+// 服务器正常但应用自己连不上（区分「bgm 故障」与「本地网络/代理问题」）
+const bgmServerFine = computed(
+  () => bgmStatus.value != null && bgmStatus.value.status === 'ok'
+)
+function bgmStatusLabel(s?: string): string {
+  if (s === 'ok') return '正常'
+  if (s === 'degrade') return '降级'
+  if (s === 'down') return '中断'
+  return '未知'
+}
+function bgmStatusClass(s?: string): string {
+  if (s === 'ok') return 'on'
+  if (s === 'degrade' || s === 'down') return 'off'
+  return ''
+}
+function bgmTimeText(sec: number | undefined): string {
+  if (!sec) return '—'
+  const diff = Math.floor(Date.now() / 1000) - sec
+  if (diff < 60) return '刚刚'
+  if (diff < 3600) return `${Math.floor(diff / 60)} 分钟前`
+  if (diff < 86400) return `${Math.floor(diff / 3600)} 小时前`
+  return new Date(sec * 1000).toLocaleString('zh-CN', { hour12: false })
+}
+
 async function doClearCache() {
   if (clearing.value) return
   clearing.value = true
@@ -927,6 +971,49 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
           <span>{{ fmtCount(h.requests) }}</span>
         </div>
       </div>
+    </section>
+
+    <!-- Bangumi 服务状态（bgm-status 社区探针） -->
+    <section class="panel">
+      <h2>Bangumi 服务状态</h2>
+      <p class="hint">
+        由社区探针实时监测 bgm 各域名可用性（数据源 bgm-status.ry.mk，与本站无关）。可帮你区分
+        「Bangumi 服务器故障」与「你本地网络 / 代理问题」。
+      </p>
+
+      <div v-if="bgmStatusLoading" class="hint">正在获取服务状态…</div>
+      <div v-else-if="bgmStatusError" class="hint err">
+        服务状态获取失败（网络不通或该站点暂不可达）。
+      </div>
+
+      <template v-else-if="bgmStatus">
+        <div class="bgm-status-head">
+          <span class="status-dot" :class="bgmStatusClass(bgmStatus.status)"></span>
+          <span class="bgm-status-text">
+            {{ bgmStatusLabel(bgmStatus.status) }}
+          </span>
+          <span class="bgm-status-time">更新于 {{ bgmTimeText(bgmStatus.updated_at) }}</span>
+        </div>
+
+        <div class="bgm-status-grid">
+          <div
+            v-for="c in bgmStatus.components"
+            :key="c.domain + c.kind"
+            class="bgm-status-item"
+          >
+            <span class="status-dot" :class="bgmStatusClass(c.status)"></span>
+            <span class="bgm-status-name">{{ c.label }}</span>
+            <span class="bgm-status-uptime">{{ Math.round(c.uptime) }}%</span>
+          </div>
+        </div>
+
+        <!-- 智能提示：服务器正常但应用自己却连不上 → 多半是本地网络 / 代理 -->
+        <p v-if="bgmServerFine" class="hint" style="margin-top: 10px">
+          bgm 服务器当前正常。若你仍遇到「请求超时 / 同步失败」，问题多半出在
+          <strong>你本地的网络或代理设置</strong>——请检查上方代理地址，或在 Clash 里确认
+          <code>*.bgm.tv</code> 走了可用节点。
+        </p>
+      </template>
     </section>
       </template>
 
@@ -1834,6 +1921,65 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
 .net-hrow span:not(:first-child) {
   text-align: right;
   color: var(--text);
+}
+/* Bangumi 服务状态卡片 */
+.status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+  background: var(--text-dim);
+  flex-shrink: 0;
+}
+.status-dot.on {
+  background: var(--ok);
+  box-shadow: 0 0 8px var(--ok);
+}
+.status-dot.off {
+  background: var(--err, #ff5a5a);
+  box-shadow: 0 0 8px var(--err, #ff5a5a);
+}
+.bgm-status-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+.bgm-status-text {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.bgm-status-time {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.bgm-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px 16px;
+  margin-top: 12px;
+}
+.bgm-status-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border, #2a3342);
+}
+.bgm-status-name {
+  flex: 1;
+  min-width: 0;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bgm-status-uptime {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
 }
 .arc-progress {
   margin-top: 10px;
