@@ -135,6 +135,7 @@ watch(() => props.subjectId, () => load(0))
 <style scoped>
 .tucao-box {
   margin-top: 16px;
+  background: var(--bg-panel);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 12px 14px;
@@ -153,6 +154,7 @@ watch(() => props.subjectId, () => load(0))
   gap: 10px;
 }
 .tucao-item {
+  background: var(--bg-elev);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 10px 12px;

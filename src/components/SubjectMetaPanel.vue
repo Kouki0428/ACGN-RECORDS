@@ -486,6 +486,7 @@ const collapsedMeta = computed<SubjectMeta[]>(() => {
   gap: 6px;
 }
 .card-box {
+  background: color-mix(in srgb, var(--bg-elev, #1c2230) 60%, transparent);
   border: 1px solid var(--border, #2a3342);
   border-radius: var(--radius-sm);
   padding: 12px 14px;

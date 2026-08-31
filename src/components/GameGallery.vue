@@ -174,6 +174,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 
 <style scoped>
 .game-gallery {
+  background: var(--bg-panel, #1c2129);
   border: 1px solid var(--border, #2a3342);
   border-radius: var(--radius);
   padding: 14px 16px 16px;
