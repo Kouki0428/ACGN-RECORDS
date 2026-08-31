@@ -180,6 +180,8 @@ watch(
   overflow: hidden;
   border-color: transparent;
   background: color-mix(in srgb, #fff calc(10% * var(--glass-k)), transparent);
+  backdrop-filter: blur(calc(10px * var(--glass-blur-k)));
+  -webkit-backdrop-filter: blur(calc(10px * var(--glass-blur-k)));
 }
 .anchor-bar.glass .anchor-chip::before {
   content: '';
