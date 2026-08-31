@@ -104,7 +104,7 @@ watch(() => props.subjectId, () => load())
 
 <template>
   <!-- 无条目 / 加载完成但没有任何讨论（含条目不存在）时整卡隐藏 -->
-  <div v-if="subjectId && (loading || error || (!notFound && sorted.length > 0))" class="topics-box">
+  <div v-if="subjectId && (loading || error || (!notFound && sorted.length > 0))" class="panel topics-box">
     <div class="tb-head-row">
       <h3>讨论版</h3>
       <button v-if="sorted.length > COLLAPSED" class="tb-toggle" type="button" @click="toggleExpand">

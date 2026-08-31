@@ -104,7 +104,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 
 <template>
   <!-- 卡片始终先显示，内部再区分 加载中 / 空 / 有图 状态 -->
-  <section class="game-gallery">
+  <section class="panel game-gallery">
     <div class="gg-head">
       <h3>游戏画廊</h3>
       <div class="gg-tabs" v-if="gallery">

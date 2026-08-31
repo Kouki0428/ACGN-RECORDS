@@ -91,7 +91,7 @@ watch(() => props.subjectId, () => load(0))
 </script>
 
 <template>
-  <div class="tucao-box">
+  <div class="panel tucao-box">
     <h3>吐槽箱</h3>
     <p v-if="!subjectId" class="placeholder">无 Bangumi 条目，无法加载吐槽。</p>
     <p v-else-if="loading" class="placeholder">加载中…</p>
