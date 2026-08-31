@@ -898,7 +898,7 @@ watch(
   isolation: isolate;
   overflow: hidden;
   border-color: transparent;
-  background: color-mix(in srgb, #fff calc(0.1% * var(--glass-k)), transparent);
+  background: color-mix(in srgb, #fff calc(10% * var(--glass-k)), transparent);
 }
 .card-anchor-bar.glass .card-anchor-chip::before {
   content: '';
@@ -911,7 +911,7 @@ watch(
 }
 .card-anchor-bar.glass .card-anchor-chip:hover {
   transform: translateY(-1px);
-  background: color-mix(in srgb, #fff calc(13% * var(--glass-k)), transparent);
+  background: color-mix(in srgb, #fff calc(20% * var(--glass-k)), transparent);
 }
 .card-anchor-bar.glass .card-anchor-chip.active {
   border-color: transparent;
