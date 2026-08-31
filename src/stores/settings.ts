@@ -274,8 +274,16 @@ export const useSettingsStore = defineStore('settings', () => {
       document.documentElement.dataset.bannerBlur = bannerBlur.value
     }
     if (key === 'characterBanner') characterBanner.value = value !== '0'
-    if (key === 'immersiveGlow') immersiveGlow.value = value !== '0'
-    if (key === 'subjectCardGlow') subjectCardGlow.value = value !== '0'
+    if (key === 'immersiveGlow') {
+      immersiveGlow.value = value !== '0'
+      // 关闭沉浸光感时，悬浮窗本体沉浸光感一并关闭
+      if (!immersiveGlow.value) subjectCardGlow.value = false
+    }
+    if (key === 'subjectCardGlow') {
+      subjectCardGlow.value = value !== '0'
+      // 开启悬浮窗本体沉浸光感时，沉浸光感整体一并开启
+      if (subjectCardGlow.value) immersiveGlow.value = true
+    }
     if (key === 'immersiveGlowStrength') {
       immersiveGlowStrength.value = (value as 'softest' | 'faintest' | 'faint' | 'weak' | 'mild' | 'default' | 'strong' | 'stronger' | 'strongest' | 'ultra' | 'ultimate') || 'default'
       document.documentElement.dataset.glowStrength = immersiveGlowStrength.value

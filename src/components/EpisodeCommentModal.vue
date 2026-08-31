@@ -3,6 +3,7 @@ import { ref, computed, watch, nextTick } from 'vue'
 import { useEpisodeCommentModal } from '@/composables/useEpisodeCommentModal'
 import { useEntityCard } from '@/composables/useEntityCard'
 import { useSearchOverlay } from '@/composables/searchOverlay'
+import { useSettingsStore } from '@/stores/settings'
 import { episodeClient } from '@/services/episodeClient'
 import BgmBbcode from '@/components/BgmBbcode.vue'
 import ReactionPicker from '@/components/ReactionPicker.vue'
@@ -19,6 +20,7 @@ import type { EpisodeComment, EpisodeDetail } from '@shared/types'
 const modal = useEpisodeCommentModal()
 const entity = useEntityCard()
 const searchOverlay = useSearchOverlay()
+const settings = useSettingsStore()
 // 关闭按钮（X）：单集评论作为实体卡导航栈的一层，点 X 应「连背后搜索一起关掉」、
 // 并关闭整个实体卡 overlay（即关闭所有悬浮窗），与角色/CV/作品卡的关闭语义一致。
 function closeAll() {
@@ -344,7 +346,7 @@ watch(
 </script>
 
 <template>
-  <div class="ec-modal" @click.stop>
+  <div class="ec-modal" :class="{ 'glow-card': settings.immersiveGlow && settings.subjectCardGlow }" @click.stop>
     <div v-if="reactingTo !== null" class="ec-rx-backdrop" @click="closeReaction"></div>
     <header class="ec-head">
       <button class="back-btn" type="button" title="返回上级" aria-label="返回上级" @click="goBack">
@@ -593,6 +595,10 @@ watch(
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   overflow: hidden;
+}
+/* 悬浮窗本体沉浸光感（设置 subjectCardGlow 独立控制）：整卡背景半透明 */
+.ec-modal.glow-card {
+  background: color-mix(in srgb, var(--bg-panel) calc(70% * var(--glass-k)), transparent);
 }
 .ec-head {
   display: flex;
