@@ -158,7 +158,7 @@ watch(() => props.subjectId, () => load())
   font-size: 12px;
   font-weight: 600;
   color: var(--accent);
-  background: rgba(255, 92, 138, 0.1);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
   border: none;
   border-radius: var(--radius-sm);
   padding: 3px 10px;
@@ -166,7 +166,7 @@ watch(() => props.subjectId, () => load())
   transition: background .15s;
 }
 .tb-toggle:hover {
-  background: rgba(255, 92, 138, 0.2);
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
 }
 .topic-list {
   list-style: none;
@@ -216,7 +216,7 @@ watch(() => props.subjectId, () => load())
   white-space: nowrap;
 }
 .topic-replies {
-  background: rgba(255, 92, 138, 0.12);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--accent);
   padding: 1px 7px;
   border-radius: var(--radius-sm);

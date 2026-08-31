@@ -488,7 +488,7 @@ function onTaKey(e: KeyboardEvent) {
   font-size: 12px;
   font-weight: 700;
   color: var(--accent);
-  background: rgba(255, 92, 138, 0.12);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
   border-radius: var(--radius-sm);
   padding: 2px 8px;
   align-self: center;
