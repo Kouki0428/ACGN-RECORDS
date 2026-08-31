@@ -491,6 +491,15 @@ export async function getGalleryForSubject(
     vndbRating: vndb.rating,
     vndbRatingCount: vndb.ratingCount
   }
+  // 解析诊断：确认「超次元恋人！！」这类作品最终从哪条路径拿到/没拿到各源 id
+  console.log(
+    `[cg] ${providerId}「${subj?.title_cn || subj?.title || ''}」 ids:`,
+    `vndb=${vndbId || '-'}`,
+    `dlsite=${dlsiteId || '-'}`,
+    `steam=${steamId || '-'}`,
+    `→ img vndb=${vndb.images.length} dlsite=${dlsite.length} steam=${steam.length}`,
+    `(link src: vndb=${links.vndb || '-'} dlsite=${links.dlsite || '-'} steam=${links.steam || '-'})`
+  )
 
   if (localId != null) await cacheGallery(localId, flattenGallery(gallery))
   return gallery
