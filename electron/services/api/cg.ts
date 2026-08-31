@@ -86,7 +86,8 @@ export function parseBangumiInfoboxLinks(infobox: any): {
 }
 
 /** 从任意文本（如离线 Archive 的 raw infobox 或网页 HTML）提取 VNDB / DLsite / Steam 外链。
- *  对齐网页插件「扫描 infobox 内 href 链接」的做法，作为在线解析失败的离线兜底。 */
+ *  对齐网页插件「扫描 infobox 内 href 链接」的做法，作为在线解析失败的离线兜底。
+ *  同时匹配「带协议」与「无协议」两种写法：Archive infobox 里的链接常为无 https:// 的裸链接。 */
 export function parseLinksFromText(text: string): {
   vndb: string | null
   dlsite: string | null
@@ -94,8 +95,21 @@ export function parseLinksFromText(text: string): {
 } {
   const out = { vndb: null as string | null, dlsite: null as string | null, steam: null as string | null }
   if (!text) return out
+  // ① 带协议 URL
   const urls = text.match(/https?:\/\/[^\s"'<>\]\[|\\]+/gi) ?? []
   for (const u of urls) {
+    if (!out.vndb) out.vndb = extractVndbId(u)
+    if (!out.dlsite) out.dlsite = extractDlsiteId(u)
+    if (!out.steam) out.steam = extractSteamAppId(u)
+    if (out.vndb && out.dlsite && out.steam) return out
+  }
+  // ② 无协议裸链接（Archive infobox 常见写法）：直接按站点模式从整段文本抓
+  const bare = [
+    ...(text.match(/vndb\.org\/v\d+/gi) ?? []),
+    ...(text.match(/(?:www\.)?dlsite\.com[^\s"'<>\]\[|\\]*?product_id\/(RJ|VJ|BJ)\d+/gi) ?? []),
+    ...(text.match(/(?:store\.steampowered\.com\/(?:agecheck\/)?app\/\d+|steamdb\.info\/app\/\d+)/gi) ?? [])
+  ]
+  for (const u of bare) {
     if (!out.vndb) out.vndb = extractVndbId(u)
     if (!out.dlsite) out.dlsite = extractDlsiteId(u)
     if (!out.steam) out.steam = extractSteamAppId(u)
