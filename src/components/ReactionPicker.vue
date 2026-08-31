@@ -2,6 +2,9 @@
 // 表情回应选择器（从 EpisodeCommentModal 拆出的纯展示组件）。
 // 定位：absolute，锚定在评论头部（.ec-c-head / .ec-r-head 需为 positioned 祖先）。
 import { reactionGifUrl, REACTION_VALUES } from '@/constants/bgmReactions'
+import { useSettingsStore } from '@/stores/settings'
+
+const settings = useSettingsStore()
 
 defineProps<{
   /** 当前用户在该评论上已做过的表情 value 集合（用于高亮） */
@@ -11,7 +14,7 @@ const emit = defineEmits<{ (e: 'select', value: string): void }>()
 </script>
 
 <template>
-  <div class="ec-react-picker" @click.stop>
+  <div class="ec-react-picker" :class="{ glass: settings.immersiveGlow }" @click.stop>
     <div class="ec-react-picker-title">发表表情回应</div>
     <div class="ec-react-grid">
       <button
@@ -41,6 +44,19 @@ const emit = defineEmits<{ (e: 'select', value: string): void }>()
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+}
+/* 沉浸光感（跟随总开关 immersiveGlow，与悬浮窗本体开关独立）：面板与表情项半透明 */
+.ec-react-picker.glass {
+  background: color-mix(in srgb, var(--bg-panel) calc(70% * var(--glass-k)), transparent);
+}
+.ec-react-picker.glass .ec-react-item {
+  background: color-mix(in srgb, var(--bg-elev) calc(70% * var(--glass-k)), transparent);
+}
+.ec-react-picker.glass .ec-react-item:hover {
+  background: color-mix(in srgb, var(--accent-2) 12%, color-mix(in srgb, var(--bg-elev) calc(70% * var(--glass-k)), transparent));
+}
+.ec-react-picker.glass .ec-react-item.on {
+  background: color-mix(in srgb, var(--accent-2) 18%, color-mix(in srgb, var(--bg-elev) calc(70% * var(--glass-k)), transparent));
 }
 .ec-react-picker-title {
   font-size: 12px;
