@@ -303,7 +303,7 @@ watch(isOpen, async (v) => {
 <template>
   <Transition name="overlay" :disabled="instant" @before-leave="leaving = true" @after-leave="leaving = false">
     <div v-if="isOpen" class="search-overlay" :class="{ behind: entityIsOpen || leaving }" :style="{ zIndex: z }" @click="onOverlayClick">
-      <div class="search-card" v-show="!entityIsOpen && !leaving" @click.stop>
+      <div class="search-card" v-show="!entityIsOpen && !leaving" :class="{ 'glow-card': settings.immersiveGlow && settings.subjectCardGlow }" @click.stop>
         <!-- 搜索框 + 关闭叉同一行：叉在搜索框右侧、与搜索框上下居中对齐 -->
         <div class="search-row">
           <!-- 搜索框 -->
@@ -481,6 +481,10 @@ watch(isOpen, async (v) => {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   overflow: hidden;
+}
+/* 悬浮窗本体沉浸光感（设置 subjectCardGlow 独立控制）：整卡背景半透明 */
+.search-card.glow-card {
+  background: color-mix(in srgb, var(--bg-panel) calc(70% * var(--glass-k)), transparent);
 }
 .search-row {
   display: flex;

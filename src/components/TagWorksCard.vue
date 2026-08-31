@@ -2,10 +2,12 @@
 import { computed, nextTick, onActivated, onDeactivated, onMounted, ref, watch } from 'vue'
 import type { ArchiveTagSubject } from '@shared/types'
 import { useEntityCard } from '@/composables/useEntityCard'
+import { useSettingsStore } from '@/stores/settings'
 import { archiveClient } from '@/services/archiveClient'
 import { proxyImg } from '@/utils/imgProxy'
 
 const { state, back, close, canBack, push } = useEntityCard()
+const settings = useSettingsStore()
 
 // 细分类目 → 展示标签（与 Bangumi 分类一致：书籍按 platform/tags 细分 小说/漫画）
 function catInfo(category: string): { label: string; cls: string } {
@@ -169,7 +171,7 @@ function onWorkClick(id: number) {
 </script>
 
 <template>
-  <div class="tag-works-card" @click.stop>
+  <div class="tag-works-card" :class="{ 'glow-card': settings.immersiveGlow && settings.subjectCardGlow }" @click.stop>
     <div class="subject-head">
       <button
         v-if="canBack"
@@ -259,6 +261,10 @@ function onWorkClick(id: number) {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   overflow: hidden;
+}
+/* 悬浮窗本体沉浸光感（设置 subjectCardGlow 独立控制）：整卡背景半透明 */
+.tag-works-card.glow-card {
+  background: color-mix(in srgb, var(--bg-panel) calc(70% * var(--glass-k)), transparent);
 }
 .subject-head {
   display: flex;

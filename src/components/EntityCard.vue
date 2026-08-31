@@ -208,7 +208,7 @@ watch(
 </script>
 
 <template>
-    <div class="entity-card" @click.stop>
+    <div class="entity-card" :class="{ 'glow-card': settings.immersiveGlow && settings.subjectCardGlow }" @click.stop>
       <div
         v-if="settings.characterBanner && entity?.image"
         class="detail-banner entity-banner"
@@ -402,6 +402,10 @@ watch(
   /* 横幅的定位上下文 + 独立层叠上下文：让 .entity-banner(z-index:-1) 只垫在本卡内容之下、不溢出到悬浮窗外 */
   position: relative;
   isolation: isolate;
+}
+/* 悬浮窗本体沉浸光感（设置 subjectCardGlow 独立控制）：整卡背景半透明让立绘横幅透出 */
+.entity-card.glow-card {
+  background: color-mix(in srgb, var(--bg-panel) calc(70% * var(--glass-k)), transparent);
 }
 /* 人物/角色横幅：复用 .detail-banner 的模糊/饱和/遮罩，但改为「内含」于圆角卡片（不溢出），
    顶部不透明以便标题栏浮于光晕之上，向下渐隐 */

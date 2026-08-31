@@ -87,8 +87,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const immersiveGlow = ref(true)
   // 沉浸光感强度档位：超弱 softest / 极弱 faintest / 微弱 faint / 弱 weak / 偏弱 mild / 默认 default / 强 strong / 较强 stronger / 特强 strongest / 超强 ultra / 究极 ultimate
   const immersiveGlowStrength = ref<'softest' | 'faintest' | 'faint' | 'weak' | 'mild' | 'default' | 'strong' | 'stronger' | 'strongest' | 'ultra' | 'ultimate'>('default')
-  // 作品悬浮窗本体沉浸光感（整卡背景半透明让横幅透出），默认开（仅沉浸光感整体开启时生效）
-  const subjectCardGlow = ref(true)
+  // 作品悬浮窗本体沉浸光感（整卡背景半透明让横幅透出），默认关（仅沉浸光感整体开启时生效）
+  const subjectCardGlow = ref(false)
   // 快捷跳转栏：详情页与作品悬浮窗顶部的锚点导航，默认开
   const anchorBarEnabled = ref(true)
   // 主页卡片大小缩放（0.75~1.5，1=标准 360px 最小列宽），实时生效
