@@ -142,11 +142,9 @@ watch(
   padding: 4px 12px;
   font-size: 12.5px;
   border-radius: var(--radius-sm);
-  /* 关闭「沉浸光感」时的回退样式：普通高斯模糊按钮（磨砂） */
-  border-color: transparent;
-  background: color-mix(in srgb, var(--bg) calc(55% * var(--glass-k)), transparent);
-  backdrop-filter: blur(calc(10px * var(--glass-blur-k)));
-  -webkit-backdrop-filter: blur(calc(10px * var(--glass-blur-k)));
+  /* 关闭「沉浸光感」时的回退样式：普通不透明按钮（无玻璃磨砂） */
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
   color: var(--text-dim);
   cursor: pointer;
   transition:
@@ -158,7 +156,8 @@ watch(
 }
 .anchor-chip:hover {
   color: var(--text);
-  background: color-mix(in srgb, var(--bg) calc(72% * var(--glass-k)), transparent);
+  background: var(--bg-panel);
+  border-color: var(--accent-aux);
 }
 .anchor-chip:active {
   transform: scale(0.95);
