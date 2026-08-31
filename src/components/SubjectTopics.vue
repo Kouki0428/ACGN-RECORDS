@@ -138,7 +138,6 @@ watch(() => props.subjectId, () => load())
 <style scoped>
 .topics-box {
   margin-top: 16px;
-  background: var(--bg-panel);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 12px 14px;
@@ -181,7 +180,6 @@ watch(() => props.subjectId, () => load())
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  background: var(--bg-elev);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 8px 12px;
