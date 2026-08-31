@@ -420,13 +420,15 @@ const radiusOptions = [
   { value: 'xlarge', label: '特大' }
 ]
 
-// 沉浸光感强度档位（faint / weak / default / strong / strongest；default = 现状）
+// 沉浸光感强度档位（faintest / faint / weak / default / strong / strongest / ultra；default = 现状）
 const glowStrengthOptions = [
+  { value: 'faintest', label: '极弱' },
   { value: 'faint', label: '微弱' },
   { value: 'weak', label: '弱' },
   { value: 'default', label: '默认' },
   { value: 'strong', label: '强' },
-  { value: 'strongest', label: '特强' }
+  { value: 'strongest', label: '特强' },
+  { value: 'ultra', label: '超强' }
 ]
 
 // 强调色预设（'' = 默认粉，由「默认」按钮处理）

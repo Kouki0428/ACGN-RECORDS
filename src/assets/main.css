@@ -60,7 +60,7 @@
 :root[data-radius="large"] { --radius: 18px; --radius-sm: 12px; --radius-lg: 24px; }
 :root[data-radius="xlarge"] { --radius: 26px; --radius-sm: 18px; --radius-lg: 34px; }
 
-/* ===== 沉浸光感强度（data-glow-strength：faint / weak / default / strong / strongest）
+/* ===== 沉浸光感强度（data-glow-strength：faintest / faint / weak / default / strong / strongest / ultra）
    通过两个「系数」驱动（默认均为 1 = 现状不变）：
    --glass-k 底色不透明度系数（>1 更不透明=玻璃感弱，<1 更透=玻璃感强）
    --glass-blur-k 背板模糊系数（>1 更模糊=玻璃感强）。
@@ -69,11 +69,13 @@
   --glass-k: 1;
   --glass-blur-k: 1;
 }
+:root[data-glow-strength="faintest"] { --glass-k: 1.6; --glass-blur-k: 0.4; }
 :root[data-glow-strength="faint"] { --glass-k: 1.35; --glass-blur-k: 0.55; }
 :root[data-glow-strength="weak"] { --glass-k: 1.15; --glass-blur-k: 0.75; }
 :root[data-glow-strength="default"] { --glass-k: 1; --glass-blur-k: 1; }
 :root[data-glow-strength="strong"] { --glass-k: 0.75; --glass-blur-k: 1.45; }
 :root[data-glow-strength="strongest"] { --glass-k: 0.5; --glass-blur-k: 1.8; }
+:root[data-glow-strength="ultra"] { --glass-k: 0.35; --glass-blur-k: 2.2; }
 
 /* ===== 浅色主题：覆盖配色变量（跟随系统解析为 light 或手动选 light 时生效） ===== */
 :root[data-theme="light"] {
