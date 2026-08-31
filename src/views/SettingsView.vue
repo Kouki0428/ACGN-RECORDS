@@ -1294,6 +1294,10 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         <ToggleSwitch :model-value="settings.immersiveGlow" @update:model-value="(v: boolean) => settings.set('immersiveGlow', v ? '1' : '0')" />
         开启沉浸光感
       </label>
+      <label class="progress-editor">
+        <ToggleSwitch :model-value="settings.subjectCardGlow" @update:model-value="(v: boolean) => settings.set('subjectCardGlow', v ? '1' : '0')" />
+        悬浮窗本体沉浸光感（整卡背景半透明，让横幅从背后透出）
+      </label>
       <p class="hint" style="margin: 10px 0 2px">强度</p>
       <div class="seg" v-seg-thumb>
         <span class="seg-thumb" aria-hidden="true"></span>

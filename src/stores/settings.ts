@@ -87,6 +87,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const immersiveGlow = ref(true)
   // 沉浸光感强度档位：超弱 softest / 极弱 faintest / 微弱 faint / 弱 weak / 偏弱 mild / 默认 default / 强 strong / 较强 stronger / 特强 strongest / 超强 ultra / 究极 ultimate
   const immersiveGlowStrength = ref<'softest' | 'faintest' | 'faint' | 'weak' | 'mild' | 'default' | 'strong' | 'stronger' | 'strongest' | 'ultra' | 'ultimate'>('default')
+  // 作品悬浮窗本体沉浸光感（整卡背景半透明让横幅透出），默认开（仅沉浸光感整体开启时生效）
+  const subjectCardGlow = ref(true)
   // 快捷跳转栏：详情页与作品悬浮窗顶部的锚点导航，默认开
   const anchorBarEnabled = ref(true)
   // 主页卡片大小缩放（0.75~1.5，1=标准 360px 最小列宽），实时生效
@@ -169,6 +171,7 @@ export const useSettingsStore = defineStore('settings', () => {
       }
       if (r.key === 'characterBanner') characterBanner.value = r.value !== '0'
       if (r.key === 'immersiveGlow') immersiveGlow.value = r.value !== '0'
+      if (r.key === 'subjectCardGlow') subjectCardGlow.value = r.value !== '0'
       if (r.key === 'immersiveGlowStrength') {
         immersiveGlowStrength.value = (r.value as 'softest' | 'faintest' | 'faint' | 'weak' | 'mild' | 'default' | 'strong' | 'stronger' | 'strongest' | 'ultra' | 'ultimate') || 'default'
         document.documentElement.dataset.glowStrength = immersiveGlowStrength.value
@@ -272,6 +275,7 @@ export const useSettingsStore = defineStore('settings', () => {
     }
     if (key === 'characterBanner') characterBanner.value = value !== '0'
     if (key === 'immersiveGlow') immersiveGlow.value = value !== '0'
+    if (key === 'subjectCardGlow') subjectCardGlow.value = value !== '0'
     if (key === 'immersiveGlowStrength') {
       immersiveGlowStrength.value = (value as 'softest' | 'faintest' | 'faint' | 'weak' | 'mild' | 'default' | 'strong' | 'stronger' | 'strongest' | 'ultra' | 'ultimate') || 'default'
       document.documentElement.dataset.glowStrength = immersiveGlowStrength.value
@@ -314,5 +318,5 @@ export const useSettingsStore = defineStore('settings', () => {
     theme.value = v
   }
 
-  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, mode, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, auxColor, darkPreset, lightPreset, detailBanner, bannerBlur, characterBanner, immersiveGlow, anchorBarEnabled, cardScale, showCharacters, showVolumes, showRelations, showTopics, showTucao, showGallery, showPurchase, closeBehavior, scheduleLight, scheduleDark, cornerRadius, uiSound, galleryR18, showNsfw, immersiveGlowStrength, load, set, commitTheme }
+  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, mode, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, auxColor, darkPreset, lightPreset, detailBanner, bannerBlur, characterBanner, immersiveGlow, immersiveGlowStrength, subjectCardGlow, anchorBarEnabled, cardScale, showCharacters, showVolumes, showRelations, showTopics, showTucao, showGallery, showPurchase, closeBehavior, scheduleLight, scheduleDark, cornerRadius, uiSound, galleryR18, showNsfw, load, set, commitTheme }
 })

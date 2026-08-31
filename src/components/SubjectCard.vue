@@ -633,7 +633,7 @@ watch(
 </script>
 
 <template>
-  <div class="subject-card" :class="{ glow: settings.immersiveGlow }" @click.stop>
+  <div class="subject-card" :class="{ glow: settings.immersiveGlow, 'glow-card': settings.immersiveGlow && settings.subjectCardGlow }" @click.stop>
     <!-- 封面横幅：铺满卡片最顶端（含标题栏背后），常驻背景光晕不随滚动；
          模糊放大封面作装饰，可在设置关闭。后续 head/body 均 positioned 绘制其上。 -->
     <div
@@ -775,6 +775,10 @@ watch(
    会把封面横幅完全挡住），改成半透明后横幅从背后透出。关闭时保持不透明。
    涵盖 .panel（评分/标签/制作信息、角色、关联条目、购买信息）、
    .game-gallery（游戏画廊）、.topics-box（讨论板预览）、.tucao-box（吐槽箱） */
+/* 悬浮窗本体沉浸光感（设置 subjectCardGlow 独立控制）：整卡背景半透明让横幅透出 */
+.subject-card.glow-card {
+  background: color-mix(in srgb, var(--bg-panel) calc(70% * var(--glass-k)), transparent);
+}
 .subject-card.glow :deep(.panel),
 .subject-card.glow :deep(.game-gallery),
 .subject-card.glow :deep(.topics-box),
