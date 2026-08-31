@@ -115,7 +115,7 @@ function meInReaction(rx: CommentReaction): boolean {
   height: 18px;
   object-fit: contain;
   vertical-align: middle;
-  border-radius: var(--radius-sm);
+  border-radius: 0;
 }
 .ec-rx-count {
   margin-left: 3px;

@@ -784,7 +784,7 @@ watch(
   height: 28px;
   object-fit: contain;
   cursor: pointer;
-  border-radius: var(--radius-sm);
+  border-radius: 0;
   justify-self: center;
 }
 .ec-smiley-item:hover {
