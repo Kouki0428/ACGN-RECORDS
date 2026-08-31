@@ -1456,34 +1456,24 @@ body,
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 60%, transparent 100%);
   mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 60%, transparent 100%);
 }
-/* 沉浸光感模式：详情页板块壳与卡片底色半透明，让封面横幅从背后透出
-   （与作品悬浮窗一致：壳 70% / 子卡 60%）。
-   各区块壳/子卡的 background 基础值与 glow 覆盖都定义在此全局文件，
-   组件 scoped 内不再设 background，避免 scoped[data-v] 特异性干扰。 */
+/* 沉浸光感模式：通过 CSS 变量传递 glow 背景色，子元素用 var(--glow-xxx, fallback) 继承。
+   CSS 变量天然跨层级传递，不依赖后代选择器匹配，不受 scoped 特异性/注入顺序影响。
+   与作品悬浮窗一致：壳 70% / 子卡 60%。 */
+.detail.glow {
+  --glow-panel-bg: color-mix(in srgb, var(--bg-panel) calc(70% * var(--glass-k)), transparent);
+  --glow-item-bg: color-mix(in srgb, var(--bg-elev) calc(60% * var(--glass-k)), transparent);
+}
 .topics-box,
 .tucao-box,
 .game-gallery {
-  background: var(--bg-panel);
+  background: var(--glow-panel-bg, var(--bg-panel));
 }
 .topic-item,
 .tucao-item,
 .ch-avatar,
 .rel-cover,
 .card-box {
-  background: var(--bg-elev);
-}
-:root .detail.glow .panel,
-:root .detail.glow .topics-box,
-:root .detail.glow .tucao-box,
-:root .detail.glow .game-gallery {
-  background: color-mix(in srgb, var(--bg-panel) calc(70% * var(--glass-k)), transparent);
-}
-:root .detail.glow .topic-item,
-:root .detail.glow .tucao-item,
-:root .detail.glow .ch-avatar,
-:root .detail.glow .rel-cover,
-:root .detail.glow .card-box {
-  background: color-mix(in srgb, var(--bg-elev) calc(60% * var(--glass-k)), transparent);
+  background: var(--glow-item-bg, var(--bg-elev));
 }
 .detail__main,
 .detail > .panel {
