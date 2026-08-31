@@ -432,6 +432,14 @@ const glowStrengthOptions = [
   { value: 'ultra', label: '超强' }
 ]
 
+// 横幅背景模糊度档位（none / weak / default / strong；default = 现状 70px）
+const bannerBlurOptions = [
+  { value: 'none', label: '无' },
+  { value: 'weak', label: '弱' },
+  { value: 'default', label: '默认' },
+  { value: 'strong', label: '强' }
+]
+
 // 强调色预设（'' = 默认粉，由「默认」按钮处理）
 const accentPresets = [
   { hex: '#ff5c8a', label: '樱粉' },
@@ -1246,6 +1254,20 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         <ToggleSwitch :model-value="settings.detailBanner" @update:model-value="(v: boolean) => settings.set('detailBanner', v ? '1' : '0')" />
         作品详情页封面横幅背景（模糊放大的封面作装饰）
       </label>
+      <p class="hint" style="margin: 10px 0 2px">横幅模糊度</p>
+      <div class="seg" v-seg-thumb>
+        <span class="seg-thumb" aria-hidden="true"></span>
+        <button
+          v-for="o in bannerBlurOptions"
+          :key="o.value"
+          type="button"
+          class="seg-item"
+          :class="{ active: settings.bannerBlur === o.value }"
+          @click="settings.set('bannerBlur', o.value)"
+        >
+          {{ o.label }}
+        </button>
+      </div>
       <label class="progress-editor">
         <ToggleSwitch :model-value="settings.characterBanner" @update:model-value="(v: boolean) => settings.set('characterBanner', v ? '1' : '0')" />
         人物详情卡横幅背景（角色/CV 模糊放大的立绘作装饰）

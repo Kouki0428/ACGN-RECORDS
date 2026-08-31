@@ -191,6 +191,13 @@ watch(() => props.subjectId, () => load())
 .topic-item:hover {
   border-color: var(--accent);
 }
+/* 沉浸光感：随 .detail.glow 变半透明（与其他区块子项一致）；:global 提升特异性覆盖 scoped 默认背景 */
+:global(.detail.glow) .topics-box {
+  background: color-mix(in srgb, var(--bg-panel) calc(70% * var(--glass-k)), transparent);
+}
+:global(.detail.glow) .topic-item {
+  background: color-mix(in srgb, var(--bg-elev) calc(60% * var(--glass-k)), transparent);
+}
 .topic-title {
   flex: 1;
   min-width: 0;

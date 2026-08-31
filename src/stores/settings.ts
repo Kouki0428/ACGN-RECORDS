@@ -78,6 +78,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const lightPreset = ref('classic')
   // 详情页封面横幅背景（模糊放大的封面作装饰）开关，默认开（仅作品详情页）
   const detailBanner = ref(true)
+  // 横幅模糊度档位：无 none / 弱 weak / 默认 default / 强 strong（默认 = 现有 70px），写入 <html data-banner-blur>
+  const bannerBlur = ref<'none' | 'weak' | 'default' | 'strong'>('default')
   // 人物横幅背景（角色/CV 详情卡模糊放大的立绘作装饰）开关，默认开（与作品横幅分开控制）
   const characterBanner = ref(true)
   // 沉浸光感（液态玻璃）：详情页快捷跳转按钮的玻璃质感与鼠标跟随光斑，默认开
@@ -160,6 +162,10 @@ export const useSettingsStore = defineStore('settings', () => {
         setThemePreset('light', lightPreset.value)
       }
       if (r.key === 'detailBanner') detailBanner.value = r.value !== '0'
+      if (r.key === 'bannerBlur') {
+        bannerBlur.value = (r.value as 'none' | 'weak' | 'default' | 'strong') || 'default'
+        document.documentElement.dataset.bannerBlur = bannerBlur.value
+      }
       if (r.key === 'characterBanner') characterBanner.value = r.value !== '0'
       if (r.key === 'immersiveGlow') immersiveGlow.value = r.value !== '0'
       if (r.key === 'immersiveGlowStrength') {
@@ -259,6 +265,10 @@ export const useSettingsStore = defineStore('settings', () => {
       void applyTheme(theme.value)
     }
     if (key === 'detailBanner') detailBanner.value = value !== '0'
+    if (key === 'bannerBlur') {
+      bannerBlur.value = (value as 'none' | 'weak' | 'default' | 'strong') || 'default'
+      document.documentElement.dataset.bannerBlur = bannerBlur.value
+    }
     if (key === 'characterBanner') characterBanner.value = value !== '0'
     if (key === 'immersiveGlow') immersiveGlow.value = value !== '0'
     if (key === 'immersiveGlowStrength') {
@@ -303,5 +313,5 @@ export const useSettingsStore = defineStore('settings', () => {
     theme.value = v
   }
 
-  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, mode, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, auxColor, darkPreset, lightPreset, detailBanner, characterBanner, immersiveGlow, anchorBarEnabled, cardScale, showCharacters, showVolumes, showRelations, showTopics, showTucao, showGallery, showPurchase, closeBehavior, scheduleLight, scheduleDark, cornerRadius, uiSound, galleryR18, showNsfw, immersiveGlowStrength, load, set, commitTheme }
+  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, mode, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, auxColor, darkPreset, lightPreset, detailBanner, bannerBlur, characterBanner, immersiveGlow, anchorBarEnabled, cardScale, showCharacters, showVolumes, showRelations, showTopics, showTucao, showGallery, showPurchase, closeBehavior, scheduleLight, scheduleDark, cornerRadius, uiSound, galleryR18, showNsfw, immersiveGlowStrength, load, set, commitTheme }
 })

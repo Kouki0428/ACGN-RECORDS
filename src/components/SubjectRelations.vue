@@ -214,6 +214,10 @@ function mergeCn(patch: any[]) {
   background: var(--bg-elev, #1c2230);
   border: 1px solid var(--border, #2a3342);
 }
+/* 沉浸光感：关联子卡随 .detail.glow 变半透明（与其他区块子项一致）；:global 提升特异性覆盖 scoped 默认背景 */
+:global(.detail.glow) .rel-cover {
+  background: color-mix(in srgb, var(--bg-elev, #1c2230) calc(60% * var(--glass-k)), transparent);
+}
 .rel-cover img {
   width: 100%;
   height: 100%;
