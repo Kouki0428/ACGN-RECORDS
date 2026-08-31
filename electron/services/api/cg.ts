@@ -27,7 +27,14 @@ const GALLERY_FETCH_BUDGET_MS = 15000
 const DLSITE_PROBE_BUDGET_MS = 9000
 
 /** 最近一次画廊解析诊断（供界面在空画廊时展示，便于用户反馈是哪一环没拿到外链） */
-export const lastGalleryDiag: { id?: string; title?: string; vndb?: string; dlsite?: string; steam?: string } = {}
+export const lastGalleryDiag: {
+  id?: string
+  title?: string
+  vndb?: string
+  dlsite?: string
+  steam?: string
+  vndbErr?: string
+} = {}
 
 /** 给 Promise 加整体超时：超时返回 fallback（不 abort 底层请求，但上层不再等待） */
 function withBudget<T>(p: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
@@ -129,20 +136,29 @@ async function fetchVndbScreenshots(
   vndbId: string,
   token?: string
 ): Promise<{ images: GameGalleryImage[]; rating?: number; ratingCount?: number }> {
+  let err: string | undefined
   try {
-    const { shots, rating, ratingCount } = await withBudget(
+    const r = await withBudget(
       getVnScreenshots(vndbId, token),
       SOURCE_TIMEOUT_MS,
-      { shots: [], rating: undefined, ratingCount: undefined }
+      { shots: [], rating: undefined, ratingCount: undefined, timedOut: true } as any
     )
+    if (r.timedOut) {
+      err = `VNDB 请求超时（>${SOURCE_TIMEOUT_MS / 1000}s，可能是 api.vndb.org 网络不通）`
+    } else if (!r.shots.length) {
+      err = 'VNDB 返回空截图（该 VN 无公开截图，或需登录/成人账号）'
+    }
     return {
-      images: shots.map((s) => ({ url: s.url, thumb: s.thumb, caption: 'CG', nsfw: s.nsfw })),
-      rating,
-      ratingCount
+      images: r.shots.map((s) => ({ url: s.url, thumb: s.thumb, caption: 'CG', nsfw: s.nsfw })),
+      rating: r.rating,
+      ratingCount: r.ratingCount
     }
   } catch (e) {
+    err = e instanceof Error ? e.message : String(e)
     console.warn('[cg] VNDB 截图抓取失败：', e)
     return { images: [], rating: undefined, ratingCount: undefined }
+  } finally {
+    if (err) lastGalleryDiag.vndbErr = err
   }
 }
 
