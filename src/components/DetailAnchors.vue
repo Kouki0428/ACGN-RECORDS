@@ -175,11 +175,12 @@ watch(
   /* 沉浸式液态玻璃：折射由全局 SVG 滤镜 liquid-glass-distortion 完成
      （feDisplacementMap 扰动背板像素 → 水波扭曲），叠加轻微模糊与提饱和。
      backdrop-filter 放在外扩 8px 的 ::before 上并被 overflow 裁掉：
-     位移滤镜会把边缘像素拉出拉伸线，外扩裁剪保证按钮四周干净。 */
+     位移滤镜会把边缘像素拉出拉伸线，外扩裁剪保证按钮四周干净。
+     白色底衬与光斑的 % 均乘以 --glass-k，使液态玻璃强度跟随强度设置。 */
   isolation: isolate;
   overflow: hidden;
   border-color: transparent;
-  background: color-mix(in srgb, #fff 0.1%, transparent);
+  background: color-mix(in srgb, #fff calc(0.1% * var(--glass-k)), transparent);
 }
 .anchor-bar.glass .anchor-chip::before {
   content: '';
@@ -192,13 +193,13 @@ watch(
 }
 .anchor-bar.glass .anchor-chip:hover {
   transform: translateY(-1px);
-  background: color-mix(in srgb, #fff 13%, transparent);
+  background: color-mix(in srgb, #fff calc(13% * var(--glass-k)), transparent);
 }
 .anchor-bar.glass .anchor-chip.active {
   border-color: transparent;
   /* 基于强调色派生的垂直渐变：跟随设置中的强调色变化，左右每列颜色一致 */
   background:
-    linear-gradient(90deg, transparent 0%, color-mix(in srgb, #fff 26%, transparent) 50%, transparent 100%),
+    linear-gradient(90deg, transparent 0%, color-mix(in srgb, #fff calc(26% * var(--glass-k)), transparent) 50%, transparent 100%),
     linear-gradient(
       180deg,
       color-mix(in srgb, var(--accent) 82%, #fff) 0%,
@@ -208,7 +209,7 @@ watch(
   /* 液态流光：一条对称亮带缓缓扫过（两端始终是透明→基色不受影响，左右颜色保持一致） */
   background-size: 260% 100%, 100% 100%;
   animation: chip-liquid-flow 5.5s ease-in-out infinite;
-  box-shadow: 0 4px 18px color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--accent) calc(45% * var(--glass-k)), transparent);
 }
 @keyframes chip-liquid-flow {
   0%, 100% { background-position: 0% 0, 0 0; }
@@ -223,7 +224,7 @@ watch(
   border-radius: inherit;
   background: radial-gradient(
     60px circle at var(--mx, 50%) var(--my, 50%),
-    color-mix(in srgb, var(--accent) 42%, transparent),
+    color-mix(in srgb, var(--accent) calc(42% * var(--glass-k)), transparent),
     transparent 68%
   );
   opacity: 0;

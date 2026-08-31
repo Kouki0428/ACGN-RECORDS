@@ -897,7 +897,7 @@ watch(
   isolation: isolate;
   overflow: hidden;
   border-color: transparent;
-  background: color-mix(in srgb, #fff 0.1%, transparent);
+  background: color-mix(in srgb, #fff calc(0.1% * var(--glass-k)), transparent);
 }
 .card-anchor-bar.glass .card-anchor-chip::before {
   content: '';
@@ -910,13 +910,13 @@ watch(
 }
 .card-anchor-bar.glass .card-anchor-chip:hover {
   transform: translateY(-1px);
-  background: color-mix(in srgb, #fff 13%, transparent);
+  background: color-mix(in srgb, #fff calc(13% * var(--glass-k)), transparent);
 }
 .card-anchor-bar.glass .card-anchor-chip.active {
   border-color: transparent;
   /* 基于强调色派生的垂直渐变：跟随设置中的强调色变化，左右每列颜色一致 */
   background:
-    linear-gradient(90deg, transparent 0%, color-mix(in srgb, #fff 26%, transparent) 50%, transparent 100%),
+    linear-gradient(90deg, transparent 0%, color-mix(in srgb, #fff calc(26% * var(--glass-k)), transparent) 50%, transparent 100%),
     linear-gradient(
       180deg,
       color-mix(in srgb, var(--accent) 82%, #fff) 0%,
@@ -925,7 +925,7 @@ watch(
     );
   background-size: 260% 100%, 100% 100%;
   animation: card-chip-liquid-flow 5.5s ease-in-out infinite;
-  box-shadow: 0 4px 18px color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--accent) calc(45% * var(--glass-k)), transparent);
 }
 @keyframes card-chip-liquid-flow {
   0%, 100% { background-position: 0% 0, 0 0; }
@@ -939,7 +939,7 @@ watch(
   border-radius: inherit;
   background: radial-gradient(
     60px circle at var(--mx, 50%) var(--my, 50%),
-    color-mix(in srgb, var(--accent) 42%, transparent),
+    color-mix(in srgb, var(--accent) calc(42% * var(--glass-k)), transparent),
     transparent 68%
   );
   opacity: 0;
