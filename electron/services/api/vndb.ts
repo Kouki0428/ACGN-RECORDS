@@ -90,8 +90,10 @@ export async function getVnScreenshots(
 }> {
   const body = {
     filters: ['id', '=', vndbId],
+    // 注意：Kana API 无 rating_count / ratingCount 字段（请求会 400 导致整条失败），
+    // 投票数正确字段是 votecount；rating 保留用于 Galgame 区展示。
     fields:
-      'id,rating,rating_count,screenshots{id,url,dims,sexual,violence,thumbnail,thumbnail_dims}',
+      'id,rating,votecount,screenshots{id,url,dims,sexual,violence,thumbnail,thumbnail_dims}',
     results: 1
   }
   const res = await fetch(BASE, { method: 'POST', headers: vndbHeaders(token), body: JSON.stringify(body) })
@@ -104,7 +106,7 @@ export async function getVnScreenshots(
     nsfw: (s.sexual ?? 0) >= 2 || (s.violence ?? 0) >= 2
   }))
   const rating = typeof vn?.rating === 'number' ? vn.rating : undefined
-  const ratingCount = typeof vn?.rating_count === 'number' ? vn.rating_count : undefined
+  const ratingCount = typeof vn?.votecount === 'number' ? vn.votecount : undefined
   return { shots, rating, ratingCount }
 }
 
