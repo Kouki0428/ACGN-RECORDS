@@ -605,6 +605,12 @@ watch(
 .ec-modal.glow-card .ec-reply-box {
   background: color-mix(in srgb, var(--bg-elev) calc(70% * var(--glass-k)), transparent);
 }
+/* 评论输入框 / 预览框 / bbcode 工具栏：沉浸光感下同步半透明 */
+.ec-modal.glow-card .ec-textarea,
+.ec-modal.glow-card .ec-preview,
+.ec-modal.glow-card .ec-bb-btn {
+  background: color-mix(in srgb, var(--bg-panel) calc(70% * var(--glass-k)), transparent);
+}
 .ec-head {
   display: flex;
   align-items: center;

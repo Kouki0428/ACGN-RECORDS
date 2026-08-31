@@ -487,6 +487,15 @@ function onTaKey(e: KeyboardEvent) {
 .tb-modal.glow-card .ec-reply-box {
   background: color-mix(in srgb, var(--bg-elev) calc(70% * var(--glass-k)), transparent);
 }
+/* 楼主帖评论卡：沉浸光感下同步半透明 */
+.tb-modal.glow-card .tb-op {
+  background: color-mix(in srgb, var(--bg-elev) calc(70% * var(--glass-k)), transparent);
+}
+/* 评论输入框 / bbcode 工具栏：沉浸光感下同步半透明 */
+.tb-modal.glow-card .ec-textarea,
+.tb-modal.glow-card .ec-bb-btn {
+  background: color-mix(in srgb, var(--bg-panel) calc(70% * var(--glass-k)), transparent);
+}
 /* 表情选择器的全屏点击层（盖住面板、点空白收起选择器） */
 .tb-rx-backdrop {
   position: absolute;
