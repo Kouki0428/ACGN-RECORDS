@@ -26,6 +26,9 @@ const GALLERY_FETCH_BUDGET_MS = 15000
 /** DLsite 探测整体预算：逐张 HEAD 太慢时提前放弃，避免长时间转圈 */
 const DLSITE_PROBE_BUDGET_MS = 9000
 
+/** 最近一次画廊解析诊断（供界面在空画廊时展示，便于用户反馈是哪一环没拿到外链） */
+export const lastGalleryDiag: { id?: string; title?: string; vndb?: string; dlsite?: string; steam?: string } = {}
+
 /** 给 Promise 加整体超时：超时返回 fallback（不 abort 底层请求，但上层不再等待） */
 function withBudget<T>(p: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
   return Promise.race([
@@ -492,8 +495,13 @@ export async function getGalleryForSubject(
     vndbRatingCount: vndb.ratingCount
   }
   // 解析诊断：确认「超次元恋人！！」这类作品最终从哪条路径拿到/没拿到各源 id
+  lastGalleryDiag.id = providerId
+  lastGalleryDiag.title = subj?.title_cn || subj?.title || ''
+  lastGalleryDiag.vndb = vndbId ?? undefined
+  lastGalleryDiag.dlsite = dlsiteId ?? undefined
+  lastGalleryDiag.steam = steamId ?? undefined
   console.log(
-    `[cg] ${providerId}「${subj?.title_cn || subj?.title || ''}」 ids:`,
+    `[cg] ${providerId}「${lastGalleryDiag.title}」 ids:`,
     `vndb=${vndbId || '-'}`,
     `dlsite=${dlsiteId || '-'}`,
     `steam=${steamId || '-'}`,

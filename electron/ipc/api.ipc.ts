@@ -1,7 +1,7 @@
 import electron from 'electron'
 const { ipcMain } = electron
 import { unifiedSearch } from '../services/api/normalizer'
-import { getGalleryForSubject } from '../services/api/cg'
+import { getGalleryForSubject, lastGalleryDiag } from '../services/api/cg'
 import { fetchTimeline } from '../services/api/timeline'
 import type { SearchQuery } from '../../shared/types'
 
@@ -24,7 +24,9 @@ export function registerApiIpc(): void {
 
   // 游戏画廊（复刻「游戏画廊」组件：VNDB 截图 / DLsite 样例 / Steam 截图，按来源分组）
   ipcMain.handle('api:gallery', async (_event, subjectId: number | string, force = false) => {
-    return getGalleryForSubject(subjectId, force)
+    const g = await getGalleryForSubject(subjectId, force)
+    // 附带解析诊断（空画廊时界面据此展示各源 id，便于用户反馈是哪一环没拿到外链）
+    return { ...g, diag: { ...lastGalleryDiag } }
   })
 
   // 时间胶囊（操作历史）：p1 /users/{username}/timeline（官方接口，游标翻页）

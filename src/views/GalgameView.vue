@@ -187,7 +187,11 @@ async function loadGallery(force: boolean) {
       (gallery.value?.dlsite.length ?? 0) +
       (gallery.value?.steam.length ?? 0)
     if (total === 0) {
-      galleryNote.value = '该作暂无可显示的 CG / 截图（可能未在 Bangumi 维基登记对应外链）。'
+      // 附带解析诊断，便于定位是哪一环没拿到外链
+      const d = (g as { diag?: { vndb?: string; dlsite?: string; steam?: string } })?.diag
+      galleryNote.value = d
+        ? `暂无可显示的 CG（解析到 VNDB=${d.vndb || '空'} / DLsite=${d.dlsite || '空'} / Steam=${d.steam || '空'}）`
+        : '该作暂无可显示的 CG / 截图（可能未在 Bangumi 维基登记对应外链）。'
     }
   } catch (e) {
     if (selected.value?.subject?.provider_subject_id !== pid) return
