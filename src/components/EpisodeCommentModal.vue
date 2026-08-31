@@ -851,8 +851,8 @@ watch(
   flex-shrink: 0;
 }
 .ec-sort-btn:hover {
-  border-color: var(--accent-2);
-  color: var(--accent-2);
+  border-color: var(--accent-aux);
+  color: var(--accent-aux);
 }
 .ec-rx-error {
   margin: 0 0 8px;
@@ -914,7 +914,7 @@ watch(
 .ec-c-me {
   font-size: 11px;
   color: #fff;
-  background: var(--accent-2);
+  background: var(--accent);
   border-radius: var(--radius-sm);
   padding: 0 5px;
   line-height: 16px;

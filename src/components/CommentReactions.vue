@@ -90,7 +90,7 @@ function meInReaction(rx: CommentReaction): boolean {
   transition: border-color 0.12s ease, background 0.12s ease;
 }
 .ec-reaction:hover {
-  border-color: color-mix(in srgb, var(--accent-2) 55%, var(--border));
+  border-color: color-mix(in srgb, var(--accent-aux) 55%, var(--border));
 }
 /* 浅色模式：表情卡片背景更浅 */
 :global(:root[data-theme='light']) .ec-reaction {
@@ -99,16 +99,16 @@ function meInReaction(rx: CommentReaction): boolean {
 }
 /* 我自己做过的表情回应：高亮（强调色边框 + 淡底色 + 文字/数字强调色） */
 .ec-reaction--mine {
-  color: var(--accent-2);
-  background: color-mix(in srgb, var(--accent-2) 16%, var(--bg-elev));
-  border-color: color-mix(in srgb, var(--accent-2) 55%, var(--border));
+  color: var(--accent-aux);
+  background: color-mix(in srgb, var(--accent-aux) 16%, var(--bg-elev));
+  border-color: color-mix(in srgb, var(--accent-aux) 55%, var(--border));
 }
 .ec-reaction--mine .ec-rx-count {
-  color: var(--accent-2);
+  color: var(--accent-aux);
 }
 :global(:root[data-theme='light']) .ec-reaction--mine {
-  background: color-mix(in srgb, var(--accent-2) 12%, var(--bg-elev));
-  border-color: color-mix(in srgb, var(--accent-2) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent-aux) 12%, var(--bg-elev));
+  border-color: color-mix(in srgb, var(--accent-aux) 45%, var(--border));
 }
 .ec-rx-img {
   width: 18px;

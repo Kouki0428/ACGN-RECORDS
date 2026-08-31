@@ -539,7 +539,7 @@ function onTaKey(e: KeyboardEvent) {
   font-size: 11px;
   line-height: 16px;
   color: #fff;
-  background: var(--accent-2);
+  background: var(--accent);
   border-radius: var(--radius-sm);
   padding: 0 5px;
 }
