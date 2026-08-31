@@ -205,7 +205,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
   user-select: none;
 }
 .gg-tab:hover {
-  color: #fff;
+  color: var(--text, #fff);
 }
 .gg-tab.active {
   cursor: default;
