@@ -248,7 +248,6 @@ watch(
   aspect-ratio: 3 / 4;
   border-radius: var(--radius-sm);
   overflow: hidden;
-  background: var(--bg-elev, #1c2230);
   border: 1px solid var(--border, #2a3342);
 }
 .ch-avatar img {

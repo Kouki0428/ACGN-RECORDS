@@ -1458,8 +1458,20 @@ body,
 }
 /* 沉浸光感模式：详情页板块壳与卡片底色半透明，让封面横幅从背后透出
    （与作品悬浮窗一致：壳 70% / 子卡 60%）。
-   各区块壳/子卡的背景定义在组件 scoped 内（class + data-v = 特异性 0,2,0 且后注入），
-   这里用 :root 前缀把特异性抬到 0,3,0，确保 glow 覆盖一定胜出、随开关实时切换。 */
+   各区块壳/子卡的 background 基础值与 glow 覆盖都定义在此全局文件，
+   组件 scoped 内不再设 background，避免 scoped[data-v] 特异性干扰。 */
+.topics-box,
+.tucao-box,
+.game-gallery {
+  background: var(--bg-panel);
+}
+.topic-item,
+.tucao-item,
+.ch-avatar,
+.rel-cover,
+.card-box {
+  background: var(--bg-elev);
+}
 :root .detail.glow .panel,
 :root .detail.glow .topics-box,
 :root .detail.glow .tucao-box,
