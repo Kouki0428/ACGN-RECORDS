@@ -1457,15 +1457,17 @@ body,
   mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 34%, transparent 60%);
 }
 /* 沉浸光感模式：详情页板块壳与卡片底色半透明，让封面横幅从背后透出
-   （与作品悬浮窗一致：壳 70% / 评论子卡 60%；.card-box 本就是 60% 半透明，无需重复） */
-.detail.glow .panel,
-.detail.glow .game-gallery,
-.detail.glow .topics-box,
-.detail.glow .tucao-box {
+   （与作品悬浮窗一致：壳 70% / 子卡 60%）。
+   :root 前缀把特异性抬到 0,4,0，压过组件 scoped[data-v] 的 0,2,0。 */
+:root .detail.glow .panel,
+:root .detail.glow .game-gallery,
+:root .detail.glow .topics-box,
+:root .detail.glow .tucao-box {
   background: color-mix(in srgb, var(--bg-panel) calc(70% * var(--glass-k)), transparent);
 }
-.detail.glow .topic-item,
-.detail.glow .tucao-item {
+:root .detail.glow .topic-item,
+:root .detail.glow .tucao-item,
+:root .detail.glow .card-box {
   background: color-mix(in srgb, var(--bg-elev) calc(60% * var(--glass-k)), transparent);
 }
 .detail__main,

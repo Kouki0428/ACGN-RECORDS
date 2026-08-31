@@ -775,6 +775,9 @@ watch(
    会把封面横幅完全挡住），改成半透明后横幅从背后透出。关闭时保持不透明。
    涵盖 .panel（评分/标签/制作信息、角色、关联条目、购买信息）、
    .game-gallery（游戏画廊）、.topics-box（讨论板预览）、.tucao-box（吐槽箱） */
+.subject-card.glow {
+  background: color-mix(in srgb, var(--bg-panel) calc(70% * var(--glass-k)), transparent);
+}
 .subject-card.glow :deep(.panel),
 .subject-card.glow :deep(.game-gallery),
 .subject-card.glow :deep(.topics-box),
