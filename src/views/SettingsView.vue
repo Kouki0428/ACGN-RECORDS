@@ -630,6 +630,28 @@ async function loadBgmStatus() {
 const bgmServerFine = computed(
   () => bgmStatus.value != null && bgmStatus.value.status === 'ok'
 )
+// 只保留应用实际用到的服务器域名（主进程依赖），并按域名合并 guest/auth 两项：
+// 状态取较差的（down>degrade>ok），30 天可用率取较低者，避免一项正常就误导为全通。
+const BGM_DOMAINS = ['api.bgm.tv', 'next.bgm.tv/p1', 'bgm.tv'] as const
+const bgmComponents = computed(() => {
+  const comps = bgmStatus.value?.components ?? []
+  const rank: Record<string, number> = { down: 3, degrade: 2, unknown: 1, ok: 0 }
+  const byDomain = new Map<string, { status: string; uptime: number }>()
+  for (const c of comps) {
+    if (!BGM_DOMAINS.includes(c.domain as (typeof BGM_DOMAINS)[number])) continue
+    const cur = byDomain.get(c.domain)
+    if (!cur) byDomain.set(c.domain, { status: c.status, uptime: c.uptime })
+    else {
+      if ((rank[c.status] ?? 0) > (rank[cur.status] ?? 0)) cur.status = c.status
+      cur.uptime = Math.min(cur.uptime, c.uptime)
+    }
+  }
+  return BGM_DOMAINS.filter((d) => byDomain.has(d)).map((d) => ({
+    domain: d,
+    status: byDomain.get(d)!.status,
+    uptime: byDomain.get(d)!.uptime
+  }))
+})
 function bgmStatusLabel(s?: string): string {
   if (s === 'ok') return '正常'
   if (s === 'degrade') return '降级'
@@ -997,12 +1019,12 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
 
         <div class="bgm-status-grid">
           <div
-            v-for="c in bgmStatus.components"
-            :key="c.domain + c.kind"
+            v-for="c in bgmComponents"
+            :key="c.domain"
             class="bgm-status-item"
           >
             <span class="status-dot" :class="bgmStatusClass(c.status)"></span>
-            <span class="bgm-status-name">{{ c.label }}</span>
+            <span class="bgm-status-name">{{ c.domain }}</span>
             <span class="bgm-status-uptime">{{ Math.round(c.uptime) }}%</span>
           </div>
         </div>
