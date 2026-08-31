@@ -491,11 +491,6 @@ const collapsedMeta = computed<SubjectMeta[]>(() => {
   border-radius: var(--radius-sm);
   padding: 12px 14px;
 }
-/* 沉浸光感：评分/标签/制作信息子卡随 .detail.glow 变半透明（与其他区块子项一致）；
-   关闭时恢复不透明。用 :global 抬高高全局祖先，确保覆盖 scoped 默认背景 */
-:global(.detail.glow) .card-box {
-  background: color-mix(in srgb, var(--bg-elev, #1c2230) calc(60% * var(--glass-k)), transparent);
-}
 .rating-card {
   /* 不设 position，避免与标签/制作信息卡在层叠上产生差异（竖线定位改由 .rating-split 承担） */
 }

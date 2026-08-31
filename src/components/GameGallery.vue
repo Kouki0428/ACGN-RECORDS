@@ -180,10 +180,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
   padding: 14px 16px 16px;
   margin-top: 14px;
 }
-/* 沉浸光感：画廊壳随 .detail.glow 变半透明（与其他区块子项一致）；:global 提升特异性覆盖 scoped 默认背景 */
-:global(.detail.glow) .game-gallery {
-  background: color-mix(in srgb, var(--bg-panel, #1c2129) calc(70% * var(--glass-k)), transparent);
-}
 
 .gg-head {
   display: flex;

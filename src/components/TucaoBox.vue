@@ -159,13 +159,6 @@ watch(() => props.subjectId, () => load(0))
   border-radius: var(--radius-sm);
   padding: 10px 12px;
 }
-/* 沉浸光感：随 .detail.glow 变半透明（与其他区块子项一致）；:global 提升特异性覆盖 scoped 默认背景 */
-:global(.detail.glow) .tucao-box {
-  background: color-mix(in srgb, var(--bg-panel) calc(70% * var(--glass-k)), transparent);
-}
-:global(.detail.glow) .tucao-item {
-  background: color-mix(in srgb, var(--bg-elev) calc(60% * var(--glass-k)), transparent);
-}
 .tucao-head {
   display: flex;
   align-items: center;
