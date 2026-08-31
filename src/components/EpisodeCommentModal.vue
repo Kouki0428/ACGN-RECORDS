@@ -374,7 +374,7 @@ watch(
     </div>
 
     <!-- 自己的评论输入卡 -->
-    <div class="ec-mine">
+    <div class="ec-mine" :class="{ 'glow-card': settings.immersiveGlow && settings.subjectCardGlow }">
       <img v-if="me.avatar" :src="(me.avatar ?? undefined)" class="ec-avatar" alt="" />
       <div v-else class="ec-avatar ec-avatar-ph"></div>
       <div class="ec-mine-body">
@@ -599,6 +599,11 @@ watch(
 /* 悬浮窗本体沉浸光感（设置 subjectCardGlow 独立控制）：整卡背景半透明 */
 .ec-modal.glow-card {
   background: color-mix(in srgb, var(--bg-panel) calc(70% * var(--glass-k)), transparent);
+}
+/* 评论输入卡 / 回复输入框：沉浸光感下同步半透明 */
+.ec-modal.glow-card .ec-mine,
+.ec-modal.glow-card .ec-reply-box {
+  background: color-mix(in srgb, var(--bg-elev) calc(70% * var(--glass-k)), transparent);
 }
 .ec-head {
   display: flex;

@@ -2,6 +2,7 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { useEntityCard } from '@/composables/useEntityCard'
 import { useTopicBoard } from '@/composables/useTopicBoard'
+import { useSettingsStore } from '@/stores/settings'
 import { subjectClient } from '@/services/subjectClient'
 import { episodeClient } from '@/services/episodeClient'
 import BgmBbcode from '@/components/BgmBbcode.vue'
@@ -16,6 +17,7 @@ import type { BgmTopicDetail, BgmTopicReply } from '@shared/types'
 // 已在栈根时 back() 返回 false → 关闭整个 overlay。X 同理直接关闭全部。
 const board = useTopicBoard()
 const entity = useEntityCard()
+const settings = useSettingsStore()
 
 function closeAll() {
   entity.close()
@@ -239,7 +241,7 @@ function onTaKey(e: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="tb-modal" @click.stop>
+  <div class="tb-modal" :class="{ 'glow-card': settings.immersiveGlow && settings.subjectCardGlow }" @click.stop>
     <div v-if="reactingTo !== null" class="tb-rx-backdrop" @click="closeReaction"></div>
     <header class="ec-head tb-head">
       <button class="back-btn" type="button" title="返回上级" aria-label="返回" @click="goBack">
@@ -475,6 +477,15 @@ function onTaKey(e: KeyboardEvent) {
   box-shadow: var(--shadow);
   overflow: hidden;
   position: relative;
+}
+/* 悬浮窗本体沉浸光感（设置 subjectCardGlow 独立控制）：整卡背景半透明 */
+.tb-modal.glow-card {
+  background: color-mix(in srgb, var(--bg-panel) calc(70% * var(--glass-k)), transparent);
+}
+/* 评论输入卡 / 回复输入框：沉浸光感下同步半透明 */
+.tb-modal.glow-card .ec-mine,
+.tb-modal.glow-card .ec-reply-box {
+  background: color-mix(in srgb, var(--bg-elev) calc(70% * var(--glass-k)), transparent);
 }
 /* 表情选择器的全屏点击层（盖住面板、点空白收起选择器） */
 .tb-rx-backdrop {
