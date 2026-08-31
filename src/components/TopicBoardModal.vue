@@ -689,7 +689,7 @@ function onTaKey(e: KeyboardEvent) {
   outline: none;
   font-family: inherit;
 }
-.ec-textarea:focus { border-color: var(--accent-2); }
+.ec-textarea:focus { border-color: var(--accent-aux); }
 .ec-bb-bar { display: flex; flex-wrap: wrap; gap: 4px; }
 .ec-bb-btn {
   min-width: 30px;
@@ -704,7 +704,7 @@ function onTaKey(e: KeyboardEvent) {
   cursor: pointer;
   transition: all 0.15s ease;
 }
-.ec-bb-btn:hover { border-color: var(--accent-2); color: var(--accent-2); }
+.ec-bb-btn:hover { border-color: var(--accent-aux); color: var(--accent-aux); }
 .ec-smiley-wrap { position: relative; display: inline-flex; }
 .ec-smiley-panel {
   position: absolute;
@@ -745,7 +745,7 @@ function onTaKey(e: KeyboardEvent) {
   font-weight: 600;
   border: none;
   border-radius: var(--radius-sm);
-  background: var(--accent-2);
+  background: var(--accent-aux);
   color: #fff;
   cursor: pointer;
   transition: opacity 0.15s ease;
@@ -765,7 +765,7 @@ function onTaKey(e: KeyboardEvent) {
   transition: all 0.15s ease;
 }
 .ec-reply-ico { width: 15px; height: 15px; display: block; }
-.ec-reply-btn:hover { color: var(--accent-2); background: var(--bg-elev); }
+.ec-reply-btn:hover { color: var(--accent-aux); background: var(--bg-elev); }
 .ec-react-btn {
   display: inline-flex;
   align-items: center;
@@ -825,5 +825,5 @@ function onTaKey(e: KeyboardEvent) {
   cursor: pointer;
   transition: all 0.15s ease;
 }
-.ec-reply-cancel:hover { border-color: var(--accent-2); color: var(--accent-2); }
+.ec-reply-cancel:hover { border-color: var(--accent-aux); color: var(--accent-aux); }
 </style>

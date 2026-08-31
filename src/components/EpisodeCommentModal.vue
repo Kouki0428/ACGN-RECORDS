@@ -717,7 +717,7 @@ watch(
   font-family: inherit;
 }
 .ec-textarea:focus {
-  border-color: var(--accent-2);
+  border-color: var(--accent-aux);
 }
 .ec-bb-bar {
   display: flex;
@@ -738,8 +738,8 @@ watch(
   transition: all 0.15s ease;
 }
 .ec-bb-btn:hover {
-  border-color: var(--accent-2);
-  color: var(--accent-2);
+  border-color: var(--accent-aux);
+  color: var(--accent-aux);
 }
 .ec-smiley-wrap {
   position: relative;
@@ -807,7 +807,7 @@ watch(
   font-weight: 600;
   border: none;
   border-radius: var(--radius-sm);
-  background: var(--accent-2);
+  background: var(--accent-aux);
   color: #fff;
   cursor: pointer;
   transition: opacity 0.15s ease;
@@ -978,7 +978,7 @@ watch(
   display: block;
 }
 .ec-reply-btn:hover {
-  color: var(--accent-2);
+  color: var(--accent-aux);
   background: var(--bg-elev);
 }
 /* 表情回应：回复右侧的空心爱心按钮 */
@@ -1086,7 +1086,7 @@ watch(
   transition: all 0.15s ease;
 }
 .ec-reply-cancel:hover {
-  border-color: var(--accent-2);
-  color: var(--accent-2);
+  border-color: var(--accent-aux);
+  color: var(--accent-aux);
 }
 </style>
