@@ -23,6 +23,7 @@ bundle.js
 tmp/
 dev/
 .tmp_archive_test/
+.tmp-*/
 
 # ── 本地工作记忆与自动化（machine-local，不纳入版本控制）──
 .workbuddy/
