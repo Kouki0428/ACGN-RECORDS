@@ -4,7 +4,7 @@ import { apiClient } from '@/services/apiClient'
 import { subjectClient } from '@/services/subjectClient'
 import { useAuthStore } from '@/stores/auth'
 import ResultCollectButton from '@/components/ResultCollectButton.vue'
-import type { Subject, Category, SearchQuery, SearchResultItem } from '@shared/types'
+import type { Subject, Category, SearchQuery, SearchResultItem, ChannelTag } from '@shared/types'
 import { proxyImg } from '@/utils/imgProxy'
 import { useSearchOverlay } from '@/composables/searchOverlay'
 import { useModalZ } from '@/composables/useModalZ'
@@ -76,8 +76,13 @@ const results = ref<SearchResultItem[]>([])
 const PAGE_SIZE = 30
 const subjectPage = ref(1)
 const personPage = ref(1)
+const tagPage = ref(1)
 const resultsEl = ref<HTMLElement | null>(null)
-const currentPage = computed(() => (domain.value === 'subject' ? subjectPage.value : personPage.value))
+const currentPage = computed(() => {
+  if (domain.value === 'subject') return subjectPage.value
+  if (domain.value === 'tag') return tagPage.value
+  return personPage.value
+})
 const totalPages = computed(() => Math.max(1, Math.ceil(results.value.length / PAGE_SIZE)))
 const pagedResults = computed<SearchResultItem[]>(() => {
   const s = (currentPage.value - 1) * PAGE_SIZE
@@ -87,6 +92,7 @@ const pagedResults = computed<SearchResultItem[]>(() => {
 function goPage(delta: number) {
   const next = Math.min(totalPages.value, Math.max(1, currentPage.value + delta))
   if (domain.value === 'subject') subjectPage.value = next
+  else if (domain.value === 'tag') tagPage.value = next
   else personPage.value = next
   scrollResultsToTop()
 }
@@ -98,11 +104,26 @@ const searching = ref(false)
 const failed = ref('')
 const inputEl = ref<HTMLInputElement | null>(null)
 
-// 一级分类：条目 / 人物
-const domain = ref<'subject' | 'person'>('subject')
+// 一级分类：条目 / 人物 / 标签
+const domain = ref<'subject' | 'person' | 'tag'>('subject')
 // 二级分类
 const subjectType = ref<'all' | 'anime' | 'book' | 'game'>('all')
 const personType = ref<'all' | 'virtual' | 'real'>('all')
+// 标签搜索：类型过滤（p1 type）+ 排序
+const tagType = ref<number | undefined>(undefined)
+const tagSort = ref<'match' | 'heat' | 'rank' | 'score'>('heat')
+const hotTags = ref<ChannelTag[]>([])
+async function loadHotTags() {
+  // 热门标签按具体类型加载；「全部」时默认取动画频道建议
+  const type = tagType.value ?? 2
+  try {
+    const r = await apiClient.channelTags(type)
+    hotTags.value = (r.data ?? []).slice(0, 20)
+  } catch {
+    hotTags.value = []
+  }
+}
+watch(tagType, loadHotTags)
 
 const subjectOpts = [
   { v: 'all', label: '全部' },
@@ -115,6 +136,21 @@ const personOpts = [
   { v: 'virtual', label: '虚拟' },
   { v: 'real', label: '现实' }
 ] as const
+// 标签搜索：类型过滤（Bangumi type）+ 排序
+const tagTypeOpts = [
+  { v: undefined, label: '全部' },
+  { v: 2, label: '动画' },
+  { v: 1, label: '书籍' },
+  { v: 4, label: '游戏' },
+  { v: 3, label: '音乐' },
+  { v: 6, label: '三次元' }
+] as const
+const tagSortOpts = [
+  { v: 'heat', label: '热度' },
+  { v: 'rank', label: '排名' },
+  { v: 'score', label: '评分' },
+  { v: 'match', label: '匹配' }
+] as const
 
 const CAT_LABELS: Record<Category, string> = {
   anime: '动画',
@@ -126,7 +162,8 @@ const CAT_LABELS: Record<Category, string> = {
 function buildQuery(): SearchQuery {
   return {
     keyword: kw.value.trim(),
-    domain: domain.value,
+    // 标签模式不走 unifiedSearch（走 p1 searchByTag），这里占位为 subject 以免类型报错
+    domain: domain.value === 'tag' ? 'subject' : domain.value,
     subjectType: domain.value === 'subject' ? subjectType.value : undefined,
     personType: domain.value === 'person' ? personType.value : undefined
   }
@@ -167,7 +204,15 @@ async function doSearch() {
   failed.value = ''
   searching.value = true
   try {
-    const res = await apiClient.search(buildQuery())
+    const res =
+      domain.value === 'tag'
+        ? await apiClient.searchByTag({
+            keyword: q,
+            tags: [q],
+            type: tagType.value,
+            sort: tagSort.value
+          })
+        : await apiClient.search(buildQuery())
     // 丢弃过期请求的结果：仅采用「最后一次」搜索的返回，杜绝条/人串台。
     if (seq !== searchSeq) return
     results.value = res
@@ -191,8 +236,9 @@ async function doSearch() {
         .catch(() => {})
     }
     pushSearchTerm(q)
-    // 新一次搜索（含切换 domain / 切换二级分类）从第一页开始；条目/人物各自独立页码。
+    // 新一次搜索（含切换 domain / 切换二级分类）从第一页开始；各 domain 独立页码。
     if (domain.value === 'subject') subjectPage.value = 1
+    else if (domain.value === 'tag') tagPage.value = 1
     else personPage.value = 1
     scrollResultsToTop()
   } catch (e) {
@@ -206,7 +252,7 @@ async function doSearch() {
 
 // 切换一级/二级分类时：先清空上一域的结果并作废在途请求，避免旧结果残留/串台；
 // 有搜索词则按新条件用新请求重新检索（独立 200ms 防抖）。
-watch([domain, subjectType, personType], () => {
+watch([domain, subjectType, personType, tagType, tagSort], () => {
   searchSeq++ // 作废任何在途的旧搜索请求
   results.value = []
   if (kw.value.trim()) {
@@ -217,6 +263,8 @@ watch([domain, subjectType, personType], () => {
     searching.value = false
     failed.value = ''
   }
+  // 进入标签模式时同步加载热门标签建议
+  if (domain.value === 'tag') void loadHotTags()
 })
 
 function keyOf(r: SearchResultItem): string {
@@ -255,6 +303,13 @@ function clearKw() {
 function applyHistoryTerm(term: string) {
   kw.value = term
   if (domain.value === 'person') domain.value = 'subject'
+  void doSearch()
+  inputEl.value?.focus()
+}
+
+// 点击热门标签建议 → 填入标签关键词并立即按标签检索
+function applyTagTerm(term: string) {
+  kw.value = term
   void doSearch()
   inputEl.value?.focus()
 }
@@ -316,7 +371,7 @@ watch(isOpen, async (v) => {
               ref="inputEl"
               v-model="kw"
               type="text"
-              placeholder="搜索…"
+              :placeholder="domain === 'tag' ? '搜索标签…' : '搜索…'"
               @input="scheduleSearch"
             />
             <button v-if="kw" class="clear" type="button" title="清除" @click="clearKw">清除</button>
@@ -330,10 +385,11 @@ watch(isOpen, async (v) => {
           </button>
         </div>
 
-        <!-- 一级分类：条目 / 人物 -->
+        <!-- 一级分类：条目 / 人物 / 标签 -->
         <div class="cat-tabs">
           <button :class="{ active: domain === 'subject' }" @click="domain = 'subject'">条目</button>
           <button :class="{ active: domain === 'person' }" @click="domain = 'person'">人物</button>
+          <button :class="{ active: domain === 'tag' }" @click="domain = 'tag'">标签</button>
         </div>
 
         <!-- 二级分类 -->
@@ -346,12 +402,27 @@ watch(isOpen, async (v) => {
               @click="subjectType = opt.v"
             >{{ opt.label }}</button>
           </template>
-          <template v-else>
+          <template v-else-if="domain === 'person'">
             <button
               v-for="opt in personOpts"
               :key="opt.v"
               :class="{ active: personType === opt.v }"
               @click="personType = opt.v"
+            >{{ opt.label }}</button>
+          </template>
+          <template v-else>
+            <button
+              v-for="opt in tagTypeOpts"
+              :key="opt.v"
+              :class="{ active: tagType === opt.v }"
+              @click="tagType = opt.v"
+            >{{ opt.label }}</button>
+            <span class="cat-sub-sep"></span>
+            <button
+              v-for="opt in tagSortOpts"
+              :key="opt.v"
+              :class="{ active: tagSort === opt.v }"
+              @click="tagSort = opt.v"
             >{{ opt.label }}</button>
           </template>
         </div>
@@ -369,7 +440,23 @@ watch(isOpen, async (v) => {
           </div>
           <!-- 空关键词：搜索历史 + 最近浏览（高频重复路径的快捷入口） -->
           <div v-else-if="!kw.trim()" class="ph ph--start">
-            <template v-if="searchHistory.length || recentSubjects.length">
+            <template v-if="domain === 'tag'">
+              <div v-if="hotTags.length" class="start-block">
+                <div class="start-head"><span>热门标签</span></div>
+                <div class="hist-chips">
+                  <button
+                    v-for="t in hotTags"
+                    :key="t.name"
+                    class="hist-term"
+                    type="button"
+                    :title="`搜索「${t.name}」（${t.count}）`"
+                    @click="applyTagTerm(t.name)"
+                  >{{ t.name }}</button>
+                </div>
+              </div>
+              <p v-else class="hint">输入标签关键词开始搜索</p>
+            </template>
+            <template v-else-if="searchHistory.length || recentSubjects.length">
               <div v-if="searchHistory.length" class="start-block">
                 <div class="start-head">
                   <span>搜索历史</span>
@@ -407,7 +494,9 @@ watch(isOpen, async (v) => {
             </template>
             <p v-else class="hint">输入关键词开始搜索</p>
           </div>
-          <div v-else-if="results.length === 0" class="ph">没有找到与“{{ kw.trim() }}”相关的结果</div>
+          <div v-else-if="results.length === 0" class="ph">
+            {{ domain === 'tag' ? `没有找到标签「${kw.trim()}」相关的作品` : `没有找到与“${kw.trim()}”相关的结果` }}
+          </div>
 
           <div v-else class="grid">
             <!-- 条目结果 -->
@@ -621,6 +710,13 @@ watch(isOpen, async (v) => {
   background: color-mix(in srgb, var(--accent-aux) 14%, var(--bg-elev));
   border-color: var(--accent-aux);
   color: var(--text);
+}
+.cat-sub-sep {
+  align-self: center;
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 2px;
 }
 
 .results {

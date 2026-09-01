@@ -5,10 +5,12 @@ import {
   searchBangumiByType,
   searchCharacters,
   searchPersons,
+  searchBangumiByTag,
   toSubject,
   classifyBookCategory,
   getSubjectDetail,
-  mapWithConcurrency
+  mapWithConcurrency,
+  BGM_TYPE_TO_CATEGORY
 } from './bangumi'
 import { dbg } from '../debugLog'
 
@@ -153,4 +155,38 @@ function toPersonItem(raw: any, pk: 'character' | 'person'): SearchResultItem {
     imageUrl: img,
     personKind: pk
   }
+}
+
+/** p1 标签搜索请求（渲染层透传到主进程的 /p1/search/subjects） */
+export interface TagSearchQuery {
+  keyword: string
+  tags?: string[]
+  metaTags?: string[]
+  /** Bangumi 作品类型（1 书籍 / 2 动画 / 3 音乐 / 4 游戏 / 6 三次元） */
+  type?: number
+  sort?: 'match' | 'heat' | 'rank' | 'score'
+}
+
+/**
+ * 按标签检索作品（p1）。返回归一化的 SearchResultItem[]（kind='subject'）。
+ * p1 SlimSubject 字段为 nameCN/nameCN 驼峰、images.common 等，与 v0 搜索基本一致，
+ * 直接复用 toSubject 归一化；type 经 BGM_TYPE_TO_CATEGORY 映射成本地 category。
+ * 匿名可调（p1 无令牌也可检索）。
+ */
+export async function unifiedTagSearch(query: TagSearchQuery, signal?: AbortSignal): Promise<SearchResultItem[]> {
+  const token = (await getValidToken()) ?? undefined
+  const rawList = await searchBangumiByTag(query.keyword, {
+    tags: query.tags,
+    metaTags: query.metaTags,
+    type: query.type,
+    sort: query.sort
+  }, token, signal)
+  const items: SearchResultItem[] = []
+  for (const raw of rawList) {
+    const category = BGM_TYPE_TO_CATEGORY[Number(raw.type)] ?? 'manga'
+    const subject = toSubject(raw, category)
+    await upsertSubject(subject)
+    items.push({ kind: 'subject', subject })
+  }
+  return items
 }

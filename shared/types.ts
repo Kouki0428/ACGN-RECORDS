@@ -293,6 +293,25 @@ export interface SearchQuery {
   personType?: PersonFilter
 }
 
+/** 标签搜索请求（p1 /search/subjects）：按标签/元标签/类型检索作品 */
+export interface TagSearchQuery {
+  keyword: string
+  /** 普通标签（多值取交集） */
+  tags?: string[]
+  /** 元标签（Bangumi 官方分类标签），支持 `-` 排除 */
+  metaTags?: string[]
+  /** Bangumi 作品类型（1 书籍 / 2 动画 / 3 音乐 / 4 游戏 / 6 三次元） */
+  type?: number
+  /** 排序：match 匹配度 / heat 热度 / rank 排名 / score 评分 */
+  sort?: 'match' | 'heat' | 'rank' | 'score'
+}
+
+/** 频道热门标签项（p1 /channels/{type}/tags） */
+export interface ChannelTag {
+  name: string
+  count: number
+}
+
 export interface SearchSubjectItem {
   kind: 'subject'
   subject: Subject
@@ -882,6 +901,10 @@ export interface AcgnApi {
   api: {
     /** 统一搜索：条目（动画/书籍/游戏）或人物（角色/现实），返回联合结果 SearchResultItem[] */
     search: (query: SearchQuery) => Promise<SearchResultItem[]>
+    /** 标签搜索（p1 /search/subjects）：按 tags/metaTags/type 检索作品，返回 SearchResultItem[] */
+    searchByTag: (query: TagSearchQuery) => Promise<SearchResultItem[]>
+    /** 频道热门标签（p1 /channels/{type}/tags）：标签搜索的联想 / 热门标签 */
+    channelTags: (type: number) => Promise<{ data: ChannelTag[]; total: number }>
     /** 取 Galgame 的游戏画廊（复刻「游戏画廊」组件：VNDB 截图 / DLsite 样例 / Steam 截图，按来源分组） */
     gallery: (subjectId: number | string, force?: boolean) => Promise<GameGallery>
   }

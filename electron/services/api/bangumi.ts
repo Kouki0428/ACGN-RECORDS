@@ -360,6 +360,74 @@ export async function searchPersons(keyword: string, token: string, signal?: Abo
   }
 }
 
+/** p1 标签搜索参数（对应 /p1/search/subjects 的 filter 结构） */
+export interface P1TagSearchOptions {
+  /** 普通标签（多值取交集） */
+  tags?: string[]
+  /** 元标签（Bangumi 官方分类），支持 `-xxx` 排除 */
+  metaTags?: string[]
+  /** 作品类型过滤（Bangumi type 1/2/3/4/6），undefined=不限 */
+  type?: number
+  /** 排序：match 匹配度 / heat 热度 / rank 排名 / score 评分 */
+  sort?: 'match' | 'heat' | 'rank' | 'score'
+}
+
+/**
+ * 按标签检索 Bangumi 作品（p1：POST /p1/search/subjects）。
+ * - filter.tags / metaTags 走服务端标签过滤（多标签交集、- 排除）。
+ * - 复用现有 fetchSearchPage（401 自愈 + 重试）与翻页逻辑。
+ * - 返回全部匹配作品（受 SEARCH_HARD_CAP 兜底）；sort 默认 heat（标签浏览按热度更自然）。
+ */
+export async function searchBangumiByTag(
+  keyword: string,
+  opts: P1TagSearchOptions = {},
+  token?: string,
+  signal?: AbortSignal
+): Promise<any[]> {
+  const sort = opts.sort ?? 'heat'
+  const filter: Record<string, unknown> = {}
+  if (opts.tags?.length) filter.tags = opts.tags
+  if (opts.metaTags?.length) filter.metaTags = opts.metaTags
+  if (opts.type !== undefined) filter.type = [opts.type]
+  return paginateSearch(
+    (offset) => ({
+      url: `${P1_BASE}/search/subjects?${new URLSearchParams({
+        limit: String(SEARCH_PAGE_LIMIT),
+        offset: String(offset)
+      }).toString()}`,
+      init: {
+        method: 'POST',
+        headers: { ...authHeaders(token), 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ keyword, sort, filter })
+      }
+    }),
+    { maxPages: 5, dedupById: true },
+    signal
+  )
+}
+
+/**
+ * 取频道（某类型）热门标签列表（p1：GET /p1/channels/{type}/tags）。
+ * 供标签搜索的联想/热门建议使用。返回 [{ name, count }]，按热度倒序。
+ */
+export async function getP1ChannelTags(
+  type: number,
+  token?: string,
+  signal?: AbortSignal,
+  offset = 0,
+  limit = 50
+): Promise<{ data: { name: string; count: number }[]; total: number }> {
+  const headers = { ...authHeaders(token), Accept: 'application/json' }
+  const url = `${P1_BASE}/channels/${type}/tags?${new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset)
+  }).toString()}`
+  const res = await fetch(url, { headers, signal })
+  if (!res.ok) throw new Error(`获取频道标签失败 (HTTP ${res.status})`)
+  const json = (await res.json()) as { data?: { name: string; count: number }[]; total?: number }
+  return { data: json.data ?? [], total: typeof json.total === 'number' ? json.total : 0 }
+}
+
 export async function getEpisodes(subjectId: string, token?: string): Promise<SubjectFullEpisode[]> {
   const headers = authHeaders(token)
   const base = `${API_BASE}/episodes?subject_id=${encodeURIComponent(subjectId)}`

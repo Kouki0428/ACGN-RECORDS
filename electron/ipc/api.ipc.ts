@@ -1,8 +1,10 @@
 import electron from 'electron'
 const { ipcMain } = electron
-import { unifiedSearch } from '../services/api/normalizer'
+import { unifiedSearch, unifiedTagSearch, type TagSearchQuery } from '../services/api/normalizer'
+import { getP1ChannelTags } from '../services/api/bangumi'
 import { getGalleryForSubject, lastGalleryDiag } from '../services/api/cg'
 import { fetchTimeline } from '../services/api/timeline'
+import { getValidToken } from '../services/auth/oauth'
 import type { SearchQuery } from '../../shared/types'
 
 /** 注册检索相关 IPC（统一搜索：条目 / 人物 + Galgame CG 画廊 + 时间胶囊） */
@@ -20,6 +22,25 @@ export function registerApiIpc(): void {
     } finally {
       if (searchCtrl === ctrl) searchCtrl = null
     }
+  })
+
+  // 标签搜索：按 tags/metaTags/type 检索作品（p1 /search/subjects）。返回 SearchResultItem[]。
+  // 独立于关键词搜索，共用一个搜索请求序号守卫（与 api:search 互斥，避免结果串台）。
+  ipcMain.handle('api:searchByTag', async (_event, query: TagSearchQuery) => {
+    searchCtrl?.abort()
+    const ctrl = new AbortController()
+    searchCtrl = ctrl
+    try {
+      return await unifiedTagSearch(query, ctrl.signal)
+    } finally {
+      if (searchCtrl === ctrl) searchCtrl = null
+    }
+  })
+
+  // 频道热门标签（p1 /channels/{type}/tags）：供标签搜索的联想 / 热门标签展示。
+  ipcMain.handle('api:channelTags', async (_event, type: number) => {
+    const token = (await getValidToken()) ?? undefined
+    return getP1ChannelTags(type, token)
   })
 
   // 游戏画廊（复刻「游戏画廊」组件：VNDB 截图 / DLsite 样例 / Steam 截图，按来源分组）

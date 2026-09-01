@@ -1,4 +1,4 @@
-import type { GameGallery, AuthStatus, AcgnApi, SearchQuery, SearchResultItem, TimelineItem, TimelinePage, NetworkStatsResult, BgmStatus } from '@shared/types'
+import type { GameGallery, AuthStatus, AcgnApi, SearchQuery, SearchResultItem, TagSearchQuery, ChannelTag, TimelineItem, TimelinePage, NetworkStatsResult, BgmStatus } from '@shared/types'
 
 /**
  * 渲染进程对主进程 API 能力的安全封装（不直接 import electron）。
@@ -15,6 +15,12 @@ function acgn(): AcgnApi {
 export const apiClient = {
   search: (query: SearchQuery): Promise<SearchResultItem[]> =>
     acgn().api.search(query),
+  /** 标签搜索（p1）：按 tags/metaTags/type 检索作品 */
+  searchByTag: (query: TagSearchQuery): Promise<SearchResultItem[]> =>
+    acgn().api.searchByTag(query),
+  /** 频道热门标签（p1）：标签搜索的联想 / 热门标签 */
+  channelTags: (type: number): Promise<{ data: ChannelTag[]; total: number }> =>
+    acgn().api.channelTags(type),
   /** 打开外部链接（如 Bangumi 角色/人物页） */
   openExternal: (url: string): Promise<void> => acgn().app.openExternal(url),
   /** 重启应用（用于需要重启才生效的启动期设置，如 GPU 加速开关） */
