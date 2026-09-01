@@ -429,11 +429,13 @@ export async function getP1ChannelTags(
 }
 
 /**
- * 按关键词搜索标签（p1：拉取频道热门标签 + 客户端过滤）。
+ * 按关键词搜索标签（p1：拉取频道热门标签 + 客户端过滤 + 精确标签验证）。
  * p1 无独立标签搜索端点，但 /channels/{type}/tags 的热门标签列表按热度倒序，
  * 拉取前若干页后按关键词（子串、大小写不敏感）过滤，即可得到「搜索标签」的候选。
  * 支持多类型：传 types 数组（如全部类型 [1,2,3,4,6]）时遍历各类型合并去重后再过滤，
  * 避免「全部」栏只取某单一类型（如动画）的标签。
+ * 补充「精确标签验证」：若关键词本身就是一个有效标签（用 /search/subjects 的
+ * filter.tags 精确查询有作品），即使它不在热门 top-3000 里也加入候选（count=该标签作品数）。
  * 返回匹配的 [{ name, count }]，count 取该标签在已拉取范围内的最大热度，按热度倒序。
  * 无关键词时返回空（UI 展示热门标签由 getP1ChannelTags 单独驱动）。
  */
@@ -446,9 +448,9 @@ export async function searchP1Tags(
   const kw = keyword.trim()
   if (!kw || !types.length) return { data: [], total: 0 }
   const lower = kw.toLowerCase()
-  // 热门标签集中在前面，每类型拉前 8 页（每页 100）覆盖常用标签；
+  // 热门标签集中在前面，每类型拉前 30 页（每页 100 = 3000 个标签）覆盖常用标签；
   // 多类型下并发拉取（限 6）避免顺序请求过慢。
-  const pages = 8
+  const pages = 30
   const jobs: { type: number; offset: number }[] = []
   for (const type of types) for (let p = 0; p < pages; p++) jobs.push({ type, offset: p * 100 })
   const pagesData = await mapWithConcurrency(jobs, 6, async (job) => {
@@ -467,6 +469,35 @@ export async function searchP1Tags(
       if (t.count > prev) countBy.set(t.name, t.count)
     }
   }
+
+  // 精确标签验证：关键词本身若是有效标签（filter.tags=[kw] 能查到作品），即使不在
+  // 热门 top-3000 也加入候选。逐类型查询（并发限 3），count=该标签下作品数。
+  const exactCounts = await mapWithConcurrency(types, 3, async (type) => {
+    if (signal?.aborted) return 0
+    try {
+      const page = await fetchSearchPage(
+        (offset) => ({
+          url: `${P1_BASE}/search/subjects?${new URLSearchParams({
+            limit: '1',
+            offset: String(offset)
+          }).toString()}`,
+          init: {
+            method: 'POST',
+            headers: { ...authHeaders(token), 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({ keyword: kw, sort: 'heat', filter: { tags: [kw], type: [type] } })
+          }
+        }),
+        0,
+        signal
+      )
+      return typeof page.total === 'number' ? page.total : 0
+    } catch {
+      return 0
+    }
+  })
+  const exactTotal = exactCounts.reduce((a, b) => a + b, 0)
+  if (exactTotal > 0 && !countBy.has(kw)) countBy.set(kw, exactTotal)
+
   const matched: { name: string; count: number }[] = []
   for (const [name, count] of countBy) {
     if (name.toLowerCase().includes(lower)) matched.push({ name, count })
@@ -1365,10 +1396,13 @@ function firstImage(images: any): string | undefined {
 export async function getSubjectCover(id: number): Promise<string | null> {
   if (!id || id <= 0) return null
   const headers: Record<string, string> = { Accept: 'application/json', 'User-Agent': UA }
+  // 匿名详情接口限 30/min：补图前先过全局令牌桶，避免批量补图被 429 打光
+  await throttle(false)
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), 15000)
   try {
     const res = await fetch(`${API_BASE}/subjects/${encodeURIComponent(id)}`, { headers, signal: ctrl.signal })
+    if (res.status === 429) return null // 限流：交由上层跳过（已记入令牌桶，下次再试）
     if (!res.ok) return null
     const raw = await res.json()
     return firstImage(raw?.images) ?? null
