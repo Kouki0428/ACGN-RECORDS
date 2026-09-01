@@ -86,6 +86,11 @@ async function syncFromSingleton() {
     existingKeys = Object.keys(existing ?? {})
     existingStatus = existing?.status ?? null
     hadRating.value = !!(existing && typeof existing.rating === 'number' && existing.rating > 0)
+    // 吐槽预填：调用方传入（CollectionBar edit 已带）优先；未传时回退到库里已有吐槽，
+    // 保证从搜索结果 / 标签悬浮窗等入口打开也能看到已填过的吐槽。
+    if (!draftComment.value && existing?.comment) {
+      draftComment.value = existing.comment
+    }
     // 自取到有效评分（>0）则以自取为准（比调用方缓存更新鲜）；
     // 自取无评分且调用方也没传，则保持 null；自取失败则回退调用方传入值。
     if (existing && typeof existing.rating === 'number' && existing.rating > 0) {
