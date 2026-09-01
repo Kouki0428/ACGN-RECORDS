@@ -439,16 +439,17 @@ export async function getP1ChannelTags(
  * 返回匹配的 [{ name, count }]，count 取该标签在已拉取范围内的最大热度，按热度倒序。
  * 无关键词时返回空（UI 展示热门标签由 getP1ChannelTags 单独驱动）。
  */
-// 每类型的标签列表内存缓存（30 分钟）：避免每次搜索都重复拉 30 页，显著提速
+// 每类型的标签列表内存缓存（1 小时）：避免每次搜索都重复拉页，显著提速
 const tagListCache = new Map<number, { at: number; list: { name: string; count: number }[] }>()
-const TAG_CACHE_MS = 30 * 60 * 1000
+const TAG_CACHE_MS = 60 * 60 * 1000
 async function getCachedTypeTags(type: number, token?: string, signal?: AbortSignal): Promise<{ name: string; count: number }[]> {
   const hit = tagListCache.get(type)
   if (hit && Date.now() - hit.at < TAG_CACHE_MS) return hit.list
-  const pages = 30
+  // 每类型拉前 15 页（每页 100 = 1500 个热门标签）：覆盖绝大多数常用标签，首次更快
+  const pages = 15
   const jobs: number[] = []
   for (let p = 0; p < pages; p++) jobs.push(p * 100)
-  const pagesData = await mapWithConcurrency(jobs, 6, async (offset) => {
+  const pagesData = await mapWithConcurrency(jobs, 8, async (offset) => {
     if (signal?.aborted) return []
     try {
       const page = await getP1ChannelTags(type, token, signal, offset, 100)
