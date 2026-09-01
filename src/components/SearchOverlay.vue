@@ -117,6 +117,16 @@ const tagResults = ref<ChannelTag[]>([])
 // 全部类型（「全部」栏）：仅 书籍/动画/游戏（移除 音乐/三次元，减少请求提速）
 const ALL_TYPES = [1, 2, 4]
 async function loadHotTags() {
+  // 优先离线 Archive 库聚合热门标签（本地秒出）；离线库结果为空时回退 p1 频道标签
+  try {
+    const ah = await archiveClient.hotTags(30)
+    if (ah.length) {
+      hotTags.value = ah.slice(0, 20)
+      return
+    }
+  } catch {
+    /* 离线库不可用则走 p1 */
+  }
   try {
     if (tagType.value === undefined) {
       // 全部：合并所有类型的热门标签

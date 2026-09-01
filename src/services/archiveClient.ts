@@ -9,6 +9,7 @@ export const archiveClient = {
     window.acgn.archive.searchByTag(tag, limit) as Promise<ArchiveTagSubject[]>,
   searchTags: (keyword: string, limit = 50) =>
     window.acgn.archive.searchTags(keyword, limit) as Promise<{ data: ChannelTag[]; total: number }>,
+  hotTags: (limit = 20) => window.acgn.archive.hotTags(limit) as Promise<ChannelTag[]>,
   ensureCovers: (ids: number[]) => window.acgn.archive.ensureCovers(ids) as Promise<Record<number, string>>,
   subjectDates: (ids: number[]) =>
     window.acgn.archive.subjectDates(ids) as Promise<Record<number, string | null>>,

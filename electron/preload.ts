@@ -235,6 +235,7 @@ const api: AcgnApi = {
     search: (query, type, limit) => ipcRenderer.invoke('archive:search', query, type, limit),
     searchByTag: (tag, limit) => ipcRenderer.invoke('archive:searchByTag', tag, limit),
     searchTags: (keyword, limit) => ipcRenderer.invoke('archive:searchTags', keyword, limit),
+    hotTags: (limit) => ipcRenderer.invoke('archive:hotTags', limit),
     ensureCovers: (ids: number[]) => ipcRenderer.invoke('archive:ensureCovers', ids) as Promise<Record<number, string>>,
     subjectDates: (ids: number[]) =>
       ipcRenderer.invoke('archive:subjectDates', ids) as Promise<Record<number, string | null>>,

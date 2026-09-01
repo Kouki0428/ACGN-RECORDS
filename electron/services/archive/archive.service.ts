@@ -1018,6 +1018,39 @@ export async function searchSubjects(
 }
 
 /**
+ * 离线热门标签：在 arc_subjects.tags 中聚合最热标签（按命中作品数倒序）。
+ * 本地 SQLite 查询，秒出；供标签模式无关键词时展示热门标签。
+ */
+export async function getArchiveHotTags(limit = 20): Promise<{ name: string; count: number }[]> {
+  let db: any = null
+  try {
+    db = await getArchiveDb()
+  } catch {
+    db = null
+  }
+  if (!db || !tableExists(db, 'arc_subjects')) return []
+  const rows = db
+    .prepare(`SELECT tags FROM arc_subjects WHERE tags IS NOT NULL AND tags != '' LIMIT 20000`)
+    .all() as any[]
+  const countBy = new Map<string, number>()
+  for (const r of rows) {
+    try {
+      const tags = JSON.parse(r.tags || '[]')
+      if (!Array.isArray(tags)) continue
+      for (const t of tags) {
+        if (t && typeof t.name === 'string' && t.name) {
+          countBy.set(t.name, (countBy.get(t.name) ?? 0) + 1)
+        }
+      }
+    } catch { /* 忽略坏行 */ }
+  }
+  return [...countBy.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit)
+}
+
+/**
  * 离线标签搜索：按关键词在 arc_subjects.tags（JSON [{name,count}]）与 meta_tags 中
  * 模糊匹配标签名，聚合去重后按命中作品数倒序返回 [{name,count}]。
  * 本地 SQLite 查询，快且完整（离线库覆盖全量条目），供标签搜索建议使用。
