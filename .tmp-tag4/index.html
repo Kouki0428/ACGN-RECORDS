@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bangumi</title>
+    <!-- 首屏前同步设好主题，消除浅色主题 Ctrl+R 闪黑（默认 :root 为深色，
+         data-theme 原要到异步读库后才挂）。localStorage 同步且跨重载持久；
+         无记录则回退系统配色。必须在首屏绘制前执行，故用经典脚本置于 head。 -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('acgn-theme-resolved')
+          if (t !== 'light' && t !== 'dark') {
+            t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+          }
+          document.documentElement.setAttribute('data-theme', t)
+          var p = localStorage.getItem('acgn-preset-resolved')
+          if (p && p !== 'classic') document.documentElement.setAttribute('data-preset', p)
+        } catch (e) {}
+      })()
+    </script>
+    <script type="module" crossorigin src="./assets/index-DGzW-aiZ.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BbKViiSP.css">
+  </head>
+  <body>
+    <div id="app"></div>
+  </body>
+</html>

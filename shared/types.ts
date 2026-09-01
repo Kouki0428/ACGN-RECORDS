@@ -903,6 +903,8 @@ export interface AcgnApi {
     search: (query: SearchQuery) => Promise<SearchResultItem[]>
     /** 标签搜索（p1 /search/subjects）：按 tags/metaTags/type 检索作品，返回 SearchResultItem[] */
     searchByTag: (query: TagSearchQuery) => Promise<SearchResultItem[]>
+    /** 按关键词搜索标签（p1 频道标签 + 过滤）：返回匹配的标签候选 [{name,count}] */
+    searchTags: (payload: { keyword: string; type?: number }) => Promise<{ data: ChannelTag[]; total: number }>
     /** 频道热门标签（p1 /channels/{type}/tags）：标签搜索的联想 / 热门标签 */
     channelTags: (type: number) => Promise<{ data: ChannelTag[]; total: number }>
     /** 取 Galgame 的游戏画廊（复刻「游戏画廊」组件：VNDB 截图 / DLsite 样例 / Steam 截图，按来源分组） */

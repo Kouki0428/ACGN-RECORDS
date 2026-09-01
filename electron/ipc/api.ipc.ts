@@ -1,7 +1,7 @@
 import electron from 'electron'
 const { ipcMain } = electron
 import { unifiedSearch, unifiedTagSearch, type TagSearchQuery } from '../services/api/normalizer'
-import { getP1ChannelTags } from '../services/api/bangumi'
+import { getP1ChannelTags, searchP1Tags } from '../services/api/bangumi'
 import { getGalleryForSubject, lastGalleryDiag } from '../services/api/cg'
 import { fetchTimeline } from '../services/api/timeline'
 import { getValidToken } from '../services/auth/oauth'
@@ -42,6 +42,24 @@ export function registerApiIpc(): void {
     const token = (await getValidToken()) ?? undefined
     return getP1ChannelTags(type, token)
   })
+
+  // 按关键词搜索标签（p1 频道标签 + 客户端过滤）：返回匹配的 [{ name, count }]。
+  // 与作品标签搜索分离：这里返回的是「标签」候选，点击后在渲染层打开标签悬浮窗。
+  let tagCtrl: AbortController | null = null
+  ipcMain.handle(
+    'api:searchTags',
+    async (_event, payload: { keyword: string; type?: number }) => {
+      tagCtrl?.abort()
+      const ctrl = new AbortController()
+      tagCtrl = ctrl
+      try {
+        const token = (await getValidToken()) ?? undefined
+        return await searchP1Tags(payload.keyword, payload.type ?? 2, token, ctrl.signal)
+      } finally {
+        if (tagCtrl === ctrl) tagCtrl = null
+      }
+    }
+  )
 
   // 游戏画廊（复刻「游戏画廊」组件：VNDB 截图 / DLsite 样例 / Steam 截图，按来源分组）
   ipcMain.handle('api:gallery', async (_event, subjectId: number | string, force = false) => {

@@ -59,6 +59,9 @@ const api: AcgnApi = {
     search: (query) => ipcRenderer.invoke('api:search', query),
     // 标签搜索（p1 /search/subjects）：按 tags/metaTags/type 检索作品
     searchByTag: (query) => ipcRenderer.invoke('api:searchByTag', query),
+    // 按关键词搜索标签（p1 频道标签 + 过滤）：返回标签候选 [{name,count}]
+    searchTags: (payload: { keyword: string; type?: number }) =>
+      ipcRenderer.invoke('api:searchTags', payload),
     // 频道热门标签（p1 /channels/{type}/tags）：标签搜索的联想 / 热门标签
     channelTags: (type: number) => ipcRenderer.invoke('api:channelTags', type),
     gallery: (subjectId: number | string, force?: boolean) =>

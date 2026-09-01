@@ -428,6 +428,39 @@ export async function getP1ChannelTags(
   return { data: json.data ?? [], total: typeof json.total === 'number' ? json.total : 0 }
 }
 
+/**
+ * 按关键词搜索标签（p1：拉取频道热门标签 + 客户端过滤）。
+ * p1 无独立标签搜索端点，但 /channels/{type}/tags 的热门标签列表按热度倒序，
+ * 拉取前若干页后按关键词（子串、大小写不敏感）过滤，即可得到「搜索标签」的候选。
+ * 返回匹配的 [{ name, count }]，仍按热度倒序。无关键词时返回空（UI 展示热门标签由 getP1ChannelTags 单独驱动）。
+ */
+export async function searchP1Tags(
+  keyword: string,
+  type: number,
+  token?: string,
+  signal?: AbortSignal
+): Promise<{ data: { name: string; count: number }[]; total: number }> {
+  const kw = keyword.trim()
+  if (!kw) return { data: [], total: 0 }
+  const lower = kw.toLowerCase()
+  // 热门标签集中在前面，拉前 5 页（每页 100）足够覆盖常用标签
+  const pages = 5
+  const collected: { name: string; count: number }[] = []
+  const seen = new Set<string>()
+  for (let p = 0; p < pages; p++) {
+    if (signal?.aborted) break
+    const page = await getP1ChannelTags(type, token, signal, p * 100, 100)
+    for (const t of page.data) {
+      if (seen.has(t.name)) continue
+      seen.add(t.name)
+      collected.push(t)
+    }
+    if ((page.data ?? []).length < 100) break
+  }
+  const matched = collected.filter((t) => t.name.toLowerCase().includes(lower))
+  return { data: matched.slice(0, 50), total: matched.length }
+}
+
 export async function getEpisodes(subjectId: string, token?: string): Promise<SubjectFullEpisode[]> {
   const headers = authHeaders(token)
   const base = `${API_BASE}/episodes?subject_id=${encodeURIComponent(subjectId)}`

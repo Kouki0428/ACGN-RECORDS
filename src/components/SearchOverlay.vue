@@ -113,6 +113,7 @@ const personType = ref<'all' | 'virtual' | 'real'>('all')
 const tagType = ref<number | undefined>(undefined)
 const tagSort = ref<'match' | 'heat' | 'rank' | 'score'>('heat')
 const hotTags = ref<ChannelTag[]>([])
+const tagResults = ref<ChannelTag[]>([])
 async function loadHotTags() {
   // 热门标签按具体类型加载；「全部」时默认取动画频道建议
   const type = tagType.value ?? 2
@@ -178,6 +179,7 @@ function scheduleSearch() {
   const q = kw.value.trim()
   if (!q) {
     results.value = []
+    tagResults.value = []
     searching.value = false
     failed.value = ''
     return
@@ -192,11 +194,13 @@ async function doSearch() {
   const q = kw.value.trim()
   if (!q) {
     results.value = []
+    tagResults.value = []
     searching.value = false
     return
   }
   if (personNeedsLogin.value) {
     results.value = []
+    tagResults.value = []
     searching.value = false
     return
   }
@@ -204,15 +208,18 @@ async function doSearch() {
   failed.value = ''
   searching.value = true
   try {
-    const res =
-      domain.value === 'tag'
-        ? await apiClient.searchByTag({
-            keyword: q,
-            tags: [q],
-            type: tagType.value,
-            sort: tagSort.value
-          })
-        : await apiClient.search(buildQuery())
+    if (domain.value === 'tag') {
+      // 标签模式：搜索「标签」候选（p1 频道标签 + 关键词过滤），点击后打开标签悬浮窗
+      const tr = await apiClient.searchTags({ keyword: q, type: tagType.value ?? 2 })
+      if (seq !== searchSeq) return
+      tagResults.value = tr.data
+      results.value = []
+      pushSearchTerm(q)
+      tagPage.value = 1
+      scrollResultsToTop()
+      return
+    }
+    const res = await apiClient.search(buildQuery())
     // 丢弃过期请求的结果：仅采用「最后一次」搜索的返回，杜绝条/人串台。
     if (seq !== searchSeq) return
     results.value = res
@@ -237,8 +244,8 @@ async function doSearch() {
     }
     pushSearchTerm(q)
     // 新一次搜索（含切换 domain / 切换二级分类）从第一页开始；各 domain 独立页码。
+    // 注：标签模式已在上方分支内重置 tagPage 并提前返回，此处仅剩 条目/人物。
     if (domain.value === 'subject') subjectPage.value = 1
-    else if (domain.value === 'tag') tagPage.value = 1
     else personPage.value = 1
     scrollResultsToTop()
   } catch (e) {
@@ -255,6 +262,7 @@ async function doSearch() {
 watch([domain, subjectType, personType, tagType, tagSort], () => {
   searchSeq++ // 作废任何在途的旧搜索请求
   results.value = []
+  tagResults.value = []
   if (kw.value.trim()) {
     searching.value = true
     failed.value = ''
@@ -295,6 +303,7 @@ function onResultClick(r: SearchResultItem) {
 function clearKw() {
   kw.value = ''
   results.value = []
+  tagResults.value = []
   searching.value = false
   inputEl.value?.focus()
 }
@@ -307,11 +316,9 @@ function applyHistoryTerm(term: string) {
   inputEl.value?.focus()
 }
 
-// 点击热门标签建议 → 填入标签关键词并立即按标签检索
-function applyTagTerm(term: string) {
-  kw.value = term
-  void doSearch()
-  inputEl.value?.focus()
+// 点击搜索结果中的标签 → 打开对应标签的作品悬浮窗（kind='tag'，TagWorksCard）
+function openTagWorks(tag: string) {
+  entity.openTag(tag)
 }
 
 // 删除单条历史词（不触发检索）
@@ -339,6 +346,8 @@ watch(isOpen, async (v) => {
     if (!skipReset.value) {
       kw.value = ''
       results.value = []
+      tagResults.value = []
+      hotTags.value = []
       failed.value = ''
       searching.value = false
       domain.value = 'subject'
@@ -449,9 +458,9 @@ watch(isOpen, async (v) => {
                     :key="t.name"
                     class="hist-term"
                     type="button"
-                    :title="`搜索「${t.name}」（${t.count}）`"
-                    @click="applyTagTerm(t.name)"
-                  >{{ t.name }}</button>
+                    :title="`打开标签「${t.name}」的悬浮窗（${t.count}）`"
+                    @click="openTagWorks(t.name)"
+                  >{{ t.name }}<span class="tag-count">{{ t.count }}</span></button>
                 </div>
               </div>
               <p v-else class="hint">输入标签关键词开始搜索</p>
@@ -493,6 +502,22 @@ watch(isOpen, async (v) => {
               </div>
             </template>
             <p v-else class="hint">输入关键词开始搜索</p>
+          </div>
+          <!-- 标签模式：搜索结果 = 匹配的标签候选（点击打开该标签的作品悬浮窗） -->
+          <div v-else-if="domain === 'tag' && tagResults.length" class="ph ph--start">
+            <div class="start-block">
+              <div class="start-head"><span>匹配的标签</span></div>
+              <div class="hist-chips">
+                <button
+                  v-for="t in tagResults"
+                  :key="t.name"
+                  class="hist-term"
+                  type="button"
+                  :title="`打开标签「${t.name}」的悬浮窗（${t.count}）`"
+                  @click="openTagWorks(t.name)"
+                >{{ t.name }}<span class="tag-count">{{ t.count }}</span></button>
+              </div>
+            </div>
           </div>
           <div v-else-if="results.length === 0" class="ph">
             {{ domain === 'tag' ? `没有找到标签「${kw.trim()}」相关的作品` : `没有找到与“${kw.trim()}”相关的结果` }}
@@ -800,6 +825,11 @@ watch(isOpen, async (v) => {
 }
 .hist-term:hover {
   color: var(--accent-2);
+}
+.tag-count {
+  margin-left: 5px;
+  font-size: 11px;
+  color: var(--text-dim);
 }
 .hist-x {
   border: none;
