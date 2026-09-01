@@ -1129,7 +1129,7 @@ export async function getArchiveSubjectsByTag(
  * 返回 { [id]: url }（仅含成功取到封面的 id），供前端就地补图。
  * 注意：这是主进程网络调用，渲染层需经 IPC；离线/无网环境会整体失败、返回空对象，列表仍可正常显示（只是无封面）。
  */
-export async function ensureArchiveSubjectCovers(ids: number[]): Promise<Record<number, string>> {
+export async function ensureArchiveSubjectCovers(ids: number[], token?: string): Promise<Record<number, string>> {
   const result: Record<number, string> = {}
   const uniq = [...new Set(ids)].filter((x) => typeof x === 'number' && x > 0)
   if (!uniq.length) return result
@@ -1168,7 +1168,7 @@ export async function ensureArchiveSubjectCovers(ids: number[]): Promise<Record<
     while (cursor < needFetch.length) {
       const id = needFetch[cursor++]
       try {
-        const url = await getSubjectCover(id)
+        const url = await getSubjectCover(id, token)
         if (url) {
           result[id] = url
           // 回写 Archive，下次秒显

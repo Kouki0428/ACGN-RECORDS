@@ -1393,11 +1393,11 @@ function firstImage(images: any): string | undefined {
  * - 仅取封面 URL、不解析全量字段，轻量。失败（网络/限流/404）返回 null，由调用方降级。
  * - 复用 firstImage 的优先级（medium > large > common > small > grid），与详情页一致。
  */
-export async function getSubjectCover(id: number): Promise<string | null> {
+export async function getSubjectCover(id: number, token?: string): Promise<string | null> {
   if (!id || id <= 0) return null
-  const headers: Record<string, string> = { Accept: 'application/json', 'User-Agent': UA }
-  // 匿名详情接口限 30/min：补图前先过全局令牌桶，避免批量补图被 429 打光
-  await throttle(false)
+  const headers = { ...authHeaders(token), Accept: 'application/json' }
+  // 匿名详情接口限 30/min、授权 90/min：按是否带令牌选配额（登录后不再被 24/min 卡死）
+  await throttle(!!token)
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), 15000)
   try {
