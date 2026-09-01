@@ -605,10 +605,13 @@ watch(isOpen, async (v) => {
 .search-card.glow-card {
   background: color-mix(in srgb, var(--bg-panel) calc(70% * var(--glass-k)), transparent);
 }
-/* 沉浸光感下：搜索输入栏 / 一级标签按钮 / 作品卡片 同步半透明 */
+/* 沉浸光感下：搜索输入栏 / 一级标签按钮 / 作品卡片 / 分页按钮 / 历史标签 同步半透明 */
 .search-card.glow-card .search-bar,
 .search-card.glow-card .cat-tabs button,
-.search-card.glow-card .rcard {
+.search-card.glow-card .rcard,
+.search-card.glow-card .pg-btn,
+.search-card.glow-card .hist-chip,
+.search-card.glow-card .tag-term {
   background: color-mix(in srgb, var(--bg-elev) calc(70% * var(--glass-k)), transparent);
 }
 /* 一级标签的选中态保持强调色高亮（不被半透明覆盖） */

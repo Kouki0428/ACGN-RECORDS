@@ -270,6 +270,12 @@ function onWorkClick(id: number) {
 .tag-works-card.glow-card .rcard {
   background: color-mix(in srgb, var(--bg-elev) calc(70% * var(--glass-k)), transparent);
 }
+/* 沉浸光感下：筛选/排序选中按钮与分页按钮同步半透明 */
+.tag-works-card.glow-card .filters button.active,
+.tag-works-card.glow-card .sorts button.active,
+.tag-works-card.glow-card .pg-btn {
+  background: color-mix(in srgb, var(--bg-elev) calc(70% * var(--glass-k)), transparent);
+}
 .subject-head {
   display: flex;
   align-items: center;
