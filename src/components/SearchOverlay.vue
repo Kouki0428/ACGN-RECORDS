@@ -113,8 +113,8 @@ const personType = ref<'all' | 'virtual' | 'real'>('all')
 const tagType = ref<number | undefined>(undefined)
 const hotTags = ref<ChannelTag[]>([])
 const tagResults = ref<ChannelTag[]>([])
-// 全部类型（「全部」栏）：遍历各分类合并去重（count 取最大热度）
-const ALL_TYPES = [1, 2, 3, 4, 6]
+// 全部类型（「全部」栏）：仅 书籍/动画/游戏（移除 音乐/三次元，减少请求提速）
+const ALL_TYPES = [1, 2, 4]
 async function loadHotTags() {
   try {
     if (tagType.value === undefined) {
@@ -157,9 +157,7 @@ const tagTypeOpts = [
   { v: undefined, label: '全部' },
   { v: 2, label: '动画' },
   { v: 1, label: '书籍' },
-  { v: 4, label: '游戏' },
-  { v: 3, label: '音乐' },
-  { v: 6, label: '三次元' }
+  { v: 4, label: '游戏' }
 ] as const
 
 const CAT_LABELS: Record<Category, string> = {

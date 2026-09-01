@@ -55,7 +55,7 @@ export function registerApiIpc(): void {
       tagCtrl = ctrl
       try {
         const token = (await getValidToken()) ?? undefined
-        const types = payload.type ? [payload.type] : [1, 2, 3, 4, 6]
+        const types = payload.type ? [payload.type] : [1, 2, 4]
         return await searchP1Tags(payload.keyword, types, token, ctrl.signal)
       } finally {
         if (tagCtrl === ctrl) tagCtrl = null

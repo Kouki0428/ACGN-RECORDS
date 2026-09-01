@@ -432,13 +432,42 @@ export async function getP1ChannelTags(
  * 按关键词搜索标签（p1：拉取频道热门标签 + 客户端过滤 + 精确标签验证）。
  * p1 无独立标签搜索端点，但 /channels/{type}/tags 的热门标签列表按热度倒序，
  * 拉取前若干页后按关键词（子串、大小写不敏感）过滤，即可得到「搜索标签」的候选。
- * 支持多类型：传 types 数组（如全部类型 [1,2,3,4,6]）时遍历各类型合并去重后再过滤，
+ * 支持多类型：传 types 数组（如全部类型 [1,2,4]）时遍历各类型合并去重后再过滤，
  * 避免「全部」栏只取某单一类型（如动画）的标签。
  * 补充「精确标签验证」：若关键词本身就是一个有效标签（用 /search/subjects 的
  * filter.tags 精确查询有作品），即使它不在热门 top-3000 里也加入候选（count=该标签作品数）。
  * 返回匹配的 [{ name, count }]，count 取该标签在已拉取范围内的最大热度，按热度倒序。
  * 无关键词时返回空（UI 展示热门标签由 getP1ChannelTags 单独驱动）。
  */
+// 每类型的标签列表内存缓存（10 分钟）：避免每次搜索都重复拉 30 页，显著提速
+const tagListCache = new Map<number, { at: number; list: { name: string; count: number }[] }>()
+const TAG_CACHE_MS = 10 * 60 * 1000
+async function getCachedTypeTags(type: number, token?: string, signal?: AbortSignal): Promise<{ name: string; count: number }[]> {
+  const hit = tagListCache.get(type)
+  if (hit && Date.now() - hit.at < TAG_CACHE_MS) return hit.list
+  const pages = 30
+  const jobs: number[] = []
+  for (let p = 0; p < pages; p++) jobs.push(p * 100)
+  const pagesData = await mapWithConcurrency(jobs, 6, async (offset) => {
+    if (signal?.aborted) return []
+    try {
+      const page = await getP1ChannelTags(type, token, signal, offset, 100)
+      return page.data ?? []
+    } catch {
+      return []
+    }
+  })
+  const countBy = new Map<string, number>()
+  for (const data of pagesData) {
+    for (const t of data) {
+      const prev = countBy.get(t.name) ?? 0
+      if (t.count > prev) countBy.set(t.name, t.count)
+    }
+  }
+  const list = [...countBy.entries()].map(([name, count]) => ({ name, count }))
+  tagListCache.set(type, { at: Date.now(), list })
+  return list
+}
 export async function searchP1Tags(
   keyword: string,
   types: number[],
@@ -448,23 +477,11 @@ export async function searchP1Tags(
   const kw = keyword.trim()
   if (!kw || !types.length) return { data: [], total: 0 }
   const lower = kw.toLowerCase()
-  // 热门标签集中在前面，每类型拉前 30 页（每页 100 = 3000 个标签）覆盖常用标签；
-  // 多类型下并发拉取（限 6）避免顺序请求过慢。
-  const pages = 30
-  const jobs: { type: number; offset: number }[] = []
-  for (const type of types) for (let p = 0; p < pages; p++) jobs.push({ type, offset: p * 100 })
-  const pagesData = await mapWithConcurrency(jobs, 6, async (job) => {
-    if (signal?.aborted) return []
-    try {
-      const page = await getP1ChannelTags(job.type, token, signal, job.offset, 100)
-      return page.data ?? []
-    } catch {
-      return []
-    }
-  })
+  // 每类型并发拉取缓存的热门标签列表（各类型独立缓存，首次各拉 30 页，之后秒回）
+  const perType = await mapWithConcurrency(types, 6, async (type) => getCachedTypeTags(type, token, signal))
   const countBy = new Map<string, number>()
-  for (const data of pagesData) {
-    for (const t of data) {
+  for (const list of perType) {
+    for (const t of list) {
       const prev = countBy.get(t.name) ?? 0
       if (t.count > prev) countBy.set(t.name, t.count)
     }
