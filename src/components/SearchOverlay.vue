@@ -109,9 +109,8 @@ const domain = ref<'subject' | 'person' | 'tag'>('subject')
 // 二级分类
 const subjectType = ref<'all' | 'anime' | 'book' | 'game'>('all')
 const personType = ref<'all' | 'virtual' | 'real'>('all')
-// 标签搜索：类型过滤（p1 type）+ 排序
+// 标签搜索：类型过滤（p1 type）
 const tagType = ref<number | undefined>(undefined)
-const tagSort = ref<'match' | 'heat' | 'rank' | 'score'>('heat')
 const hotTags = ref<ChannelTag[]>([])
 const tagResults = ref<ChannelTag[]>([])
 async function loadHotTags() {
@@ -137,7 +136,7 @@ const personOpts = [
   { v: 'virtual', label: '虚拟' },
   { v: 'real', label: '现实' }
 ] as const
-// 标签搜索：类型过滤（Bangumi type）+ 排序
+// 标签搜索：类型过滤（Bangumi type）
 const tagTypeOpts = [
   { v: undefined, label: '全部' },
   { v: 2, label: '动画' },
@@ -145,12 +144,6 @@ const tagTypeOpts = [
   { v: 4, label: '游戏' },
   { v: 3, label: '音乐' },
   { v: 6, label: '三次元' }
-] as const
-const tagSortOpts = [
-  { v: 'heat', label: '热度' },
-  { v: 'rank', label: '排名' },
-  { v: 'score', label: '评分' },
-  { v: 'match', label: '匹配' }
 ] as const
 
 const CAT_LABELS: Record<Category, string> = {
@@ -259,7 +252,7 @@ async function doSearch() {
 
 // 切换一级/二级分类时：先清空上一域的结果并作废在途请求，避免旧结果残留/串台；
 // 有搜索词则按新条件用新请求重新检索（独立 200ms 防抖）。
-watch([domain, subjectType, personType, tagType, tagSort], () => {
+watch([domain, subjectType, personType, tagType], () => {
   searchSeq++ // 作废任何在途的旧搜索请求
   results.value = []
   tagResults.value = []
@@ -426,13 +419,6 @@ watch(isOpen, async (v) => {
               :class="{ active: tagType === opt.v }"
               @click="tagType = opt.v"
             >{{ opt.label }}</button>
-            <span class="cat-sub-sep"></span>
-            <button
-              v-for="opt in tagSortOpts"
-              :key="opt.v"
-              :class="{ active: tagSort === opt.v }"
-              @click="tagSort = opt.v"
-            >{{ opt.label }}</button>
           </template>
         </div>
 
@@ -456,7 +442,7 @@ watch(isOpen, async (v) => {
                   <button
                     v-for="t in hotTags"
                     :key="t.name"
-                    class="hist-term"
+                    class="tag-term"
                     type="button"
                     :title="`打开标签「${t.name}」的悬浮窗（${t.count}）`"
                     @click="openTagWorks(t.name)"
@@ -511,7 +497,7 @@ watch(isOpen, async (v) => {
                 <button
                   v-for="t in tagResults"
                   :key="t.name"
-                  class="hist-term"
+                  class="tag-term"
                   type="button"
                   :title="`打开标签「${t.name}」的悬浮窗（${t.count}）`"
                   @click="openTagWorks(t.name)"
@@ -736,13 +722,6 @@ watch(isOpen, async (v) => {
   border-color: var(--accent-aux);
   color: var(--text);
 }
-.cat-sub-sep {
-  align-self: center;
-  width: 1px;
-  height: 18px;
-  background: var(--border);
-  margin: 0 2px;
-}
 
 .results {
   flex: 1 1 auto;
@@ -825,6 +804,25 @@ watch(isOpen, async (v) => {
 }
 .hist-term:hover {
   color: var(--accent-2);
+}
+/* 标签搜索结果 / 热门标签：带边框框，激活（hover）用强调色 */
+.tag-term {
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  color: var(--text);
+  font-size: 13px;
+  padding: 5px 12px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+.tag-term:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 .tag-count {
   margin-left: 5px;
