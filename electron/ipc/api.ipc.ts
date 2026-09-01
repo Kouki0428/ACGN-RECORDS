@@ -45,6 +45,7 @@ export function registerApiIpc(): void {
 
   // 按关键词搜索标签（p1 频道标签 + 客户端过滤）：返回匹配的 [{ name, count }]。
   // 与作品标签搜索分离：这里返回的是「标签」候选，点击后在渲染层打开标签悬浮窗。
+  // payload.type 缺省或为 0 表示「全部类型」（遍历 1/2/3/4/6 合并标签）。
   let tagCtrl: AbortController | null = null
   ipcMain.handle(
     'api:searchTags',
@@ -54,7 +55,8 @@ export function registerApiIpc(): void {
       tagCtrl = ctrl
       try {
         const token = (await getValidToken()) ?? undefined
-        return await searchP1Tags(payload.keyword, payload.type ?? 2, token, ctrl.signal)
+        const types = payload.type ? [payload.type] : [1, 2, 3, 4, 6]
+        return await searchP1Tags(payload.keyword, types, token, ctrl.signal)
       } finally {
         if (tagCtrl === ctrl) tagCtrl = null
       }

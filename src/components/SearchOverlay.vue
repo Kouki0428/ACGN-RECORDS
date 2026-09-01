@@ -113,12 +113,28 @@ const personType = ref<'all' | 'virtual' | 'real'>('all')
 const tagType = ref<number | undefined>(undefined)
 const hotTags = ref<ChannelTag[]>([])
 const tagResults = ref<ChannelTag[]>([])
+// 全部类型（「全部」栏）：遍历各分类合并去重（count 取最大热度）
+const ALL_TYPES = [1, 2, 3, 4, 6]
 async function loadHotTags() {
-  // 热门标签按具体类型加载；「全部」时默认取动画频道建议
-  const type = tagType.value ?? 2
   try {
-    const r = await apiClient.channelTags(type)
-    hotTags.value = (r.data ?? []).slice(0, 20)
+    if (tagType.value === undefined) {
+      // 全部：合并所有类型的热门标签
+      const countBy = new Map<string, number>()
+      for (const t of ALL_TYPES) {
+        const r = await apiClient.channelTags(t)
+        for (const tag of r.data ?? []) {
+          const prev = countBy.get(tag.name) ?? 0
+          if (tag.count > prev) countBy.set(tag.name, tag.count)
+        }
+      }
+      hotTags.value = [...countBy.entries()]
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 20)
+    } else {
+      const r = await apiClient.channelTags(tagType.value)
+      hotTags.value = (r.data ?? []).slice(0, 20)
+    }
   } catch {
     hotTags.value = []
   }
@@ -203,7 +219,8 @@ async function doSearch() {
   try {
     if (domain.value === 'tag') {
       // 标签模式：搜索「标签」候选（p1 频道标签 + 关键词过滤），点击后打开标签悬浮窗
-      const tr = await apiClient.searchTags({ keyword: q, type: tagType.value ?? 2 })
+      // tagType 为 undefined = 「全部」：IPC 端遍历全部类型合并标签
+      const tr = await apiClient.searchTags({ keyword: q, type: tagType.value })
       if (seq !== searchSeq) return
       tagResults.value = tr.data
       results.value = []

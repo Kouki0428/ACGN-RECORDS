@@ -432,32 +432,46 @@ export async function getP1ChannelTags(
  * 按关键词搜索标签（p1：拉取频道热门标签 + 客户端过滤）。
  * p1 无独立标签搜索端点，但 /channels/{type}/tags 的热门标签列表按热度倒序，
  * 拉取前若干页后按关键词（子串、大小写不敏感）过滤，即可得到「搜索标签」的候选。
- * 返回匹配的 [{ name, count }]，仍按热度倒序。无关键词时返回空（UI 展示热门标签由 getP1ChannelTags 单独驱动）。
+ * 支持多类型：传 types 数组（如全部类型 [1,2,3,4,6]）时遍历各类型合并去重后再过滤，
+ * 避免「全部」栏只取某单一类型（如动画）的标签。
+ * 返回匹配的 [{ name, count }]，count 取该标签在已拉取范围内的最大热度，按热度倒序。
+ * 无关键词时返回空（UI 展示热门标签由 getP1ChannelTags 单独驱动）。
  */
 export async function searchP1Tags(
   keyword: string,
-  type: number,
+  types: number[],
   token?: string,
   signal?: AbortSignal
 ): Promise<{ data: { name: string; count: number }[]; total: number }> {
   const kw = keyword.trim()
-  if (!kw) return { data: [], total: 0 }
+  if (!kw || !types.length) return { data: [], total: 0 }
   const lower = kw.toLowerCase()
-  // 热门标签集中在前面，拉前 5 页（每页 100）足够覆盖常用标签
-  const pages = 5
-  const collected: { name: string; count: number }[] = []
-  const seen = new Set<string>()
-  for (let p = 0; p < pages; p++) {
-    if (signal?.aborted) break
-    const page = await getP1ChannelTags(type, token, signal, p * 100, 100)
-    for (const t of page.data) {
-      if (seen.has(t.name)) continue
-      seen.add(t.name)
-      collected.push(t)
+  // 热门标签集中在前面，每类型拉前 8 页（每页 100）覆盖常用标签；
+  // 多类型下并发拉取（限 6）避免顺序请求过慢。
+  const pages = 8
+  const jobs: { type: number; offset: number }[] = []
+  for (const type of types) for (let p = 0; p < pages; p++) jobs.push({ type, offset: p * 100 })
+  const pagesData = await mapWithConcurrency(jobs, 6, async (job) => {
+    if (signal?.aborted) return []
+    try {
+      const page = await getP1ChannelTags(job.type, token, signal, job.offset, 100)
+      return page.data ?? []
+    } catch {
+      return []
     }
-    if ((page.data ?? []).length < 100) break
+  })
+  const countBy = new Map<string, number>()
+  for (const data of pagesData) {
+    for (const t of data) {
+      const prev = countBy.get(t.name) ?? 0
+      if (t.count > prev) countBy.set(t.name, t.count)
+    }
   }
-  const matched = collected.filter((t) => t.name.toLowerCase().includes(lower))
+  const matched: { name: string; count: number }[] = []
+  for (const [name, count] of countBy) {
+    if (name.toLowerCase().includes(lower)) matched.push({ name, count })
+  }
+  matched.sort((a, b) => b.count - a.count)
   return { data: matched.slice(0, 50), total: matched.length }
 }
 
