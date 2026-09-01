@@ -266,6 +266,10 @@ function onWorkClick(id: number) {
 .tag-works-card.glow-card {
   background: color-mix(in srgb, var(--bg-panel) calc(70% * var(--glass-k)), transparent);
 }
+/* 沉浸光感下：作品卡片同步半透明 */
+.tag-works-card.glow-card .rcard {
+  background: color-mix(in srgb, var(--bg-elev) calc(70% * var(--glass-k)), transparent);
+}
 .subject-head {
   display: flex;
   align-items: center;
