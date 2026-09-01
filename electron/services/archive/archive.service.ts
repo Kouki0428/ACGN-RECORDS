@@ -1018,6 +1018,54 @@ export async function searchSubjects(
 }
 
 /**
+ * 离线标签搜索：按关键词在 arc_subjects.tags（JSON [{name,count}]）与 meta_tags 中
+ * 模糊匹配标签名，聚合去重后按命中作品数倒序返回 [{name,count}]。
+ * 本地 SQLite 查询，快且完整（离线库覆盖全量条目），供标签搜索建议使用。
+ */
+export async function searchArchiveTags(
+  keyword: string,
+  limit = 50
+): Promise<{ data: { name: string; count: number }[]; total: number }> {
+  const kw = keyword.trim()
+  if (!kw) return { data: [], total: 0 }
+  let db: any = null
+  try {
+    db = await getArchiveDb()
+  } catch {
+    db = null
+  }
+  if (!db || !tableExists(db, 'arc_subjects')) return { data: [], total: 0 }
+  // 粗筛：tags / meta_tags 列含关键词片段即纳入（LIKE 无法深匹配 JSON，先用它缩小范围）
+  const like = `%${kw.replace(/["\\%_]/g, '')}%`
+  const rows = db
+    .prepare(`SELECT tags, meta_tags FROM arc_subjects WHERE tags LIKE ? OR meta_tags LIKE ? LIMIT 2000`)
+    .all(like, like) as any[]
+  const countBy = new Map<string, number>()
+  const lower = kw.toLowerCase()
+  const bump = (name: string) => {
+    if (!name) return
+    if (name.toLowerCase().includes(lower)) {
+      countBy.set(name, (countBy.get(name) ?? 0) + 1)
+    }
+  }
+  for (const r of rows) {
+    try {
+      const tags = JSON.parse(r.tags || '[]')
+      if (Array.isArray(tags)) for (const t of tags) if (t && typeof t.name === 'string') bump(t.name)
+    } catch { /* 忽略坏行 */ }
+    try {
+      const mt = JSON.parse(r.meta_tags || '[]')
+      if (Array.isArray(mt)) for (const m of mt) if (typeof m === 'string') bump(m)
+    } catch { /* 忽略坏行 */ }
+  }
+  const data = [...countBy.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit)
+  return { data, total: data.length }
+}
+
+/**
  * 离线兜底：按标签过滤作品。arc_subjects.tags 是 JSON 数组 [{name,count}]。
  * 先 LIKE 粗筛缩小范围，再用 JSON 精确校验 name 完全相等，避免大小写/子串误匹配。
  * 返回含 category（细分类目，书籍按 Bangumi platform/tags 细分 小说/漫画）、rank、date，

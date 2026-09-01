@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, nextTick, computed } from 'vue'
 import { apiClient } from '@/services/apiClient'
+import { archiveClient } from '@/services/archiveClient'
 import { subjectClient } from '@/services/subjectClient'
 import { useAuthStore } from '@/stores/auth'
 import ResultCollectButton from '@/components/ResultCollectButton.vue'
@@ -216,11 +217,22 @@ async function doSearch() {
   searching.value = true
   try {
     if (domain.value === 'tag') {
-      // 标签模式：搜索「标签」候选（p1 频道标签 + 关键词过滤），点击后打开标签悬浮窗
-      // tagType 为 undefined = 「全部」：IPC 端遍历全部类型合并标签
-      const tr = await apiClient.searchTags({ keyword: q, type: tagType.value })
+      // 标签模式：搜索「标签」候选，点击后打开标签悬浮窗。
+      // 优先离线 Archive 库（本地查询，快且完整，且标签悬浮窗本就展示离线库作品）；
+      // 离线库结果为空（未下载 Archive）时回退 p1 频道标签。
+      let tags: ChannelTag[] = []
+      try {
+        const ar = await archiveClient.searchTags(q)
+        tags = ar.data ?? []
+      } catch {
+        tags = []
+      }
+      if (!tags.length) {
+        const tr = await apiClient.searchTags({ keyword: q, type: tagType.value })
+        tags = tr.data
+      }
       if (seq !== searchSeq) return
-      tagResults.value = tr.data
+      tagResults.value = tags
       results.value = []
       pushSearchTerm(q)
       tagPage.value = 1

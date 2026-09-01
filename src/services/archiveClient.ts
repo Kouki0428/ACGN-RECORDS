@@ -1,4 +1,4 @@
-import type { ArchiveMeta, ArchiveProgress, ArchiveUpdateResult, ArchiveSubjectSearch, ArchiveTagSubject } from '@shared/types'
+import type { ArchiveMeta, ArchiveProgress, ArchiveUpdateResult, ArchiveSubjectSearch, ArchiveTagSubject, ChannelTag } from '@shared/types'
 
 export const archiveClient = {
   getMeta: () => window.acgn.archive.getMeta() as Promise<ArchiveMeta | null>,
@@ -7,6 +7,8 @@ export const archiveClient = {
     window.acgn.archive.search(query, type, limit) as Promise<ArchiveSubjectSearch[]>,
   searchByTag: (tag: string, limit = 300) =>
     window.acgn.archive.searchByTag(tag, limit) as Promise<ArchiveTagSubject[]>,
+  searchTags: (keyword: string, limit = 50) =>
+    window.acgn.archive.searchTags(keyword, limit) as Promise<{ data: ChannelTag[]; total: number }>,
   ensureCovers: (ids: number[]) => window.acgn.archive.ensureCovers(ids) as Promise<Record<number, string>>,
   subjectDates: (ids: number[]) =>
     window.acgn.archive.subjectDates(ids) as Promise<Record<number, string | null>>,

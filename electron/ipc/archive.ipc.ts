@@ -1,6 +1,6 @@
 import electron from 'electron'
 const { ipcMain } = electron
-import { getArchiveMeta, updateArchive, searchSubjects, deleteArchive, getArchiveSubjectsByTag, ensureArchiveSubjectCovers, getArchiveSubjectDates } from '../services/archive/archive.service'
+import { getArchiveMeta, updateArchive, searchSubjects, deleteArchive, getArchiveSubjectsByTag, searchArchiveTags, ensureArchiveSubjectCovers, getArchiveSubjectDates } from '../services/archive/archive.service'
 import { getValidToken } from '../services/auth/oauth'
 
 export function registerArchiveIpc(): void {
@@ -23,6 +23,11 @@ export function registerArchiveIpc(): void {
 
   ipcMain.handle('archive:searchByTag', async (_event, tag: string, limit?: number) =>
     getArchiveSubjectsByTag(tag, limit)
+  )
+
+  // 离线标签搜索：按关键词在离线库 tags/meta_tags 中模糊匹配标签（本地查询，快且全）
+  ipcMain.handle('archive:searchTags', async (_event, keyword: string, limit?: number) =>
+    searchArchiveTags(keyword, limit)
   )
 
   // 离线 Archive 缺封面：从 Bangumi v0 联网补图（并回写 Archive 缓存）。
