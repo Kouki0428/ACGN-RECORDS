@@ -439,9 +439,9 @@ export async function getP1ChannelTags(
  * 返回匹配的 [{ name, count }]，count 取该标签在已拉取范围内的最大热度，按热度倒序。
  * 无关键词时返回空（UI 展示热门标签由 getP1ChannelTags 单独驱动）。
  */
-// 每类型的标签列表内存缓存（10 分钟）：避免每次搜索都重复拉 30 页，显著提速
+// 每类型的标签列表内存缓存（30 分钟）：避免每次搜索都重复拉 30 页，显著提速
 const tagListCache = new Map<number, { at: number; list: { name: string; count: number }[] }>()
-const TAG_CACHE_MS = 10 * 60 * 1000
+const TAG_CACHE_MS = 30 * 60 * 1000
 async function getCachedTypeTags(type: number, token?: string, signal?: AbortSignal): Promise<{ name: string; count: number }[]> {
   const hit = tagListCache.get(type)
   if (hit && Date.now() - hit.at < TAG_CACHE_MS) return hit.list
@@ -468,6 +468,13 @@ async function getCachedTypeTags(type: number, token?: string, signal?: AbortSig
   tagListCache.set(type, { at: Date.now(), list })
   return list
 }
+/** 后台预热标签缓存（进入标签模式时调用）：提前拉取各类型标签列表，使首次搜索秒回 */
+export async function warmTagListCache(types: number[], token?: string): Promise<void> {
+  await Promise.all(types.map((t) => getCachedTypeTags(t, token)))
+}
+// 精确标签验证结果缓存（键=关键词+类型范围）：避免每次击键都重复请求 /search/subjects
+const exactTagCache = new Map<string, { at: number; count: number }>()
+const EXACT_TAG_CACHE_MS = 30 * 60 * 1000
 export async function searchP1Tags(
   keyword: string,
   types: number[],
@@ -487,33 +494,45 @@ export async function searchP1Tags(
     }
   }
 
-  // 精确标签验证：关键词本身若是有效标签（filter.tags=[kw] 能查到作品），即使不在
-  // 热门 top-3000 也加入候选。逐类型查询（并发限 3），count=该标签下作品数。
-  const exactCounts = await mapWithConcurrency(types, 3, async (type) => {
-    if (signal?.aborted) return 0
-    try {
-      const page = await fetchSearchPage(
-        (offset) => ({
-          url: `${P1_BASE}/search/subjects?${new URLSearchParams({
-            limit: '1',
-            offset: String(offset)
-          }).toString()}`,
-          init: {
-            method: 'POST',
-            headers: { ...authHeaders(token), 'Content-Type': 'application/json', Accept: 'application/json' },
-            body: JSON.stringify({ keyword: kw, sort: 'heat', filter: { tags: [kw], type: [type] } })
-          }
-        }),
-        0,
-        signal
-      )
-      return typeof page.total === 'number' ? page.total : 0
-    } catch {
-      return 0
+  // 关键词已在热门标签中（精确名命中）：无需额外验证，直接走下方过滤
+  const exactHit = countBy.has(kw)
+  let exactTotal = 0
+  if (!exactHit) {
+    // 精确标签验证：关键词本身若是有效标签（filter.tags=[kw] 能查到作品），即使不在
+    // 热门 top-3000 也加入候选。结果按「关键词+类型」缓存，避免每次击键重复请求。
+    const ck = `${lower}|${types.join(',')}`
+    const ch = exactTagCache.get(ck)
+    if (ch && Date.now() - ch.at < EXACT_TAG_CACHE_MS) {
+      exactTotal = ch.count
+    } else {
+      const exactCounts = await mapWithConcurrency(types, 3, async (type) => {
+        if (signal?.aborted) return 0
+        try {
+          const page = await fetchSearchPage(
+            (offset) => ({
+              url: `${P1_BASE}/search/subjects?${new URLSearchParams({
+                limit: '1',
+                offset: String(offset)
+              }).toString()}`,
+              init: {
+                method: 'POST',
+                headers: { ...authHeaders(token), 'Content-Type': 'application/json', Accept: 'application/json' },
+                body: JSON.stringify({ keyword: kw, sort: 'heat', filter: { tags: [kw], type: [type] } })
+              }
+            }),
+            0,
+            signal
+          )
+          return typeof page.total === 'number' ? page.total : 0
+        } catch {
+          return 0
+        }
+      })
+      exactTotal = exactCounts.reduce((a, b) => a + b, 0)
+      exactTagCache.set(ck, { at: Date.now(), count: exactTotal })
     }
-  })
-  const exactTotal = exactCounts.reduce((a, b) => a + b, 0)
-  if (exactTotal > 0 && !countBy.has(kw)) countBy.set(kw, exactTotal)
+    if (exactTotal > 0 && !countBy.has(kw)) countBy.set(kw, exactTotal)
+  }
 
   const matched: { name: string; count: number }[] = []
   for (const [name, count] of countBy) {

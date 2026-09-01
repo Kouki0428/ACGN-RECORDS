@@ -64,6 +64,8 @@ const api: AcgnApi = {
       ipcRenderer.invoke('api:searchTags', payload),
     // 频道热门标签（p1 /channels/{type}/tags）：标签搜索的联想 / 热门标签
     channelTags: (type: number) => ipcRenderer.invoke('api:channelTags', type),
+    // 后台预热标签搜索缓存（进入标签模式时调用）
+    warmTagCache: (types: number[]) => ipcRenderer.invoke('api:warmTagCache', types),
     gallery: (subjectId: number | string, force?: boolean) =>
       ipcRenderer.invoke('api:gallery', subjectId, force)
   },

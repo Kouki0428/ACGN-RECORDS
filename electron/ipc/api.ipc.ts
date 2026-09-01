@@ -1,7 +1,7 @@
 import electron from 'electron'
 const { ipcMain } = electron
 import { unifiedSearch, unifiedTagSearch, type TagSearchQuery } from '../services/api/normalizer'
-import { getP1ChannelTags, searchP1Tags } from '../services/api/bangumi'
+import { getP1ChannelTags, searchP1Tags, warmTagListCache } from '../services/api/bangumi'
 import { getGalleryForSubject, lastGalleryDiag } from '../services/api/cg'
 import { fetchTimeline } from '../services/api/timeline'
 import { getValidToken } from '../services/auth/oauth'
@@ -41,6 +41,13 @@ export function registerApiIpc(): void {
   ipcMain.handle('api:channelTags', async (_event, type: number) => {
     const token = (await getValidToken()) ?? undefined
     return getP1ChannelTags(type, token)
+  })
+
+  // 后台预热标签搜索缓存（进入标签模式时调用）：提前拉取各类型标签列表，使首次搜索秒回
+  ipcMain.handle('api:warmTagCache', async (_event, types: number[]) => {
+    const token = (await getValidToken()) ?? undefined
+    await warmTagListCache(types, token)
+    return true
   })
 
   // 按关键词搜索标签（p1 频道标签 + 客户端过滤）：返回匹配的 [{ name, count }]。

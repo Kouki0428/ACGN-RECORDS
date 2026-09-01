@@ -279,8 +279,11 @@ watch([domain, subjectType, personType, tagType], () => {
     searching.value = false
     failed.value = ''
   }
-  // 进入标签模式时同步加载热门标签建议
-  if (domain.value === 'tag') void loadHotTags()
+  // 进入标签模式时同步加载热门标签建议，并后台预热标签缓存使首次搜索秒回
+  if (domain.value === 'tag') {
+    void loadHotTags()
+    void apiClient.warmTagCache(ALL_TYPES)
+  }
 })
 
 function keyOf(r: SearchResultItem): string {

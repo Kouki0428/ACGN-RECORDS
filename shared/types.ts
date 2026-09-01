@@ -907,6 +907,8 @@ export interface AcgnApi {
     searchTags: (payload: { keyword: string; type?: number }) => Promise<{ data: ChannelTag[]; total: number }>
     /** 频道热门标签（p1 /channels/{type}/tags）：标签搜索的联想 / 热门标签 */
     channelTags: (type: number) => Promise<{ data: ChannelTag[]; total: number }>
+    /** 后台预热标签搜索缓存（进入标签模式时调用，使首次搜索秒回） */
+    warmTagCache: (types: number[]) => Promise<boolean>
     /** 取 Galgame 的游戏画廊（复刻「游戏画廊」组件：VNDB 截图 / DLsite 样例 / Steam 截图，按来源分组） */
     gallery: (subjectId: number | string, force?: boolean) => Promise<GameGallery>
   }
