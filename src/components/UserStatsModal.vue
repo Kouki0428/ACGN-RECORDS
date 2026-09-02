@@ -59,7 +59,10 @@ function close() {
           <div class="us-head">
             <span class="us-title">数据统计</span>
             <button class="us-close" type="button" title="关闭" aria-label="关闭" @click="close">
-              ×
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
+                <line x1="6" y1="6" x2="18" y2="18" />
+                <line x1="18" y1="6" x2="6" y2="18" />
+              </svg>
             </button>
           </div>
 
@@ -198,14 +201,23 @@ function close() {
   font-weight: 700;
 }
 .us-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
   border: none;
-  background: transparent;
+  background: var(--bg-deep);
   color: var(--text-dim);
-  font-size: 22px;
-  line-height: 1;
   cursor: pointer;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
+  border-radius: 50%;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.us-close svg {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 .us-close:hover {
   background: var(--accent);
