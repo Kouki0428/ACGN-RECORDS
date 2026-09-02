@@ -115,10 +115,11 @@ export const useSettingsStore = defineStore('settings', () => {
   const galleryR18 = ref(false)
   // 显示 NSFW（R18）作品封面：开=正常显示封面，关=封面模糊（默认关=模糊）
   const showNsfw = ref(false)
-  // 窗口记忆：开=退出时保存窗口位置/尺寸，下次启动恢复；关=用默认窗口尺寸打开。默认关
-  const rememberWindow = ref(false)
-  // 默认窗口尺寸（关闭窗口记忆时生效）：宽 x 高，默认 1180x760
-  const defaultWindowSize = ref('1180x760')
+  // 窗口记忆：大小 / 位置分开记忆。开启对应项时退出保存、下次启动恢复；否则用默认窗口尺寸。默认关
+  const rememberWindowSize = ref(false)
+  const rememberWindowPos = ref(false)
+  // 默认窗口尺寸（关闭「记忆大小」时生效）：宽 x 高，默认 1280x800
+  const defaultWindowSize = ref('1280x800')
 
   async function load() {
     if (initialized) return
@@ -205,7 +206,8 @@ export const useSettingsStore = defineStore('settings', () => {
       if (r.key === 'uiSound') uiSound.value = r.value !== '0'
       if (r.key === 'galleryR18') galleryR18.value = r.value === '1'
       if (r.key === 'showNsfw') showNsfw.value = r.value === '1'
-      if (r.key === 'rememberWindow') rememberWindow.value = r.value === '1'
+      if (r.key === 'rememberWindowSize') rememberWindowSize.value = r.value === '1'
+      if (r.key === 'rememberWindowPos') rememberWindowPos.value = r.value === '1'
       if (r.key === 'defaultWindowSize') {
         if (/^\d{3,5}x\d{3,5}$/.test(r.value)) defaultWindowSize.value = r.value
       }
@@ -326,7 +328,8 @@ export const useSettingsStore = defineStore('settings', () => {
     if (key === 'uiSound') uiSound.value = value !== '0'
     if (key === 'galleryR18') galleryR18.value = value === '1'
     if (key === 'showNsfw') showNsfw.value = value === '1'
-    if (key === 'rememberWindow') rememberWindow.value = value === '1'
+    if (key === 'rememberWindowSize') rememberWindowSize.value = value === '1'
+    if (key === 'rememberWindowPos') rememberWindowPos.value = value === '1'
     if (key === 'defaultWindowSize') {
       if (/^\d{3,5}x\d{3,5}$/.test(value)) defaultWindowSize.value = value
     }
@@ -338,5 +341,5 @@ export const useSettingsStore = defineStore('settings', () => {
     theme.value = v
   }
 
-  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, mode, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, auxColor, darkPreset, lightPreset, detailBanner, bannerBlur, characterBanner, immersiveGlow, immersiveGlowStrength, subjectCardGlow, anchorBarEnabled, cardScale, showCharacters, showVolumes, showRelations, showTopics, showTucao, showGallery, showPurchase, closeBehavior, scheduleLight, scheduleDark, cornerRadius, uiSound, galleryR18, showNsfw, rememberWindow, defaultWindowSize, load, set, commitTheme }
+  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, mode, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, auxColor, darkPreset, lightPreset, detailBanner, bannerBlur, characterBanner, immersiveGlow, immersiveGlowStrength, subjectCardGlow, anchorBarEnabled, cardScale, showCharacters, showVolumes, showRelations, showTopics, showTucao, showGallery, showPurchase, closeBehavior, scheduleLight, scheduleDark, cornerRadius, uiSound, galleryR18, showNsfw, rememberWindowSize, rememberWindowPos, defaultWindowSize, load, set, commitTheme }
 })

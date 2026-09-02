@@ -448,14 +448,18 @@ const bannerBlurOptions = [
   { value: 'ultra', label: '超强' }
 ]
 
-// 默认窗口尺寸档位（关闭「记忆窗口」时生效）
+// 默认窗口尺寸档位（关闭「记忆窗口大小」时生效）
 const windowSizeOptions = [
-  { value: '1180x760', label: '1180×760' },
   { value: '1280x800', label: '1280×800' },
   { value: '1440x900', label: '1440×900' },
   { value: '1600x1000', label: '1600×1000' },
   { value: '1920x1080', label: '1920×1080' }
 ]
+// 自定义窗口尺寸输入（格式校验：宽x高，3~5 位数字各一）
+function onWinSizeInput(e: Event) {
+  const v = (e.target as HTMLInputElement).value.trim()
+  if (/^\d{3,5}x\d{3,5}$/.test(v)) void settings.set('defaultWindowSize', v)
+}
 
 // 强调色预设（'' = 默认粉，由「默认」按钮处理）
 const accentPresets = [
@@ -1296,11 +1300,15 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
 
       <hr class="divider" />
       <label class="progress-editor">
-        <ToggleSwitch :model-value="settings.rememberWindow" @update:model-value="(v: boolean) => settings.set('rememberWindow', v ? '1' : '0')" />
-        记忆窗口位置和大小（退出时保存，下次启动恢复）
+        <ToggleSwitch :model-value="settings.rememberWindowSize" @update:model-value="(v: boolean) => settings.set('rememberWindowSize', v ? '1' : '0')" />
+        记忆窗口大小（退出时保存尺寸，下次启动恢复）
       </label>
-      <p v-if="!settings.rememberWindow" class="hint" style="margin: 10px 0 2px">默认窗口尺寸（关闭「记忆窗口」时生效）</p>
-      <div v-if="!settings.rememberWindow" class="seg" v-seg-thumb>
+      <label class="progress-editor">
+        <ToggleSwitch :model-value="settings.rememberWindowPos" @update:model-value="(v: boolean) => settings.set('rememberWindowPos', v ? '1' : '0')" />
+        记忆窗口位置（退出时保存位置，下次启动恢复）
+      </label>
+      <p class="hint" style="margin: 10px 0 2px; opacity: 1; transition: opacity 0.15s">默认窗口尺寸（开启「记忆窗口大小」时不可用）</p>
+      <div class="seg" v-seg-thumb :class="{ 'is-disabled': settings.rememberWindowSize }">
         <span class="seg-thumb" aria-hidden="true"></span>
         <button
           v-for="o in windowSizeOptions"
@@ -1308,10 +1316,25 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
           type="button"
           class="seg-item"
           :class="{ active: settings.defaultWindowSize === o.value }"
+          :disabled="settings.rememberWindowSize"
           @click="settings.set('defaultWindowSize', o.value)"
         >
           {{ o.label }}
         </button>
+      </div>
+      <div class="scale-control" :class="{ 'is-disabled': settings.rememberWindowSize }">
+        <div class="scale-head">
+          <span>自定义尺寸（宽×高）</span>
+          <span class="scale-val">{{ settings.defaultWindowSize }}</span>
+        </div>
+        <input
+          class="win-size-input"
+          :value="settings.defaultWindowSize"
+          :disabled="settings.rememberWindowSize"
+          placeholder="如 1366x768"
+          @change="onWinSizeInput"
+        />
+        <p class="hint">输入形如 宽x高（如 1366x768），松手/回车后生效。</p>
       </div>
     </section>
 
@@ -2369,5 +2392,28 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
 .sg-card:hover .sg-chevron {
   transform: translateX(3px);
   color: var(--accent-aux);
+}
+/* 窗口尺寸：开启「记忆窗口大小」时整组变灰禁用 */
+.is-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+.win-size-input {
+  width: 100%;
+  margin-top: 8px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.win-size-input:focus {
+  border-color: var(--accent);
+}
+.win-size-input:disabled {
+  cursor: not-allowed;
 }
 </style>

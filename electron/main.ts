@@ -199,17 +199,22 @@ import { reclassifyBooks, backfillSubjectNsfw } from './services/db/repositories
 let win: BrowserWindow | null = null
 
 function createWindow(): void {
-  // 窗口初始尺寸：开启「记忆窗口」→ 用上次保存的 bounds（含位置）；否则用默认尺寸
+  // 窗口初始尺寸/位置：分别按「记忆大小 / 记忆位置」应用上次保存的 bounds；
+  // 未记忆的维度用默认尺寸（位置交给系统摆放）。
   const wcfg = readWindowConfigSync()
-  const remembered = wcfg.remember ? readRememberedBoundsSync() : null
-  const initial: Electron.BrowserWindowConstructorOptions = remembered
-    ? {
-        width: remembered.width,
-        height: remembered.height,
-        ...(remembered.x !== undefined ? { x: remembered.x } : {}),
-        ...(remembered.y !== undefined ? { y: remembered.y } : {})
-      }
-    : { width: wcfg.width, height: wcfg.height }
+  const remembered = wcfg.rememberSize || wcfg.rememberPos ? readRememberedBoundsSync() : null
+  const initial: Electron.BrowserWindowConstructorOptions = {}
+  if (remembered && wcfg.rememberSize) {
+    initial.width = remembered.width
+    initial.height = remembered.height
+  } else {
+    initial.width = wcfg.width
+    initial.height = wcfg.height
+  }
+  if (remembered && wcfg.rememberPos && remembered.x !== undefined && remembered.y !== undefined) {
+    initial.x = remembered.x
+    initial.y = remembered.y
+  }
   win = new BrowserWindow({
     ...initial,
     minWidth: 920,
@@ -253,8 +258,9 @@ function createWindow(): void {
   // exit 且用户从未选择过（首次关闭）→ 弹窗询问「缩到托盘 / 直接退出」，
   // 可勾选记住；此后按记忆行为静默执行。
   win.on('close', (e) => {
-    // 关闭窗口前若开启「记忆窗口」，保存当前位置/尺寸（含缩到托盘场景，供下次启动恢复）
-    if (readWindowConfigSync().remember && win) {
+    // 关闭窗口前若开启了「记忆大小」或「记忆位置」，保存当前 bounds（读取时按开关分别应用）
+    const wcfg = readWindowConfigSync()
+    if ((wcfg.rememberSize || wcfg.rememberPos) && win) {
       const b = win.getBounds()
       writeSettingSync('windowBounds', JSON.stringify(b))
     }
@@ -448,9 +454,9 @@ function readCloseBehaviorSync(): 'minimize' | 'exit' {
   }
 }
 
-// 同步读取窗口配置：是否记忆窗口 + 默认尺寸（仅当 DB 可读时；异常时按「不记忆 + 默认 1180x760」）
-function readWindowConfigSync(): { remember: boolean; width: number; height: number } {
-  const DEF = { remember: false, width: 1180, height: 760 }
+// 同步读取窗口配置：是否记忆大小 / 位置 + 默认尺寸（仅当 DB 可读时；异常时按「不记忆 + 默认 1280x800」）
+function readWindowConfigSync(): { rememberSize: boolean; rememberPos: boolean; width: number; height: number } {
+  const DEF = { rememberSize: false, rememberPos: false, width: 1280, height: 800 }
   try {
     const require = createRequire(import.meta.url)
     const Database = require('better-sqlite3') as { new (p: string, o?: object): any }
@@ -459,7 +465,8 @@ function readWindowConfigSync(): { remember: boolean; width: number; height: num
     const get = (k: string) =>
       (db.prepare('SELECT value FROM settings WHERE key = ?').get(k) as { value: string } | undefined)
         ?.value
-    const remember = get('rememberWindow') === '1'
+    const rememberSize = get('rememberWindowSize') === '1'
+    const rememberPos = get('rememberWindowPos') === '1'
     let width = DEF.width
     let height = DEF.height
     const size = get('defaultWindowSize')
@@ -469,7 +476,7 @@ function readWindowConfigSync(): { remember: boolean; width: number; height: num
       height = Number(m[2])
     }
     db.close()
-    return { remember, width, height }
+    return { rememberSize, rememberPos, width, height }
   } catch {
     return DEF
   }
