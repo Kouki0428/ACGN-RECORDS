@@ -122,8 +122,49 @@ export const useSettingsStore = defineStore('settings', () => {
   const defaultWindowSize = ref('1280x800')
   // 自定义 CSS：用户粘贴的样式，注入到 <style id="app-custom-css">，实时生效并持久化。
   // 开关 customCssEnabled 关闭时完全不注入（避免与原有样式冲突），默认关。
+  // customCssImportant：强制覆盖（为每条声明加 !important，压过 Vue scoped 样式），默认关。
   const customCssEnabled = ref(false)
+  const customCssImportant = ref(false)
   const customCss = ref('')
+
+  // 给每条 CSS 声明追加 !important（用 DOM 解析，避免破坏 @media/注释/字符串；解析失败回退原文）
+  function forceImportant(css: string): string {
+    try {
+      const probe = document.createElement('style')
+      probe.textContent = css
+      document.head.appendChild(probe)
+      const sheet = probe.sheet as CSSStyleSheet | null
+      if (!sheet) {
+        probe.remove()
+        return css
+      }
+      const walk = (rules: CSSRuleList) => {
+        for (const rule of Array.from(rules)) {
+          if (rule instanceof CSSStyleRule) {
+            const st = rule.style
+            for (let i = 0; i < st.length; i++) {
+              const prop = st[i]
+              st.setProperty(prop, st.getPropertyValue(prop), 'important')
+            }
+          } else if (
+            rule instanceof CSSMediaRule ||
+            rule instanceof CSSSupportsRule ||
+            (rule as CSSGroupingRule).cssRules
+          ) {
+            walk((rule as CSSGroupingRule).cssRules)
+          }
+        }
+      }
+      walk(sheet.cssRules)
+      const out = Array.from(sheet.cssRules)
+        .map((r) => r.cssText)
+        .join('\n')
+      probe.remove()
+      return out
+    } catch {
+      return css
+    }
+  }
 
   // 把自定义 CSS 注入到 <style id="app-custom-css">（覆盖式，放在文档末尾保证优先级）；
   // 开关关闭或内容为空时移除样式标签。
@@ -136,7 +177,7 @@ export const useSettingsStore = defineStore('settings', () => {
         el.id = 'app-custom-css'
         document.head.appendChild(el)
       }
-      el.textContent = css
+      el.textContent = customCssImportant.value ? forceImportant(css) : css
     } else if (el) {
       el.remove()
     }
@@ -233,6 +274,7 @@ export const useSettingsStore = defineStore('settings', () => {
         if (/^\d{3,5}x\d{3,5}$/.test(r.value)) defaultWindowSize.value = r.value
       }
       if (r.key === 'customCssEnabled') customCssEnabled.value = r.value === '1'
+      if (r.key === 'customCssImportant') customCssImportant.value = r.value === '1'
       if (r.key === 'customCss') {
         customCss.value = r.value || ''
       }
@@ -364,6 +406,10 @@ export const useSettingsStore = defineStore('settings', () => {
       customCssEnabled.value = value === '1'
       applyCustomCss(customCss.value)
     }
+    if (key === 'customCssImportant') {
+      customCssImportant.value = value === '1'
+      applyCustomCss(customCss.value)
+    }
     if (key === 'customCss') {
       customCss.value = value || ''
       applyCustomCss(customCss.value)
@@ -376,5 +422,5 @@ export const useSettingsStore = defineStore('settings', () => {
     theme.value = v
   }
 
-  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, mode, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, auxColor, darkPreset, lightPreset, detailBanner, bannerBlur, characterBanner, immersiveGlow, immersiveGlowStrength, subjectCardGlow, anchorBarEnabled, cardScale, showCharacters, showVolumes, showRelations, showTopics, showTucao, showGallery, showPurchase, closeBehavior, scheduleLight, scheduleDark, cornerRadius, uiSound, galleryR18, showNsfw, rememberWindowSize, rememberWindowPos, defaultWindowSize, customCssEnabled, customCss, load, set, commitTheme }
+  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, mode, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, auxColor, darkPreset, lightPreset, detailBanner, bannerBlur, characterBanner, immersiveGlow, immersiveGlowStrength, subjectCardGlow, anchorBarEnabled, cardScale, showCharacters, showVolumes, showRelations, showTopics, showTucao, showGallery, showPurchase, closeBehavior, scheduleLight, scheduleDark, cornerRadius, uiSound, galleryR18, showNsfw, rememberWindowSize, rememberWindowPos, defaultWindowSize, customCssEnabled, customCssImportant, customCss, load, set, commitTheme }
 })
