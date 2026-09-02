@@ -448,6 +448,15 @@ const bannerBlurOptions = [
   { value: 'ultra', label: '超强' }
 ]
 
+// 默认窗口尺寸档位（关闭「记忆窗口」时生效）
+const windowSizeOptions = [
+  { value: '1180x760', label: '1180×760' },
+  { value: '1280x800', label: '1280×800' },
+  { value: '1440x900', label: '1440×900' },
+  { value: '1600x1000', label: '1600×1000' },
+  { value: '1920x1080', label: '1920×1080' }
+]
+
 // 强调色预设（'' = 默认粉，由「默认」按钮处理）
 const accentPresets = [
   { hex: '#ff5c8a', label: '樱粉' },
@@ -1284,6 +1293,26 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         <ToggleSwitch :model-value="settings.anchorBarEnabled" @update:model-value="(v: boolean) => settings.set('anchorBarEnabled', v ? '1' : '0')" />
         快捷跳转栏（详情页与作品悬浮窗顶部的锚点导航）
       </label>
+
+      <hr class="divider" />
+      <label class="progress-editor">
+        <ToggleSwitch :model-value="settings.rememberWindow" @update:model-value="(v: boolean) => settings.set('rememberWindow', v ? '1' : '0')" />
+        记忆窗口位置和大小（退出时保存，下次启动恢复）
+      </label>
+      <p v-if="!settings.rememberWindow" class="hint" style="margin: 10px 0 2px">默认窗口尺寸（关闭「记忆窗口」时生效）</p>
+      <div v-if="!settings.rememberWindow" class="seg" v-seg-thumb>
+        <span class="seg-thumb" aria-hidden="true"></span>
+        <button
+          v-for="o in windowSizeOptions"
+          :key="o.value"
+          type="button"
+          class="seg-item"
+          :class="{ active: settings.defaultWindowSize === o.value }"
+          @click="settings.set('defaultWindowSize', o.value)"
+        >
+          {{ o.label }}
+        </button>
+      </div>
     </section>
 
     <!-- 沉浸光感 -->

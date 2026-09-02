@@ -199,9 +199,19 @@ import { reclassifyBooks, backfillSubjectNsfw } from './services/db/repositories
 let win: BrowserWindow | null = null
 
 function createWindow(): void {
+  // 窗口初始尺寸：开启「记忆窗口」→ 用上次保存的 bounds（含位置）；否则用默认尺寸
+  const wcfg = readWindowConfigSync()
+  const remembered = wcfg.remember ? readRememberedBoundsSync() : null
+  const initial: Electron.BrowserWindowConstructorOptions = remembered
+    ? {
+        width: remembered.width,
+        height: remembered.height,
+        ...(remembered.x !== undefined ? { x: remembered.x } : {}),
+        ...(remembered.y !== undefined ? { y: remembered.y } : {})
+      }
+    : { width: wcfg.width, height: wcfg.height }
   win = new BrowserWindow({
-    width: 1180,
-    height: 760,
+    ...initial,
     minWidth: 920,
     minHeight: 600,
     // 自动隐藏原生菜单栏：顶部的「Bangumi / 编辑」菜单条默认不显示（按 Alt 临时浮现），
@@ -243,6 +253,11 @@ function createWindow(): void {
   // exit 且用户从未选择过（首次关闭）→ 弹窗询问「缩到托盘 / 直接退出」，
   // 可勾选记住；此后按记忆行为静默执行。
   win.on('close', (e) => {
+    // 关闭窗口前若开启「记忆窗口」，保存当前位置/尺寸（含缩到托盘场景，供下次启动恢复）
+    if (readWindowConfigSync().remember && win) {
+      const b = win.getBounds()
+      writeSettingSync('windowBounds', JSON.stringify(b))
+    }
     if (isQuitting) return
     if (closeBehavior === 'minimize') {
       e.preventDefault()
@@ -432,6 +447,83 @@ function readCloseBehaviorSync(): 'minimize' | 'exit' {
     return 'exit'
   }
 }
+
+// 同步读取窗口配置：是否记忆窗口 + 默认尺寸（仅当 DB 可读时；异常时按「不记忆 + 默认 1180x760」）
+function readWindowConfigSync(): { remember: boolean; width: number; height: number } {
+  const DEF = { remember: false, width: 1180, height: 760 }
+  try {
+    const require = createRequire(import.meta.url)
+    const Database = require('better-sqlite3') as { new (p: string, o?: object): any }
+    const dbPath = join(app.getPath('userData'), 'bangumi-for-pc.db')
+    const db = new Database(dbPath, { readonly: true, fileMustExist: true })
+    const get = (k: string) =>
+      (db.prepare('SELECT value FROM settings WHERE key = ?').get(k) as { value: string } | undefined)
+        ?.value
+    const remember = get('rememberWindow') === '1'
+    let width = DEF.width
+    let height = DEF.height
+    const size = get('defaultWindowSize')
+    const m = size && /^(\d{3,5})x(\d{3,5})$/.exec(size)
+    if (m) {
+      width = Number(m[1])
+      height = Number(m[2])
+    }
+    db.close()
+    return { remember, width, height }
+  } catch {
+    return DEF
+  }
+}
+
+// 读取已记忆的窗口 bounds（JSON：{x,y,width,height}）；无/非法返回 null
+function readRememberedBoundsSync(): { x: number; y: number; width: number; height: number } | null {
+  try {
+    const require = createRequire(import.meta.url)
+    const Database = require('better-sqlite3') as { new (p: string, o?: object): any }
+    const dbPath = join(app.getPath('userData'), 'bangumi-for-pc.db')
+    const db = new Database(dbPath, { readonly: true, fileMustExist: true })
+    const row = db.prepare('SELECT value FROM settings WHERE key = ?').get('windowBounds') as
+      | { value: string }
+      | undefined
+    db.close()
+    if (!row?.value) return null
+    const b = JSON.parse(row.value) as { x?: number; y?: number; width?: number; height?: number }
+    if (
+      typeof b.width === 'number' &&
+      typeof b.height === 'number' &&
+      isFinite(b.width) &&
+      isFinite(b.height)
+    ) {
+      return {
+        x: typeof b.x === 'number' && isFinite(b.x) ? b.x : undefined as unknown as number,
+        y: typeof b.y === 'number' && isFinite(b.y) ? b.y : undefined as unknown as number,
+        width: b.width,
+        height: b.height
+      }
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+// 同步写入设置（用于退出前保存窗口 bounds 等必须落盘的场景）
+function writeSettingSync(key: string, value: string): void {
+  try {
+    const require = createRequire(import.meta.url)
+    const Database = require('better-sqlite3') as { new (p: string, o?: object): any }
+    const dbPath = join(app.getPath('userData'), 'bangumi-for-pc.db')
+    const db = new Database(dbPath)
+    db.prepare(
+      `INSERT INTO settings (key, value) VALUES (?, ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+    ).run(key, value)
+    db.close()
+  } catch {
+    /* 忽略写入失败 */
+  }
+}
+
 function showMainWindow() {
   if (!win) createWindow()
   else {
@@ -439,8 +531,7 @@ function showMainWindow() {
     win.show()
     win.focus()
   }
-}
-function createTray() {
+}function createTray() {
   try {
     // 托盘专用图标：16px(100% DPI) + 32px(200% DPI) 双分辨率表示。
     // 若直接用 256px 大图，Windows 缩到 16px 会把小电视细节完全糊掉。
