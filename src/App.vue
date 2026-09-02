@@ -17,6 +17,7 @@ import { useSearchOverlay } from './composables/searchOverlay'
 import { useEntityCard } from './composables/useEntityCard'
 import { useCollectionModal } from './composables/useCollectionModal'
 import { useUserStatsModal } from './composables/useUserStatsModal'
+import { useImagePreview } from './composables/useImagePreview'
 import { useAppHotkeys } from './composables/useAppHotkeys'
 import { installGridNav } from './utils/gridNav'
 import { installClickSound } from './utils/uiSound'
@@ -37,6 +38,8 @@ const collection = useCollectionModal()
 const collectionOpen = collection.isOpen
 const statsModal = useUserStatsModal()
 const statsOpen = statsModal.isOpen
+const imagePreview = useImagePreview()
+const imagePreviewOpen = imagePreview.visible
 
 // 全局模糊遮罩：搜索 / 实体卡 打开时显示唯一一层 backdrop-filter 模糊。
 // 各悬浮窗自身不再带 backdrop-filter（见各 *-overlay 样式），因此悬浮窗之间
@@ -63,6 +66,11 @@ function onSideDown(e: MouseEvent) {
   const now = Date.now()
   if (now - lastSideAt < 400) return
   lastSideAt = now
+  // 图片放大预览（全屏大图，盖在所有悬浮窗之上）：后退关闭大图，不触碰背后场景。
+  if (imagePreviewOpen.value) {
+    if (e.button === 3) imagePreview.closeImage()
+    return
+  }
   // 实体详情卡片（角色/CV/作品/单集评论）打开时：侧键驱动卡片内部导航栈历史
   // （角色↔角色 / 人物↔人物 / 角色→作品→单集→…），不影响背后的场景；
   // 到达卡片历史根部再按后退则关闭卡片（回到详情页或搜索卡片）。

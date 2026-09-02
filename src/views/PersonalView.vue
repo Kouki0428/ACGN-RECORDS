@@ -95,18 +95,14 @@ function openSubject(id: number) {
   entityCard.open('subject', id)
 }
 
-// 统计悬浮窗：懒加载一次本地收藏聚合数据
+// 统计悬浮窗：每次打开都重新拉取本地收藏聚合数据，保证统计数字最新
 const statsModal = useUserStatsModal()
-const userStats = ref<UserStats | null>(null)
 async function openStats() {
-  if (!userStats.value) {
-    try {
-      userStats.value = await collectionClient.userStats()
-    } catch {
-      userStats.value = null
-    }
+  try {
+    statsModal.open(await collectionClient.userStats())
+  } catch {
+    statsModal.open(null)
   }
-  statsModal.open(userStats.value)
 }
 
 onMounted(async () => {
