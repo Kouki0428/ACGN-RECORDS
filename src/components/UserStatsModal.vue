@@ -176,11 +176,9 @@ function close() {
 .us-modal.glow-card {
   background: color-mix(in srgb, var(--bg-elev) calc(70% * var(--glass-k)), transparent);
 }
-/* 沉浸光感下：统计卡片 / 花费条 / 柱状图轨道 / 分类标签按钮 同步半透明 */
+/* 沉浸光感下：统计卡片 / 花费条 / 分类标签按钮 同步半透明（柱状图轨道保持透明，不叠加底色） */
 .us-modal.glow-card .us-card,
 .us-modal.glow-card .us-spent,
-.us-modal.glow-card .us-bar-track,
-.us-modal.glow-card .us-bar-tip,
 .us-modal.glow-card .us-tab {
   background: color-mix(in srgb, var(--bg-deep) calc(70% * var(--glass-k)), transparent);
 }
