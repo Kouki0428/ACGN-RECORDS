@@ -190,10 +190,6 @@ function close() {
   border-color: var(--accent-2, #5b9dff);
   color: #fff;
 }
-/* 沉浸光感下：关闭按钮同步半透明（hover/active 保持强调色高亮） */
-.us-modal.glow-card .us-close {
-  background: color-mix(in srgb, var(--bg-deep) calc(70% * var(--glass-k)), transparent);
-}
 .us-head {
   display: flex;
   align-items: center;
