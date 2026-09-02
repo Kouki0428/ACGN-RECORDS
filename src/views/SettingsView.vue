@@ -1380,10 +1380,16 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
       </div>
 
       <hr class="divider" />
-      <p class="hint" style="margin: 0 0 6px">自定义 CSS：粘贴样式后实时生效（仅影响外观，不会执行脚本）。可覆盖任意选择器或使用内置变量（如 --accent / --bg / --radius）。</p>
+      <label class="progress-editor">
+        <ToggleSwitch :model-value="settings.customCssEnabled" @update:model-value="(v: boolean) => settings.set('customCssEnabled', v ? '1' : '0')" />
+        启用自定义 CSS（关闭时不注入，恢复原有样式）
+      </label>
+      <p class="hint" style="margin: 10px 0 6px">自定义 CSS：粘贴样式后实时生效（仅影响外观，不会执行脚本）。可覆盖任意选择器或使用内置变量（如 --accent / --bg / --radius）。</p>
       <textarea
         class="custom-css-input"
+        :class="{ 'is-disabled': !settings.customCssEnabled }"
         :value="settings.customCss"
+        :disabled="!settings.customCssEnabled"
         spellcheck="false"
         placeholder="例如：` .panel { border-radius: 12px; } `  或  ` :root { --accent: #ff5c8a; } `"
         @input="onCustomCssInput"

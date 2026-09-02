@@ -120,18 +120,26 @@ export const useSettingsStore = defineStore('settings', () => {
   const rememberWindowPos = ref(false)
   // 默认窗口尺寸（关闭「记忆大小」时生效）：宽 x 高，默认 1280x800
   const defaultWindowSize = ref('1280x800')
-  // 自定义 CSS：用户粘贴的样式，注入到 <style id="app-custom-css">，实时生效并持久化
+  // 自定义 CSS：用户粘贴的样式，注入到 <style id="app-custom-css">，实时生效并持久化。
+  // 开关 customCssEnabled 关闭时完全不注入（避免与原有样式冲突），默认关。
+  const customCssEnabled = ref(false)
   const customCss = ref('')
 
-  // 把自定义 CSS 注入到 <style id="app-custom-css">（覆盖式，放在文档末尾保证优先级）
+  // 把自定义 CSS 注入到 <style id="app-custom-css">（覆盖式，放在文档末尾保证优先级）；
+  // 开关关闭或内容为空时移除样式标签。
   function applyCustomCss(css: string): void {
+    const enabled = customCssEnabled.value
     let el = document.getElementById('app-custom-css') as HTMLStyleElement | null
-    if (css && !el) {
-      el = document.createElement('style')
-      el.id = 'app-custom-css'
-      document.head.appendChild(el)
+    if (enabled && css) {
+      if (!el) {
+        el = document.createElement('style')
+        el.id = 'app-custom-css'
+        document.head.appendChild(el)
+      }
+      el.textContent = css
+    } else if (el) {
+      el.remove()
     }
-    if (el) el.textContent = css
   }
 
   async function load() {
@@ -224,6 +232,7 @@ export const useSettingsStore = defineStore('settings', () => {
       if (r.key === 'defaultWindowSize') {
         if (/^\d{3,5}x\d{3,5}$/.test(r.value)) defaultWindowSize.value = r.value
       }
+      if (r.key === 'customCssEnabled') customCssEnabled.value = r.value === '1'
       if (r.key === 'customCss') {
         customCss.value = r.value || ''
       }
@@ -351,6 +360,10 @@ export const useSettingsStore = defineStore('settings', () => {
     if (key === 'defaultWindowSize') {
       if (/^\d{3,5}x\d{3,5}$/.test(value)) defaultWindowSize.value = value
     }
+    if (key === 'customCssEnabled') {
+      customCssEnabled.value = value === '1'
+      applyCustomCss(customCss.value)
+    }
     if (key === 'customCss') {
       customCss.value = value || ''
       applyCustomCss(customCss.value)
@@ -363,5 +376,5 @@ export const useSettingsStore = defineStore('settings', () => {
     theme.value = v
   }
 
-  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, mode, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, auxColor, darkPreset, lightPreset, detailBanner, bannerBlur, characterBanner, immersiveGlow, immersiveGlowStrength, subjectCardGlow, anchorBarEnabled, cardScale, showCharacters, showVolumes, showRelations, showTopics, showTucao, showGallery, showPurchase, closeBehavior, scheduleLight, scheduleDark, cornerRadius, uiSound, galleryR18, showNsfw, rememberWindowSize, rememberWindowPos, defaultWindowSize, customCss, load, set, commitTheme }
+  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, mode, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, auxColor, darkPreset, lightPreset, detailBanner, bannerBlur, characterBanner, immersiveGlow, immersiveGlowStrength, subjectCardGlow, anchorBarEnabled, cardScale, showCharacters, showVolumes, showRelations, showTopics, showTucao, showGallery, showPurchase, closeBehavior, scheduleLight, scheduleDark, cornerRadius, uiSound, galleryR18, showNsfw, rememberWindowSize, rememberWindowPos, defaultWindowSize, customCssEnabled, customCss, load, set, commitTheme }
 })
