@@ -1366,7 +1366,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
             <span class="win-size-unit">高</span>
           </div>
         </div>
-        <p class="hint">分别输入窗口的宽和高（如 宽 1366 / 高 768），松手/回车后生效。</p>
+        <p class="hint">分别输入窗口的宽和高（如 宽 1280 / 高 800），松手/回车后生效。</p>
       </div>
     </section>
 
