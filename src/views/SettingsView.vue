@@ -455,10 +455,18 @@ const windowSizeOptions = [
   { value: '1600x1000', label: '1600×1000' },
   { value: '1920x1080', label: '1920×1080' }
 ]
-// 自定义窗口尺寸输入（格式校验：宽x高，3~5 位数字各一）
-function onWinSizeInput(e: Event) {
+// 自定义窗口尺寸输入（宽/高两个输入框；校验通过才写库）
+const winW = computed(() => Number(settings.defaultWindowSize.split('x')[0] ?? 1280))
+const winH = computed(() => Number(settings.defaultWindowSize.split('x')[1] ?? 800))
+function onWinWChange(e: Event) {
   const v = (e.target as HTMLInputElement).value.trim()
-  if (/^\d{3,5}x\d{3,5}$/.test(v)) void settings.set('defaultWindowSize', v)
+  const n = Number(v)
+  if (/^\d{3,5}$/.test(v) && isFinite(n)) void settings.set('defaultWindowSize', `${n}x${winH.value}`)
+}
+function onWinHChange(e: Event) {
+  const v = (e.target as HTMLInputElement).value.trim()
+  const n = Number(v)
+  if (/^\d{3,5}$/.test(v) && isFinite(n)) void settings.set('defaultWindowSize', `${winW.value}x${n}`)
 }
 
 // 强调色预设（'' = 默认粉，由「默认」按钮处理）
@@ -1324,17 +1332,41 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
       </div>
       <div class="scale-control" :class="{ 'is-disabled': settings.rememberWindowSize }">
         <div class="scale-head">
-          <span>自定义尺寸（宽×高）</span>
+          <span>自定义尺寸</span>
           <span class="scale-val">{{ settings.defaultWindowSize }}</span>
         </div>
-        <input
-          class="win-size-input"
-          :value="settings.defaultWindowSize"
-          :disabled="settings.rememberWindowSize"
-          placeholder="如 1366x768"
-          @change="onWinSizeInput"
-        />
-        <p class="hint">输入形如 宽x高（如 1366x768），松手/回车后生效。</p>
+        <div class="win-size-row">
+          <div class="win-size-field">
+            <input
+              class="win-size-input"
+              type="number"
+              min="920"
+              max="4096"
+              step="1"
+              :value="winW"
+              :disabled="settings.rememberWindowSize"
+              placeholder="宽"
+              @change="onWinWChange"
+            />
+            <span class="win-size-unit">宽</span>
+          </div>
+          <span class="win-size-x">×</span>
+          <div class="win-size-field">
+            <input
+              class="win-size-input"
+              type="number"
+              min="600"
+              max="2160"
+              step="1"
+              :value="winH"
+              :disabled="settings.rememberWindowSize"
+              placeholder="高"
+              @change="onWinHChange"
+            />
+            <span class="win-size-unit">高</span>
+          </div>
+        </div>
+        <p class="hint">分别输入窗口的宽和高（如 宽 1366 / 高 768），松手/回车后生效。</p>
       </div>
     </section>
 
@@ -2398,10 +2430,19 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
   opacity: 0.45;
   pointer-events: none;
 }
+.win-size-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.win-size-field {
+  position: relative;
+  flex: 1;
+}
 .win-size-input {
   width: 100%;
-  margin-top: 8px;
-  padding: 7px 10px;
+  padding: 7px 34px 7px 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg-elev);
@@ -2409,11 +2450,31 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
   font-size: 13px;
   outline: none;
   transition: border-color 0.15s;
+  -moz-appearance: textfield;
+}
+.win-size-input::-webkit-outer-spin-button,
+.win-size-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 .win-size-input:focus {
   border-color: var(--accent);
 }
 .win-size-input:disabled {
   cursor: not-allowed;
+}
+.win-size-unit {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+.win-size-x {
+  color: var(--text-dim);
+  font-size: 15px;
+  flex-shrink: 0;
 }
 </style>
