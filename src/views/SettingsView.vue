@@ -468,6 +468,16 @@ function onWinHChange(e: Event) {
   const n = Number(v)
   if (/^\d{3,5}$/.test(v) && isFinite(n)) void settings.set('defaultWindowSize', `${winW.value}x${n}`)
 }
+// 自定义 CSS 输入：实时生效（set 内注入），防抖后持久化
+let cssTimer: number | undefined
+function onCustomCssInput(e: Event) {
+  const v = (e.target as HTMLTextAreaElement).value
+  void settings.set('customCss', v) // 实时注入
+  if (cssTimer) window.clearTimeout(cssTimer)
+  cssTimer = window.setTimeout(() => {
+    void settings.set('customCss', v) // 防抖落库（首条即时写，后续合并）
+  }, 400)
+}
 
 // 强调色预设（'' = 默认粉，由「默认」按钮处理）
 const accentPresets = [
@@ -1368,6 +1378,16 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         </div>
         <p class="hint">分别输入窗口的宽和高（如 宽 1280 / 高 800），松手/回车后生效。</p>
       </div>
+
+      <hr class="divider" />
+      <p class="hint" style="margin: 0 0 6px">自定义 CSS：粘贴样式后实时生效（仅影响外观，不会执行脚本）。可覆盖任意选择器或使用内置变量（如 --accent / --bg / --radius）。</p>
+      <textarea
+        class="custom-css-input"
+        :value="settings.customCss"
+        spellcheck="false"
+        placeholder="例如：` .panel { border-radius: 12px; } `  或  ` :root { --accent: #ff5c8a; } `"
+        @input="onCustomCssInput"
+      ></textarea>
     </section>
 
     <!-- 沉浸光感 -->
@@ -2477,5 +2497,24 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
   color: var(--text-dim);
   font-size: 15px;
   flex-shrink: 0;
+}
+.custom-css-input {
+  width: 100%;
+  min-height: 140px;
+  margin-top: 6px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-deep);
+  color: var(--text);
+  font-family: Consolas, 'Cascadia Code', Menlo, monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.custom-css-input:focus {
+  border-color: var(--accent);
 }
 </style>

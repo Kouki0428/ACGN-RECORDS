@@ -120,6 +120,19 @@ export const useSettingsStore = defineStore('settings', () => {
   const rememberWindowPos = ref(false)
   // 默认窗口尺寸（关闭「记忆大小」时生效）：宽 x 高，默认 1280x800
   const defaultWindowSize = ref('1280x800')
+  // 自定义 CSS：用户粘贴的样式，注入到 <style id="app-custom-css">，实时生效并持久化
+  const customCss = ref('')
+
+  // 把自定义 CSS 注入到 <style id="app-custom-css">（覆盖式，放在文档末尾保证优先级）
+  function applyCustomCss(css: string): void {
+    let el = document.getElementById('app-custom-css') as HTMLStyleElement | null
+    if (css && !el) {
+      el = document.createElement('style')
+      el.id = 'app-custom-css'
+      document.head.appendChild(el)
+    }
+    if (el) el.textContent = css
+  }
 
   async function load() {
     if (initialized) return
@@ -211,6 +224,9 @@ export const useSettingsStore = defineStore('settings', () => {
       if (r.key === 'defaultWindowSize') {
         if (/^\d{3,5}x\d{3,5}$/.test(r.value)) defaultWindowSize.value = r.value
       }
+      if (r.key === 'customCss') {
+        customCss.value = r.value || ''
+      }
     }
     setSchedule(scheduleLight.value, scheduleDark.value)
     // 若持久化的偏好是「定时」，需在时段载入后重新解析一次（循环内的首次 applyTheme
@@ -229,6 +245,8 @@ export const useSettingsStore = defineStore('settings', () => {
     }
     // 应用当前模式的强调/辅助色到 :root（数据主题已由上方 applyTheme 解析确定）
     applyModeColors()
+    // 注入自定义 CSS（放在最后，覆盖其它样式）
+    applyCustomCss(customCss.value)
   }
 
   async function set(key: string, value: string) {
@@ -333,6 +351,10 @@ export const useSettingsStore = defineStore('settings', () => {
     if (key === 'defaultWindowSize') {
       if (/^\d{3,5}x\d{3,5}$/.test(value)) defaultWindowSize.value = value
     }
+    if (key === 'customCss') {
+      customCss.value = value || ''
+      applyCustomCss(customCss.value)
+    }
   }
 
   // 仅在遮罩已盖住屏幕时调用：更新按钮高亮（不写库、不触发 applyTheme），
@@ -341,5 +363,5 @@ export const useSettingsStore = defineStore('settings', () => {
     theme.value = v
   }
 
-  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, mode, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, auxColor, darkPreset, lightPreset, detailBanner, bannerBlur, characterBanner, immersiveGlow, immersiveGlowStrength, subjectCardGlow, anchorBarEnabled, cardScale, showCharacters, showVolumes, showRelations, showTopics, showTucao, showGallery, showPurchase, closeBehavior, scheduleLight, scheduleDark, cornerRadius, uiSound, galleryR18, showNsfw, rememberWindowSize, rememberWindowPos, defaultWindowSize, load, set, commitTheme }
+  return { autoSync, autoFullPull, archiveAutoUpdate, autoCacheClean, theme, mode, gpuAcceleration, uiScale, gridAnimEnabled, gridAnimSpeed, tmdbKey, vndbToken, proxy, accentColor, auxColor, darkPreset, lightPreset, detailBanner, bannerBlur, characterBanner, immersiveGlow, immersiveGlowStrength, subjectCardGlow, anchorBarEnabled, cardScale, showCharacters, showVolumes, showRelations, showTopics, showTucao, showGallery, showPurchase, closeBehavior, scheduleLight, scheduleDark, cornerRadius, uiSound, galleryR18, showNsfw, rememberWindowSize, rememberWindowPos, defaultWindowSize, customCss, load, set, commitTheme }
 })
