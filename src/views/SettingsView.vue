@@ -847,6 +847,12 @@ const GROUPS: GroupDef[] = [
     icon: 'M12 3a9 9 0 1 0 0 18h1.5a2.5 2.5 0 0 0 0-5H13a2 2 0 0 1 0-4h4.5A3.5 3.5 0 0 0 21 8.5C21 5.5 17 3 12 3Z M7.5 10.5h.01 M9.5 6.5h.01 M14 5.5h.01'
   },
   {
+    key: 'plugins',
+    label: '插件',
+    desc: '本地插件安装、启用与权限管理',
+    icon: 'M12 2l9 5v6c0 5-3.5 8.5-9 9-5.5-.5-9-4-9-9V7l9-5Z M12 8v8 M8 12h8'
+  },
+  {
     key: 'about',
     label: '应用信息',
     desc: '版本号与检查更新',
@@ -1502,50 +1508,6 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
       </p>
     </section>
 
-    <!-- 插件 -->
-    <section class="panel">
-      <h2>插件</h2>
-      <p class="hint">
-        插件为本地手动安装：把插件文件夹放入用户数据目录的 <code>plugins/</code> 下，然后点「重新扫描」。
-        每个插件可独立启用 / 停用，权限由你全权勾选；未授权的调用会在运行时被拦截。
-      </p>
-      <div class="row" style="margin-top: 10px">
-        <button class="btn btn--ghost" type="button" @click="pluginOpenDir">打开插件目录</button>
-        <button class="btn btn--ghost" type="button" @click="pluginRescan">重新扫描</button>
-      </div>
-
-      <div v-if="plugins.length" class="plugin-list">
-        <div v-for="p in plugins" :key="p.id" class="plugin-item">
-          <div class="plugin-head">
-            <div class="plugin-id">
-              <b>{{ p.name }}</b>
-              <span class="plugin-version">v{{ p.version }}</span>
-            </div>
-            <ToggleSwitch :model-value="p.enabled" @update:model-value="(v: boolean) => pluginToggle(p.id, v)" />
-          </div>
-          <p v-if="p.description" class="plugin-desc">{{ p.description }}</p>
-          <div class="plugin-perms">
-            <span
-              v-for="perm in ALL_PERMISSIONS"
-              :key="perm"
-              class="perm-chip"
-              :class="{
-                granted: p.enabled && p.permissions.includes(perm),
-                requested: p.requestedPermissions.includes(perm)
-              }"
-              @click="pluginTogglePerm(p.id, perm)"
-              :title="`${PERMISSION_LABELS[perm]}`"
-            >{{ PERMISSION_LABELS[perm] }}</span>
-          </div>
-        </div>
-      </div>
-      <p v-else class="plugin-empty">尚未安装插件。把插件目录放入 <code>plugins/</code> 后点击「重新扫描」。</p>
-      <p class="hint" style="margin-top: 10px">
-        开启「样式注入 / 脚本执行」即可让插件生效；数据类权限（读取收藏 / 读取作品 / 读写设置 / 插件存储）
-        仅在你需要时勾选授予，撤销后立即失效。
-      </p>
-    </section>
-
     <!-- 性能 -->
     <section class="panel">
       <h2>性能</h2>
@@ -1606,6 +1568,52 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
       </label>
     </section>
 
+      </template>
+
+      <template v-if="group === 'plugins'">
+    <!-- 插件 -->
+    <section class="panel">
+      <h2>插件</h2>
+      <p class="hint">
+        插件为本地手动安装：把插件文件夹放入用户数据目录的 <code>plugins/</code> 下，然后点「重新扫描」。
+        每个插件可独立启用 / 停用，权限由你全权勾选；未授权的调用会在运行时被拦截。
+      </p>
+      <div class="row" style="margin-top: 10px">
+        <button class="btn btn--ghost" type="button" @click="pluginOpenDir">打开插件目录</button>
+        <button class="btn btn--ghost" type="button" @click="pluginRescan">重新扫描</button>
+      </div>
+
+      <div v-if="plugins.length" class="plugin-list">
+        <div v-for="p in plugins" :key="p.id" class="plugin-item">
+          <div class="plugin-head">
+            <div class="plugin-id">
+              <b>{{ p.name }}</b>
+              <span class="plugin-version">v{{ p.version }}</span>
+            </div>
+            <ToggleSwitch :model-value="p.enabled" @update:model-value="(v: boolean) => pluginToggle(p.id, v)" />
+          </div>
+          <p v-if="p.description" class="plugin-desc">{{ p.description }}</p>
+          <div class="plugin-perms">
+            <span
+              v-for="perm in ALL_PERMISSIONS"
+              :key="perm"
+              class="perm-chip"
+              :class="{
+                granted: p.enabled && p.permissions.includes(perm),
+                requested: p.requestedPermissions.includes(perm)
+              }"
+              @click="pluginTogglePerm(p.id, perm)"
+              :title="`${PERMISSION_LABELS[perm]}`"
+            >{{ PERMISSION_LABELS[perm] }}</span>
+          </div>
+        </div>
+      </div>
+      <p v-else class="plugin-empty">尚未安装插件。把插件目录放入 <code>plugins/</code> 后点击「重新扫描」。</p>
+      <p class="hint" style="margin-top: 10px">
+        开启「样式注入 / 脚本执行」即可让插件生效；数据类权限（读取收藏 / 读取作品 / 读写设置 / 插件存储）
+        仅在你需要时勾选授予，撤销后立即失效。
+      </p>
+    </section>
       </template>
 
       <template v-if="group === 'storage'">
