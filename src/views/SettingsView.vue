@@ -2438,7 +2438,8 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
 }
 .win-size-field {
   position: relative;
-  flex: 1;
+  width: 110px;
+  flex-shrink: 0;
 }
 .win-size-input {
   width: 100%;
