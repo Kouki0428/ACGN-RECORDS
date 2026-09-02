@@ -19,6 +19,7 @@ import { useCollectionModal } from './composables/useCollectionModal'
 import { useUserStatsModal } from './composables/useUserStatsModal'
 import { useImagePreview } from './composables/useImagePreview'
 import { useAppHotkeys } from './composables/useAppHotkeys'
+import { usePlugins } from './services/pluginClient'
 import { installGridNav } from './utils/gridNav'
 import { installClickSound } from './utils/uiSound'
 
@@ -40,6 +41,8 @@ const statsModal = useUserStatsModal()
 const statsOpen = statsModal.isOpen
 const imagePreview = useImagePreview()
 const imagePreviewOpen = imagePreview.visible
+// 插件系统：应用启动即加载已启用插件（注入样式 + 沙箱脚本）
+const { list: loadPlugins } = usePlugins()
 
 // 全局模糊遮罩：搜索 / 实体卡 打开时显示唯一一层 backdrop-filter 模糊。
 // 各悬浮窗自身不再带 backdrop-filter（见各 *-overlay 样式），因此悬浮窗之间
@@ -112,6 +115,8 @@ onMounted(() => {
   installGridNav()
   // 全局点击音效（受设置页「音效」总开关控制）
   installClickSound()
+  // 加载已启用插件（注入样式 + 沙箱脚本）
+  void loadPlugins()
 })
 onUnmounted(() => {
   window.removeEventListener('mousedown', onSideDown)
@@ -139,6 +144,8 @@ onUnmounted(() => {
       </div>
     </main>
     </div>
+    <!-- 插件 UI 挂载容器：插件经受限 API 的 ui.mount 把组件挂到这里（z-index 低于悬浮窗） -->
+    <div id="plugin-ui-root"></div>
     <!-- 液态玻璃折射滤镜（全局唯一）：feTurbulence 大尺度平滑噪声 → feDisplacementMap
          扰动背板像素，产生水波折射。供 backdrop-filter: url(#liquid-glass-distortion) 引用 -->
     <svg width="0" height="0" style="position: absolute" aria-hidden="true">

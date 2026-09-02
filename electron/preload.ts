@@ -308,6 +308,17 @@ const api: AcgnApi = {
       ipcRenderer.invoke('window:get-bounds') as Promise<{ x: number; y: number; width: number; height: number }>,
     setBounds: (bounds: { x: number; y: number; width: number; height: number }) =>
       ipcRenderer.invoke('window:set-bounds', bounds)
+  },
+  plugins: {
+    list: () => ipcRenderer.invoke('plugins:list') as Promise<import('../../shared/types').PluginDescriptor[]>,
+    setEnabled: (id: string, enabled: boolean) =>
+      ipcRenderer.invoke('plugins:setEnabled', id, enabled) as Promise<import('../../shared/types').PluginDescriptor[]>,
+    setPermission: (id: string, permission: import('../../shared/types').PluginPermission, granted: boolean) =>
+      ipcRenderer.invoke('plugins:setPermission', id, permission, granted) as Promise<import('../../shared/types').PluginDescriptor[]>,
+    call: (id: string, method: string, args: unknown[]) =>
+      ipcRenderer.invoke('plugins:call', id, method, args) as Promise<{ ok: boolean; data?: unknown; error?: string }>,
+    openDir: () => ipcRenderer.invoke('plugins:openDir') as Promise<void>,
+    rescan: () => ipcRenderer.invoke('plugins:rescan') as Promise<import('../../shared/types').PluginDescriptor[]>
   }
 }
 

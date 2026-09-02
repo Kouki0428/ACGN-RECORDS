@@ -9,15 +9,39 @@ import { cacheClient } from '@/services/cacheClient'
 import { apiClient } from '@/services/apiClient'
 import { applyTheme, type ThemePref } from '@/theme'
 import { applyUiScale } from '@/scale'
-import type { ArchiveMeta, ArchiveProgress, CacheStats, NetworkStatsResult, BgmStatus } from '@shared/types'
+import type { ArchiveMeta, ArchiveProgress, CacheStats, NetworkStatsResult, BgmStatus, PluginPermission } from '@shared/types'
 import { CHANGELOG } from '@/constants/changelog'
 import ToggleSwitch from '@/components/ToggleSwitch.vue'
+import { usePlugins, ALL_PERMISSIONS, PERMISSION_LABELS } from '@/services/pluginClient'
 import { playToggleClick } from '@/utils/uiSound'
 
 const auth = useAuthStore()
 const settings = useSettingsStore()
 const sync = useSyncStore()
 const router = useRouter()
+
+// 插件管理（用户全权决策权限）
+const { plugins, list: listPlugins, setEnabled: setPluginEnabled, setPermission: setPluginPermission, openDir: openPluginDir, rescan: rescanPlugins } = usePlugins()
+const pluginOpenDir = () => {
+  void openPluginDir()
+}
+const pluginRescan = async () => {
+  await rescanPlugins()
+}
+const pluginToggle = (id: string, v: boolean) => {
+  playToggleClick()
+  void setPluginEnabled(id, v)
+}
+const pluginTogglePerm = (id: string, perm: PluginPermission) => {
+  playToggleClick()
+  const granted = plugins.value.find((p) => p.id === id)?.permissions.includes(perm) ?? false
+  void setPluginPermission(id, perm, !granted)
+}
+
+// 进入设置页时刷新插件列表
+onMounted(() => {
+  void listPlugins()
+})
 
 const token = ref('')
 const saved = ref(false)
@@ -1478,6 +1502,50 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
       </p>
     </section>
 
+    <!-- 插件 -->
+    <section class="panel">
+      <h2>插件</h2>
+      <p class="hint">
+        插件为本地手动安装：把插件文件夹放入用户数据目录的 <code>plugins/</code> 下，然后点「重新扫描」。
+        每个插件可独立启用 / 停用，权限由你全权勾选；未授权的调用会在运行时被拦截。
+      </p>
+      <div class="row" style="margin-top: 10px">
+        <button class="btn btn--ghost" type="button" @click="pluginOpenDir">打开插件目录</button>
+        <button class="btn btn--ghost" type="button" @click="pluginRescan">重新扫描</button>
+      </div>
+
+      <div v-if="plugins.length" class="plugin-list">
+        <div v-for="p in plugins" :key="p.id" class="plugin-item">
+          <div class="plugin-head">
+            <div class="plugin-id">
+              <b>{{ p.name }}</b>
+              <span class="plugin-version">v{{ p.version }}</span>
+            </div>
+            <ToggleSwitch :model-value="p.enabled" @update:model-value="(v: boolean) => pluginToggle(p.id, v)" />
+          </div>
+          <p v-if="p.description" class="plugin-desc">{{ p.description }}</p>
+          <div class="plugin-perms">
+            <span
+              v-for="perm in ALL_PERMISSIONS"
+              :key="perm"
+              class="perm-chip"
+              :class="{
+                granted: p.enabled && p.permissions.includes(perm),
+                requested: p.requestedPermissions.includes(perm)
+              }"
+              @click="pluginTogglePerm(p.id, perm)"
+              :title="`${PERMISSION_LABELS[perm]}`"
+            >{{ PERMISSION_LABELS[perm] }}</span>
+          </div>
+        </div>
+      </div>
+      <p v-else class="plugin-empty">尚未安装插件。把插件目录放入 <code>plugins/</code> 后点击「重新扫描」。</p>
+      <p class="hint" style="margin-top: 10px">
+        开启「样式注入 / 脚本执行」即可让插件生效；数据类权限（读取收藏 / 读取作品 / 读写设置 / 插件存储）
+        仅在你需要时勾选授予，撤销后立即失效。
+      </p>
+    </section>
+
     <!-- 性能 -->
     <section class="panel">
       <h2>性能</h2>
@@ -2530,5 +2598,95 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
 }
 .custom-css-input:focus {
   border-color: var(--accent);
+}
+/* ===== 插件管理 ===== */
+.plugin-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.plugin-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  background: var(--bg-deep);
+}
+.plugin-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.plugin-id {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.plugin-id b {
+  font-size: 13.5px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.plugin-version {
+  font-size: 11px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+.plugin-desc {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+.plugin-perms {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.perm-chip {
+  font-size: 11px;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s;
+}
+.perm-chip:hover {
+  border-color: var(--accent-aux);
+  color: var(--text);
+}
+.perm-chip.granted {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.perm-chip.requested:not(.granted):not(.granted) {
+  border-style: dashed;
+  border-color: var(--accent-aux);
+}
+.plugin-empty {
+  margin-top: 12px;
+  padding: 16px 0;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 12.5px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+}
+.plugin-item code,
+.plugin-empty code,
+.plugin-hint code {
+  background: var(--bg-elev);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 11.5px;
 }
 </style>

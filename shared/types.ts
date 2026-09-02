@@ -1217,6 +1217,66 @@ export interface AcgnApi {
     /** 自定义贴靠：把窗口吸附到当前显示器的半屏 / 四象限 / 最大化 */
     snap: (zone: 'left' | 'right' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'maximize') => Promise<void>
   }
+  /** 插件系统：用户全权决策权限 + 轻量运行时拦截。插件本地手动安装于 userData/plugins/<id>/ */
+  plugins: {
+    /** 插件清单（含启停状态、已授权权限、样式/脚本内容） */
+    list: () => Promise<PluginDescriptor[]>
+    /** 设置插件启停（enabled=true 启用）。返回更新后的清单 */
+    setEnabled: (id: string, enabled: boolean) => Promise<PluginDescriptor[]>
+    /** 设置插件某权限授予/撤销。返回更新后的清单 */
+    setPermission: (id: string, permission: PluginPermission, granted: boolean) => Promise<PluginDescriptor[]>
+/** 插件经白名单调用应用 API（权限过滤在主进程）；返回 { ok: true, data } / { ok: false, error } */
+  call: (id: string, method: string, args: unknown[]) => Promise<{ ok: boolean; data?: unknown; error?: string }>
+    /** 在系统文件管理器中打开插件目录 */
+    openDir: () => Promise<void>
+    /** 重新扫描插件目录（新增/删除插件后刷新清单） */
+    rescan: () => Promise<PluginDescriptor[]>
+  }
+}
+
+/** 插件可用权限（用户全权勾选授予；未授予的调用在运行时被拦截） */
+export type PluginPermission =
+  | 'style'         // 注入样式
+  | 'script'        // 执行插件脚本
+  | 'storage'       // 插件独立存储（读写）
+  | 'collection'    // 读取收藏数据
+  | 'subject'       // 读取作品数据
+  | 'settings'      // 读取/修改应用设置
+  | 'ui'            // 挂载 UI 组件 / 弹提示
+
+/** 插件描述（渲染端清单条目） */
+export interface PluginDescriptor {
+  id: string
+  name: string
+  version: string
+  description?: string
+  author?: string
+  /** 是否启用 */
+  enabled: boolean
+  /** 已授予的权限集合 */
+  permissions: PluginPermission[]
+  /** manifest 声明的全部权限 */
+  requestedPermissions: PluginPermission[]
+  /** 样式内容（未启用时为空） */
+  css?: string
+  /** 脚本内容（未启用时为空） */
+  script?: string
+}
+
+/** 插件 manifest（用户手写于 userData/plugins/<id>/manifest.json） */
+export interface PluginManifest {
+  id: string
+  name: string
+  version: string
+  description?: string
+  author?: string
+  /** 入口文件（相对插件目录） */
+  entry?: {
+    style?: string
+    render?: string
+  }
+  /** 申请的全部权限 */
+  permissions: PluginPermission[]
 }
 
 /** 时间胶囊里涉及的作品引用（单条目 1 个，多条目如「想读 X、Y 2 本书」为多个） */
