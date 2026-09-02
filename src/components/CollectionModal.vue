@@ -80,10 +80,8 @@ async function syncFromSingleton() {
   const passedRating = modal.rating.value
   let r: number | null = passedRating
   let existingStatus: number | null = null
-  let existingKeys: string[] | null = null
   try {
     const existing = await collectionClient.getExisting(modal.providerSubjectId.value)
-    existingKeys = Object.keys(existing ?? {})
     existingStatus = existing?.status ?? null
     hadRating.value = !!(existing && typeof existing.rating === 'number' && existing.rating > 0)
     // 吐槽预填：调用方传入（CollectionBar edit 已带）优先；未传时回退到库里已有吐槽，
@@ -114,17 +112,6 @@ async function syncFromSingleton() {
   }
   myRating.value = r
   modal.rating.value = r
-  // 临时调试：打开收藏悬浮窗后按 F12 看 Console 搜 [CollectionModal][debug]，
-  // 即可确认 pid / 自取评分 / 最终选中状态 / 评分区是否显示，便于定位“评分不显示”。
-  console.log('[CollectionModal][debug] sync:', {
-    pid: modal.providerSubjectId.value,
-    existingKeys,
-    existingStatus,
-    passedRating,
-    finalRating: r,
-    selectedStatus: selectedStatus.value,
-    showRating: selectedStatus.value !== 1
-  })
 }
 
 watch(
