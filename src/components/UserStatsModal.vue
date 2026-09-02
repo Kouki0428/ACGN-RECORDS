@@ -328,7 +328,7 @@ function close() {
 .us-bar-fill {
   width: 70%;
   min-height: 2px;
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  border-radius: min(var(--radius-sm), 50%) min(var(--radius-sm), 50%) 0 0;
   transition: height 0.3s;
 }
 .us-bar-tip {
