@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { UserStats } from '@shared/types'
+import { useSettingsStore } from '@/stores/settings'
+
+const settings = useSettingsStore()
 
 const props = defineProps<{
   visible: boolean
@@ -48,7 +51,11 @@ function close() {
   <Teleport to="body">
     <Transition name="us-overlay">
       <div v-if="visible" class="us-overlay" @click="close">
-        <div class="us-modal" @click.stop>
+        <div
+          class="us-modal"
+          :class="{ 'glow-card': settings.immersiveGlow && settings.subjectCardGlow }"
+          @click.stop
+        >
           <div class="us-head">
             <span class="us-title">数据统计</span>
             <button class="us-close" type="button" title="关闭" aria-label="关闭" @click="close">
@@ -161,6 +168,24 @@ function close() {
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
   padding: 18px 20px 22px;
   color: var(--text);
+}
+/* 悬浮窗本体沉浸光感（设置 subjectCardGlow 独立控制）：整卡背景半透明 */
+.us-modal.glow-card {
+  background: color-mix(in srgb, var(--bg-elev) calc(70% * var(--glass-k)), transparent);
+}
+/* 沉浸光感下：统计卡片 / 花费条 / 柱状图轨道 / 分类标签按钮 同步半透明 */
+.us-modal.glow-card .us-card,
+.us-modal.glow-card .us-spent,
+.us-modal.glow-card .us-bar-track,
+.us-modal.glow-card .us-bar-tip,
+.us-modal.glow-card .us-tab {
+  background: color-mix(in srgb, var(--bg-deep) calc(70% * var(--glass-k)), transparent);
+}
+/* 分类标签选中态保持强调色高亮（不被半透明覆盖） */
+.us-modal.glow-card .us-tab.active {
+  background: var(--accent-2, #5b9dff);
+  border-color: var(--accent-2, #5b9dff);
+  color: #fff;
 }
 .us-head {
   display: flex;
