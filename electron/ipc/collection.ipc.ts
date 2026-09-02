@@ -378,7 +378,21 @@ export function registerCollectionIpc(): void {
   // 查询某作品是否已收藏（返回 status + 吐槽），供详情页 / 悬浮窗渲染标签或「我想X这Y」文字。
   ipcMain.handle('collection:getExisting', async (_event, providerSubjectId: string) => {
     if (!providerSubjectId) return { status: null, comment: null }
-    return getCollectionExistingBySubject(providerSubjectId)
+    const existing = await getCollectionExistingBySubject(providerSubjectId)
+    // 本地无吐槽时，实时拉取 Bangumi 网页端写的吐槽并回填（与网页端评分 resolveMyRating 同模式）
+    if (!existing.comment) {
+      try {
+        const { resolveMyComment } = await import('../services/myRating')
+        const comment = await resolveMyComment(
+          { provider: 'bangumi', provider_subject_id: providerSubjectId },
+          existing.comment
+        )
+        if (comment) existing.comment = comment
+      } catch (e) {
+        console.warn('[getExisting] 拉取网页端吐槽失败（忽略）：', e)
+      }
+    }
+    return existing
   })
 
   // 通关路线（Galgame）：取 / 增 / 改 / 删。路线条数由业务层同步写入 collections.ep_status。

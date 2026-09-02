@@ -1,6 +1,6 @@
 import { getBangumiAccount, getValidToken } from './auth/oauth'
 import { getMyCollection } from './api/bangumi'
-import { saveCollectionRatingLocal } from './db/repositories/collections.repository'
+import { saveCollectionRatingLocal, saveCollectionCommentLocal } from './db/repositories/collections.repository'
 
 /**
  * 解析「我的评价」评分（1-10）用于详情页展示：
@@ -40,4 +40,44 @@ export async function resolveMyRating(
 
   // 远端取不到：回退本地（已缓存或 null）
   return localRating
+}
+
+/**
+ * 解析「我的吐槽」（收藏评论）用于收藏悬浮窗回显：
+ * - 本地已有吐槽则直接用（无需联网）。
+ * - 否则：若已登录 Bangumi，实时拉取该用户在 Bangumi 上的收藏吐槽(comment 字段)；
+ *   取到则写回本地缓存（不标记 dirty）并返回；取不到则回退本地（可能为 null）。
+ * 这样用户在 Bangumi 网页端写的吐槽，打开收藏悬浮窗时会立刻显示出来。
+ */
+export async function resolveMyComment(
+  subject: { provider?: string; provider_subject_id?: string } | null | undefined,
+  localComment: string | null | undefined
+): Promise<string | null> {
+  const isBgm = !!subject && subject.provider === 'bangumi' && !!subject.provider_subject_id
+  if (!isBgm) return localComment ?? null
+
+  // 本地已有吐槽：直接显示，不联网
+  if (localComment) return localComment
+
+  // 已登录则实时取 Bangumi 上的我的吐槽
+  try {
+    const token = await getValidToken()
+    const acct = await getBangumiAccount()
+    if (token && acct?.username) {
+      const remote = await getMyCollection(subject.provider_subject_id!, token, acct.username)
+      const comment =
+        remote && typeof remote.comment === 'string' && remote.comment.trim().length > 0
+          ? remote.comment
+          : null
+      if (comment) {
+        await saveCollectionCommentLocal(subject.provider_subject_id!, comment)
+        return comment
+      }
+    }
+  } catch (e) {
+    console.warn('[resolveMyComment] 拉取 Bangumi 我的吐槽失败（不影响收藏悬浮窗）：', e)
+  }
+
+  // 远端取不到：回退本地（已缓存或 null）
+  return localComment ?? null
 }

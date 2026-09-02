@@ -1,6 +1,6 @@
 {
   "name": "bangumi-for-pc",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "private": true,
   "type": "module",
   "description": "Bangumi-For-PC - 轻量级 ACGN 进度追踪与统计桌面应用",

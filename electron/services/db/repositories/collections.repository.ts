@@ -272,6 +272,23 @@ export async function saveCollectionRatingLocal(
   db.prepare('UPDATE collections SET rating = ? WHERE id = ?').run(rating, row.id)
 }
 
+/** 把 Bangumi 网页端拉到的吐槽写回本地缓存（不标记 dirty，仅当本地无未推送改动时调用）。 */
+export async function saveCollectionCommentLocal(
+  providerSubjectId: string,
+  comment: string
+): Promise<void> {
+  const db = await getDb()
+  const row = db
+    .prepare(
+      `SELECT c.id FROM collections c
+       JOIN subjects s ON c.subject_id = s.id
+       WHERE s.provider = 'bangumi' AND s.provider_subject_id = ?`
+    )
+    .get(providerSubjectId) as { id: number } | undefined
+  if (!row) return
+  db.prepare('UPDATE collections SET comment = ? WHERE id = ?').run(comment, row.id)
+}
+
 /** 推送成功后清除 dirty 标记并记录同步时间 */
 export async function clearDirty(collectionId: number): Promise<void> {
   const db = await getDb()
