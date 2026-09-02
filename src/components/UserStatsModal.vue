@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import type { UserStats, StatsSnapshot } from '@shared/types'
+import { computed, ref } from 'vue'
+import type { UserStats } from '@shared/types'
 
 const props = defineProps<{
   visible: boolean
@@ -39,41 +39,6 @@ const maxHist = computed(() => Math.max(1, ...bars.value.map((b) => b.count)))
 const barColor = (score: number) =>
   score >= 8 ? '#f7b500' : score >= 6 ? '#7ed0a8' : score >= 4 ? '#6ab7ff' : '#ff7a7a'
 
-// ===== 历史趋势（月度快照折线）=====
-const history = ref<StatsSnapshot[]>([])
-watch(
-  () => props.visible,
-  async (v) => {
-    if (!v || history.value.length) return
-    try {
-      const r = (await window.acgn.statsSnapshotHistory?.(12)) as StatsSnapshot[] | undefined
-      if (Array.isArray(r)) history.value = r
-    } catch {
-      /* 趋势图失败不影响统计主体 */
-    }
-  }
-)
-const trend = computed(() => history.value.filter((s) => s.total > 0))
-/** 折线点坐标（viewBox 0..300 x 0..96，留 padding） */
-const trendPts = computed(() => {
-  const arr = trend.value
-  if (arr.length < 2) return []
-  const max = Math.max(...arr.map((s) => s.total))
-  return arr.map((s, i) => ({
-    x: 8 + (i * 284) / (arr.length - 1),
-    y: 88 - (s.total / max) * 76,
-    total: s.total,
-    done: s.done,
-    month: s.month.slice(2) // 26-08 形式
-  }))
-})
-const trendPath = computed(() => trendPts.value.map((p) => `${p.x},${p.y}`).join(' '))
-const trendArea = computed(() =>
-  trendPts.value.length
-    ? `M ${trendPts.value[0].x},92 L ${trendPath.value.replace(/ /g, ' L ')} L ${trendPts.value[trendPts.value.length - 1].x},92 Z`
-    : ''
-)
-
 function close() {
   emit('close')
 }
@@ -105,35 +70,6 @@ function close() {
           </div>
 
           <div v-if="current" class="us-body">
-            <!-- 历史趋势（≥2 个月快照时显示） -->
-            <div v-if="trendPts.length >= 2" class="us-trend">
-              <div class="us-trend-head">收藏趋势（近 {{ trendPts.length }} 个月）</div>
-              <svg viewBox="0 0 300 100" class="us-trend-svg" preserveAspectRatio="none">
-                <path :d="trendArea" fill="rgba(91,157,255,0.14)" stroke="none"></path>
-                <polyline
-                  :points="trendPath"
-                  fill="none"
-                  stroke="#5b9dff"
-                  stroke-width="2"
-                  stroke-linejoin="round"
-                  stroke-linecap="round"
-                ></polyline>
-                <circle
-                  v-for="(p, i) in trendPts"
-                  :key="i"
-                  :cx="p.x"
-                  :cy="p.y"
-                  r="3"
-                  fill="#5b9dff"
-                >
-                  <title>{{ p.month }}：收藏 {{ p.total }} / 完成 {{ p.done }}</title>
-                </circle>
-              </svg>
-              <div class="us-trend-x">
-                <span v-for="p in trendPts" :key="p.month">{{ p.month }}</span>
-              </div>
-            </div>
-
             <div class="us-cards">
               <div class="us-card">
                 <div class="us-card-num">{{ current.total }}</div>
@@ -391,31 +327,6 @@ function close() {
   text-align: center;
   color: var(--text-dim);
   padding: 30px 0;
-}
-/* ===== 历史趋势折线 ===== */
-.us-trend {
-  margin-bottom: 16px;
-  background: var(--bg-deep, #14171c);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
-}
-.us-trend-head {
-  font-size: 12.5px;
-  color: var(--text-dim);
-  margin-bottom: 6px;
-}
-.us-trend-svg {
-  width: 100%;
-  height: 96px;
-  display: block;
-}
-.us-trend-x {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 4px;
-  font-size: 10.5px;
-  color: var(--text-dim);
 }
 .us-overlay-enter-active,
 .us-overlay-leave-active {

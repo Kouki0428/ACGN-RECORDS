@@ -1196,8 +1196,6 @@ export interface AcgnApi {
     /** 收藏数据轻量导出（CSV/JSON，单向，不可导回应用） */
     exportCollections: (format: 'csv' | 'json') => Promise<{ ok: boolean; canceled?: boolean; path?: string; error?: string }>
   }
-  /** 统计历史趋势：当月快照（缺失则补记）+ 近 N 月历史（月升序） */
-  statsSnapshotHistory: (limit?: number) => Promise<StatsSnapshot[]>
   /** 自定义窗口控制（替代原生标题栏）：最小化 / 最大化切换 / 关闭 / 查询与订阅最大化状态 / 拖拽缩放 */
   win: {
     /** 最小化窗口 */
@@ -1219,18 +1217,6 @@ export interface AcgnApi {
     /** 自定义贴靠：把窗口吸附到当前显示器的半屏 / 四象限 / 最大化 */
     snap: (zone: 'left' | 'right' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'maximize') => Promise<void>
   }
-}
-
-/** 收藏月度快照（统计趋势用；分类归并 book=light_novel+manga、game=galgame+game） */
-export interface StatsSnapshot {
-  month: string
-  total: number
-  done: number
-  rated: number
-  avgRating: number
-  anime: number
-  book: number
-  game: number
 }
 
 /** 时间胶囊里涉及的作品引用（单条目 1 个，多条目如「想读 X、Y 2 本书」为多个） */

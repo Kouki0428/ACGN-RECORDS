@@ -267,19 +267,6 @@ export function registerCollectionIpc(): void {
     return await getUserStats()
   })
 
-  // 统计历史趋势：当月快照（缺失则补记）+ 近 N 月历史
-  ipcMain.handle('collection:snapshotHistory', async (_event, limit = 12) => {
-    const { recordMonthlySnapshotIfAbsent, getSnapshotHistory } = await import(
-      '../services/db/repositories/statsSnapshots.repository'
-    )
-    try {
-      await recordMonthlySnapshotIfAbsent()
-    } catch (e) {
-      console.warn('[collection:snapshotHistory] 记录当月快照失败（忽略）：', e)
-    }
-    return await getSnapshotHistory(limit)
-  })
-
   // 新建 / 更新收藏（收藏悬浮窗「保存」）：写本地库（含吐槽 / 仅自己可见 / 我的前 10 tag），
   // 已登录则同步到 Bangumi（含 tags + private）。本地必定成功，同步失败仅保留 dirty 待重试。
   ipcMain.handle('collection:saveCollection', async (_event, payload: SaveCollectionPayload) => {

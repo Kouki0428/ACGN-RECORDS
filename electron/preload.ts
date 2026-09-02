@@ -287,8 +287,6 @@ const api: AcgnApi = {
         error?: string
       }>
   },
-  statsSnapshotHistory: (limit = 12) =>
-    ipcRenderer.invoke('collection:snapshotHistory', limit),
   win: {
     minimize: () => ipcRenderer.invoke('window:minimize'),
     toggleMaximize: () => ipcRenderer.invoke('window:toggle-maximize'),

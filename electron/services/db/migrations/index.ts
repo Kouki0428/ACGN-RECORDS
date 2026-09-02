@@ -405,21 +405,6 @@ export async function runMigrations(db: any): Promise<void> {
   if (!nsdCols.includes('bgm_requests')) db.exec('ALTER TABLE network_stats_daily ADD COLUMN bgm_requests INTEGER NOT NULL DEFAULT 0')
   if (!nsdCols.includes('other_requests')) db.exec('ALTER TABLE network_stats_daily ADD COLUMN other_requests INTEGER NOT NULL DEFAULT 0')
 
-  // 收藏月度快照：每月首次启动记录当期计数，供统计悬浮窗绘制历史趋势曲线。幂等建表。
-  db.exec(
-    `CREATE TABLE IF NOT EXISTS stats_snapshots (
-      month      TEXT PRIMARY KEY,
-      total      INTEGER NOT NULL DEFAULT 0,
-      done       INTEGER NOT NULL DEFAULT 0,
-      rated      INTEGER NOT NULL DEFAULT 0,
-      avg_rating REAL    NOT NULL DEFAULT 0,
-      anime      INTEGER NOT NULL DEFAULT 0,
-      book       INTEGER NOT NULL DEFAULT 0,
-      game       INTEGER NOT NULL DEFAULT 0,
-      created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
-    )`
-  )
-
   // 通用只读数据缓存：把 Bangumi 详情类接口的响应按 key 暂存到本地硬盘，
   // 有效期内直接返回、不再发网络请求（详见 services/api/requestCache.ts）。
   // value 存 JSON 文本，expires_at 为绝对过期时间戳（秒）。幂等建表。
