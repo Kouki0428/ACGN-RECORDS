@@ -21,12 +21,18 @@ const sync = useSyncStore()
 const router = useRouter()
 
 // 插件管理（用户全权决策权限）
-const { plugins, list: listPlugins, setEnabled: setPluginEnabled, setPermission: setPluginPermission, openDir: openPluginDir, rescan: rescanPlugins } = usePlugins()
+const { plugins, list: listPlugins, setEnabled: setPluginEnabled, setPermission: setPluginPermission, openDir: openPluginDir, rescan: rescanPlugins, install: installPlugin, remove: removePlugin } = usePlugins()
 const pluginOpenDir = () => {
   void openPluginDir()
 }
 const pluginRescan = async () => {
   await rescanPlugins()
+}
+const pluginInstall = async () => {
+  await installPlugin()
+}
+const pluginRemove = async (id: string) => {
+  await removePlugin(id)
 }
 const pluginToggle = (id: string, v: boolean) => {
   playToggleClick()
@@ -1575,10 +1581,12 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
     <section class="panel">
       <h2>插件</h2>
       <p class="hint">
-        插件为本地手动安装：把插件文件夹放入用户数据目录的 <code>plugins/</code> 下，然后点「重新扫描」。
-        每个插件可独立启用 / 停用，权限由你全权勾选；未授权的调用会在运行时被拦截。
+        插件为本地扩展：可注入样式、执行脚本并申请数据权限。点「添加插件」选择含
+        <code>manifest.json</code> 的插件文件夹即可安装；每个插件可独立启用 / 停用，
+        权限由你全权勾选，未授权的调用会在运行时被拦截。
       </p>
       <div class="row" style="margin-top: 10px">
+        <button class="btn btn--primary" type="button" @click="pluginInstall">添加插件…</button>
         <button class="btn btn--ghost" type="button" @click="pluginOpenDir">打开插件目录</button>
         <button class="btn btn--ghost" type="button" @click="pluginRescan">重新扫描</button>
       </div>
@@ -1590,7 +1598,10 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
               <b>{{ p.name }}</b>
               <span class="plugin-version">v{{ p.version }}</span>
             </div>
-            <ToggleSwitch :model-value="p.enabled" @update:model-value="(v: boolean) => pluginToggle(p.id, v)" />
+            <div class="plugin-ops">
+              <button class="btn btn--ghost btn--sm danger" type="button" @click="pluginRemove(p.id)">删除</button>
+              <ToggleSwitch :model-value="p.enabled" @update:model-value="(v: boolean) => pluginToggle(p.id, v)" />
+            </div>
           </div>
           <p v-if="p.description" class="plugin-desc">{{ p.description }}</p>
           <div class="plugin-perms">
@@ -1608,7 +1619,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
           </div>
         </div>
       </div>
-      <p v-else class="plugin-empty">尚未安装插件。把插件目录放入 <code>plugins/</code> 后点击「重新扫描」。</p>
+      <p v-else class="plugin-empty">尚未安装插件。点「添加插件」选择插件文件夹，或手动放入 <code>plugins/</code> 后「重新扫描」。</p>
       <p class="hint" style="margin-top: 10px">
         开启「样式注入 / 脚本执行」即可让插件生效；数据类权限（读取收藏 / 读取作品 / 读写设置 / 插件存储）
         仅在你需要时勾选授予，撤销后立即失效。
@@ -2625,6 +2636,22 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+.plugin-ops {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.plugin-ops .btn--sm {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+.plugin-ops .danger {
+  opacity: 0.75;
+}
+.plugin-ops .danger:hover {
+  opacity: 1;
 }
 .plugin-id {
   display: flex;

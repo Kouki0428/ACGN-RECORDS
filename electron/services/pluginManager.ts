@@ -1,7 +1,7 @@
 import electron from 'electron'
 const { app } = electron
-import { join, basename } from 'node:path'
-import { readFileSync, existsSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
+import { readFileSync, existsSync, readdirSync, cpSync, rmSync, mkdirSync } from 'node:fs'
 import { getDb } from './db/connection'
 import type { PluginDescriptor, PluginManifest, PluginPermission } from '../../shared/types'
 
@@ -161,4 +161,53 @@ export async function hasPermission(id: string, permission: PluginPermission): P
 /** 插件目录名（供打开目录使用） */
 export function openPluginDirPath(): string {
   return pluginDir()
+}
+
+/** 读取插件目录里的 manifest（无/非法返回 null），用于安装前校验 */
+export function readPluginManifest(dir: string): PluginManifest | null {
+  try {
+    return JSON.parse(readFileSync(join(dir, 'manifest.json'), 'utf8')) as PluginManifest
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 安装插件：把源目录复制到 userData/plugins/<id>/。
+ * 要求源目录含合法 manifest，且源目录名 == manifest.id（与扫描规则一致），否则返回错误。
+ */
+export async function installPlugin(srcDir: string): Promise<{ ok: boolean; error?: string }> {
+  if (!srcDir || typeof srcDir !== 'string') return { ok: false, error: 'invalid-path' }
+  const manifest = readPluginManifest(srcDir)
+  if (!manifest?.id) return { ok: false, error: 'manifest 缺失或非法（需含 id）' }
+  const id = manifest.id
+  const destDir = join(pluginDir(), id)
+  try {
+    mkdirSync(pluginDir(), { recursive: true })
+    if (existsSync(destDir)) return { ok: false, error: `插件「${id}」已存在，请先删除后再安装` }
+    cpSync(srcDir, destDir, { recursive: true })
+  } catch (e) {
+    return { ok: false, error: `安装失败：${String(e)}` }
+  }
+  return { ok: true }
+}
+
+/** 删除插件：移除目录 + 清理 setting 状态 */
+export async function removePlugin(id: string): Promise<{ ok: boolean; error?: string }> {
+  if (!id || typeof id !== 'string') return { ok: false, error: 'invalid-id' }
+  const dir = join(pluginDir(), id)
+  if (!existsSync(dir)) return { ok: false, error: '插件不存在' }
+  try {
+    rmSync(dir, { recursive: true, force: true })
+  } catch (e) {
+    return { ok: false, error: `删除失败：${String(e)}` }
+  }
+  try {
+    const db = await getDb()
+    db.prepare('DELETE FROM settings WHERE key = ?').run(`plugin:${id}:enabled`)
+    db.prepare('DELETE FROM settings WHERE key = ?').run(`plugin:${id}:perms`)
+  } catch {
+    /* 状态清理失败不阻塞删除 */
+  }
+  return { ok: true }
 }

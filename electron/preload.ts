@@ -318,7 +318,11 @@ const api: AcgnApi = {
     call: (id: string, method: string, args: unknown[]) =>
       ipcRenderer.invoke('plugins:call', id, method, args) as Promise<{ ok: boolean; data?: unknown; error?: string }>,
     openDir: () => ipcRenderer.invoke('plugins:openDir') as Promise<void>,
-    rescan: () => ipcRenderer.invoke('plugins:rescan') as Promise<import('../../shared/types').PluginDescriptor[]>
+    rescan: () => ipcRenderer.invoke('plugins:rescan') as Promise<import('../../shared/types').PluginDescriptor[]>,
+    install: () =>
+      ipcRenderer.invoke('plugins:install') as Promise<{ ok: boolean; canceled?: boolean; error?: string; name?: string; version?: string }>,
+    remove: (id: string) =>
+      ipcRenderer.invoke('plugins:remove', id) as Promise<{ ok: boolean; canceled?: boolean; error?: string }>
   }
 }
 

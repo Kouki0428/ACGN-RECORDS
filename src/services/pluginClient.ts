@@ -159,12 +159,24 @@ export function usePlugins() {
     await window.acgn.plugins.rescan()
     await refresh()
   }
+  const install = async () => {
+    const r = await window.acgn.plugins.install()
+    if (r.ok) await refresh()
+    return r
+  }
+  const remove = async (id: string) => {
+    const r = await window.acgn.plugins.remove(id)
+    if (r.ok) await refresh()
+    return r
+  }
   return {
     plugins: descriptors,
     list,
     setEnabled,
     setPermission,
     openDir,
-    rescan
+    rescan,
+    install,
+    remove
   }
 }

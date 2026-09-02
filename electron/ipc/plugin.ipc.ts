@@ -1,11 +1,14 @@
 import electron from 'electron'
-const { ipcMain, shell } = electron
+const { ipcMain, shell, dialog, BrowserWindow } = electron
 import {
   scanPlugins,
   setPluginEnabled,
   setPluginPermission,
   hasPermission,
   openPluginDirPath,
+  installPlugin,
+  removePlugin,
+  readPluginManifest,
   PLUGIN_PERMISSIONS
 } from '../services/pluginManager'
 import { existsSync, mkdirSync } from 'node:fs'
@@ -48,6 +51,40 @@ export function registerPluginIpc(): void {
   })
 
   ipcMain.handle('plugins:rescan', async () => scanPlugins(true))
+
+  // 安装插件：选择插件文件夹 → 校验 manifest → 复制到插件目录
+  ipcMain.handle('plugins:install', async () => {
+    const sel = await dialog.showOpenDialog({
+      title: '选择插件文件夹（需含 manifest.json）',
+      properties: ['openDirectory']
+    })
+    if (sel.canceled || !sel.filePaths?.length) return { ok: false, canceled: true }
+    const src = sel.filePaths[0]
+    const manifest = readPluginManifest(src)
+    if (!manifest?.id) return { ok: false, error: '所选文件夹缺少合法的 manifest.json（需包含 id 字段）' }
+    const r = await installPlugin(src)
+    if (r.ok) return { ok: true, name: manifest.name ?? manifest.id, version: manifest.version ?? '0.0.0' }
+    return r
+  })
+
+  // 删除插件：确认后移除目录 + 清理状态
+  ipcMain.handle('plugins:remove', async (event, id: string) => {
+    if (typeof id !== 'string') return { ok: false, error: 'invalid-id' }
+    const win = BrowserWindow.fromWebContents(event.sender) ?? undefined
+    const confirm = await dialog.showMessageBox(win as never, {
+      type: 'warning',
+      title: '删除插件',
+      message: `确定删除插件「${id}」吗？`,
+      detail: '该插件的文件与权限设置将被移除，此操作不可撤销。',
+      buttons: ['取消', '删除'],
+      cancelId: 0,
+      defaultId: 1
+    })
+    if (confirm.response !== 1) return { ok: false, canceled: true }
+    const r = await removePlugin(id)
+    if (r.ok) return { ok: true }
+    return r
+  })
 }
 
 // 方法名 → 所需权限的映射（未列出的方法视为内置 util，仅需 plugin 存在）

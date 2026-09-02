@@ -1231,6 +1231,10 @@ export interface AcgnApi {
     openDir: () => Promise<void>
     /** 重新扫描插件目录（新增/删除插件后刷新清单） */
     rescan: () => Promise<PluginDescriptor[]>
+    /** 打开目录选择器安装插件（复制到插件目录）；canceled=用户取消 */
+    install: () => Promise<{ ok: boolean; canceled?: boolean; error?: string; name?: string; version?: string }>
+    /** 删除插件（移除目录 + 清理状态）；canceled=用户取消 */
+    remove: (id: string) => Promise<{ ok: boolean; canceled?: boolean; error?: string }>
   }
 }
 
