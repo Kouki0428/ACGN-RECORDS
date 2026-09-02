@@ -186,8 +186,8 @@ function close() {
 }
 /* 分类标签选中态保持强调色高亮（不被半透明覆盖） */
 .us-modal.glow-card .us-tab.active {
-  background: var(--accent-2, #5b9dff);
-  border-color: var(--accent-2, #5b9dff);
+  background: var(--accent);
+  border-color: var(--accent);
   color: #fff;
 }
 .us-head {
@@ -246,8 +246,8 @@ function close() {
 }
 .us-tab.active {
   color: #fff;
-  background: var(--accent-2, #5b9dff);
-  border-color: var(--accent-2, #5b9dff);
+  background: var(--accent);
+  border-color: var(--accent);
 }
 .us-cards {
   display: grid;
