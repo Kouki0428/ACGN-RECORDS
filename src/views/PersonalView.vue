@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { apiClient } from '@/services/apiClient'
 import { proxyImg } from '@/utils/imgProxy'
 import { useEntityCard } from '@/composables/useEntityCard'
+import { useUserStatsModal } from '@/composables/useUserStatsModal'
 import { collectionClient } from '@/services/collectionClient'
 import UserStatsModal from '@/components/UserStatsModal.vue'
 import type { TimelineItem, UserStats } from '@shared/types'
@@ -95,7 +96,7 @@ function openSubject(id: number) {
 }
 
 // 统计悬浮窗：懒加载一次本地收藏聚合数据
-const showStats = ref(false)
+const statsModal = useUserStatsModal()
 const userStats = ref<UserStats | null>(null)
 async function openStats() {
   if (!userStats.value) {
@@ -105,7 +106,7 @@ async function openStats() {
       userStats.value = null
     }
   }
-  showStats.value = true
+  statsModal.open(userStats.value)
 }
 
 onMounted(async () => {
@@ -234,7 +235,11 @@ onMounted(async () => {
       </div>
     </section>
 
-    <UserStatsModal :visible="showStats" :stats="userStats" @close="showStats = false" />
+    <UserStatsModal
+      :visible="statsModal.isOpen.value"
+      :stats="statsModal.stats.value"
+      @close="statsModal.close()"
+    />
   </div>
 </template>
 

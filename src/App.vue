@@ -16,6 +16,7 @@ import { useNavHistory } from './composables/useNavHistory'
 import { useSearchOverlay } from './composables/searchOverlay'
 import { useEntityCard } from './composables/useEntityCard'
 import { useCollectionModal } from './composables/useCollectionModal'
+import { useUserStatsModal } from './composables/useUserStatsModal'
 import { useAppHotkeys } from './composables/useAppHotkeys'
 import { installGridNav } from './utils/gridNav'
 import { installClickSound } from './utils/uiSound'
@@ -34,6 +35,8 @@ const entity = useEntityCard()
 const entityOpen = entity.isOpen
 const collection = useCollectionModal()
 const collectionOpen = collection.isOpen
+const statsModal = useUserStatsModal()
+const statsOpen = statsModal.isOpen
 
 // 全局模糊遮罩：搜索 / 实体卡 打开时显示唯一一层 backdrop-filter 模糊。
 // 各悬浮窗自身不再带 backdrop-filter（见各 *-overlay 样式），因此悬浮窗之间
@@ -72,6 +75,11 @@ function onSideDown(e: MouseEvent) {
   // 收藏悬浮窗（无内部历史）：同上，后退关闭自身而非导航背景。
   if (collectionOpen.value) {
     if (e.button === 3) collection.close()
+    return
+  }
+  // 数据统计悬浮窗（无内部历史）：同上，后退关闭自身而非导航背景。
+  if (statsOpen.value) {
+    if (e.button === 3) statsModal.close()
     return
   }
   // 搜索卡片打开（且无实体卡片）：后退关闭搜索卡片（不触碰背后场景）；
