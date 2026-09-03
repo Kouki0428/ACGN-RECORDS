@@ -67,20 +67,9 @@ export function registerPluginIpc(): void {
     return r
   })
 
-  // 删除插件：确认后移除目录 + 清理状态
-  ipcMain.handle('plugins:remove', async (event, id: string) => {
+  // 删除插件：渲染端二次确认后调用，移除目录 + 清理状态
+  ipcMain.handle('plugins:remove', async (_e, id: string) => {
     if (typeof id !== 'string') return { ok: false, error: 'invalid-id' }
-    const win = BrowserWindow.fromWebContents(event.sender) ?? undefined
-    const confirm = await dialog.showMessageBox(win as never, {
-      type: 'warning',
-      title: '删除插件',
-      message: `确定删除插件「${id}」吗？`,
-      detail: '该插件的文件与权限设置将被移除，此操作不可撤销。',
-      buttons: ['取消', '删除'],
-      cancelId: 0,
-      defaultId: 1
-    })
-    if (confirm.response !== 1) return { ok: false, canceled: true }
     const r = await removePlugin(id)
     if (r.ok) return { ok: true }
     return r

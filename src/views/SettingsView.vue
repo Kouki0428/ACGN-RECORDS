@@ -34,6 +34,17 @@ const pluginInstall = async () => {
 const pluginRemove = async (id: string) => {
   await removePlugin(id)
 }
+// 删除插件二次确认（自定义弹窗）：记录待删除项，确认后才真正删除
+const pluginToRemove = ref<{ id: string; name: string } | null>(null)
+const pluginAskRemove = (p: { id: string; name: string }) => {
+  pluginToRemove.value = p
+}
+const pluginConfirmRemove = async () => {
+  const p = pluginToRemove.value
+  if (!p) return
+  await removePlugin(p.id)
+  pluginToRemove.value = null
+}
 const pluginToggle = (id: string, v: boolean) => {
   playToggleClick()
   void setPluginEnabled(id, v)
@@ -1599,7 +1610,7 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
               <span class="plugin-version">v{{ p.version }}</span>
             </div>
             <div class="plugin-ops">
-              <button class="btn btn--ghost btn--sm danger" type="button" @click="pluginRemove(p.id)">删除</button>
+              <button class="btn btn--ghost btn--sm danger" type="button" @click="pluginAskRemove({ id: p.id, name: p.name })">删除</button>
               <ToggleSwitch :model-value="p.enabled" @update:model-value="(v: boolean) => pluginToggle(p.id, v)" />
             </div>
           </div>
@@ -1625,6 +1636,21 @@ const currentGroup = computed(() => GROUPS.find((g) => g.key === props.group) ??
         仅在你需要时勾选授予，撤销后立即失效。
       </p>
     </section>
+
+    <!-- 删除插件二次确认 -->
+    <div v-if="pluginToRemove" class="modal-mask" @click.self="pluginToRemove = null">
+      <div class="modal">
+        <h3>删除插件</h3>
+        <p class="modal-text">
+          确定删除插件 <b>{{ pluginToRemove.name }}</b>（{{ pluginToRemove.id }}）吗？
+          <br />该插件的文件与权限设置将被移除，此操作<strong>不可撤销</strong>。
+        </p>
+        <div class="modal-actions">
+          <button class="btn btn--ghost" @click="pluginToRemove = null">取消</button>
+          <button class="btn btn--ghost danger" @click="pluginConfirmRemove">删除</button>
+        </div>
+      </div>
+    </div>
       </template>
 
       <template v-if="group === 'storage'">
